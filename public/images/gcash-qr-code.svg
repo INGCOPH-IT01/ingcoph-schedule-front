@@ -1,0 +1,78 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="white" stroke="#e0e0e0" stroke-width="1"/>
+  
+  <!-- QR Code Pattern -->
+  <rect x="20" y="20" width="160" height="160" fill="black"/>
+  
+  <!-- Corner squares (position finders) -->
+  <rect x="30" y="30" width="30" height="30" fill="white"/>
+  <rect x="65" y="30" width="30" height="30" fill="white"/>
+  <rect x="100" y="30" width="30" height="30" fill="white"/>
+  <rect x="135" y="30" width="30" height="30" fill="white"/>
+  
+  <rect x="30" y="65" width="30" height="30" fill="white"/>
+  <rect x="65" y="65" width="30" height="30" fill="white"/>
+  <rect x="100" y="65" width="30" height="30" fill="white"/>
+  <rect x="135" y="65" width="30" height="30" fill="white"/>
+  
+  <rect x="30" y="100" width="30" height="30" fill="white"/>
+  <rect x="65" y="100" width="30" height="30" fill="white"/>
+  <rect x="100" y="100" width="30" height="30" fill="white"/>
+  <rect x="135" y="100" width="30" height="30" fill="white"/>
+  
+  <rect x="30" y="135" width="30" height="30" fill="white"/>
+  <rect x="135" y="135" width="30" height="30" fill="white"/>
+  
+  <!-- Random data pattern -->
+  <rect x="40" y="40" width="10" height="10" fill="black"/>
+  <rect x="55" y="40" width="10" height="10" fill="black"/>
+  <rect x="75" y="40" width="10" height="10" fill="black"/>
+  <rect x="90" y="40" width="10" height="10" fill="black"/>
+  <rect x="110" y="40" width="10" height="10" fill="black"/>
+  <rect x="125" y="40" width="10" height="10" fill="black"/>
+  <rect x="145" y="40" width="10" height="10" fill="black"/>
+  
+  <rect x="40" y="55" width="10" height="10" fill="black"/>
+  <rect x="75" y="55" width="10" height="10" fill="black"/>
+  <rect x="90" y="55" width="10" height="10" fill="black"/>
+  <rect x="110" y="55" width="10" height="10" fill="black"/>
+  <rect x="145" y="55" width="10" height="10" fill="black"/>
+  
+  <rect x="40" y="75" width="10" height="10" fill="black"/>
+  <rect x="55" y="75" width="10" height="10" fill="black"/>
+  <rect x="90" y="75" width="10" height="10" fill="black"/>
+  <rect x="110" y="75" width="10" height="10" fill="black"/>
+  <rect x="125" y="75" width="10" height="10" fill="black"/>
+  <rect x="145" y="75" width="10" height="10" fill="black"/>
+  
+  <rect x="40" y="90" width="10" height="10" fill="black"/>
+  <rect x="75" y="90" width="10" height="10" fill="black"/>
+  <rect x="90" y="90" width="10" height="10" fill="black"/>
+  <rect x="125" y="90" width="10" height="10" fill="black"/>
+  <rect x="145" y="90" width="10" height="10" fill="black"/>
+  
+  <rect x="40" y="110" width="10" height="10" fill="black"/>
+  <rect x="55" y="110" width="10" height="10" fill="black"/>
+  <rect x="75" y="110" width="10" height="10" fill="black"/>
+  <rect x="110" y="110" width="10" height="10" fill="black"/>
+  <rect x="125" y="110" width="10" height="10" fill="black"/>
+  <rect x="145" y="110" width="10" height="10" fill="black"/>
+  
+  <rect x="40" y="125" width="10" height="10" fill="black"/>
+  <rect x="75" y="125" width="10" height="10" fill="black"/>
+  <rect x="90" y="125" width="10" height="10" fill="black"/>
+  <rect x="110" y="125" width="10" height="10" fill="black"/>
+  <rect x="145" y="125" width="10" height="10" fill="black"/>
+  
+  <rect x="40" y="145" width="10" height="10" fill="black"/>
+  <rect x="55" y="145" width="10" height="10" fill="black"/>
+  <rect x="75" y="145" width="10" height="10" fill="black"/>
+  <rect x="90" y="145" width="10" height="10" fill="black"/>
+  <rect x="110" y="145" width="10" height="10" fill="black"/>
+  <rect x="125" y="145" width="10" height="10" fill="black"/>
+  
+  <!-- GCash Logo -->
+  <circle cx="100" cy="100" r="15" fill="#00A651"/>
+  <text x="100" y="105" text-anchor="middle" fill="white" font-family="Arial" font-size="8" font-weight="bold">GC</text>
+</svg>

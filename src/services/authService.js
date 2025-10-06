@@ -1,0 +1,102 @@
+import api from './api'
+
+export const authService = {
+  async login(credentials) {
+    try {
+      console.log('Attempting login with credentials:', credentials)
+      const response = await api.post('/login', credentials)
+      console.log('Login response:', response.data)
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.token)
+        return response.data
+      }
+      throw new Error(response.data.message)
+    } catch (error) {
+      console.error('Login error:', error)
+      console.error('Error response:', error.response)
+      
+      // Handle validation errors specifically
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors
+        const errorMessages = Object.values(validationErrors).flat()
+        throw new Error('Validation failed: ' + errorMessages.join(', '))
+      }
+      
+      throw new Error(error.response?.data?.message || 'Login failed')
+    }
+  },
+
+  async register(userData) {
+    try {
+      const response = await api.post('/register', userData)
+      if (response.data.success) {
+        localStorage.setItem('token', response.data.token)
+        return response.data
+      }
+      throw new Error(response.data.message)
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Registration failed')
+    }
+  },
+
+  async logout() {
+    try {
+      await api.post('/logout')
+      localStorage.removeItem('token')
+    } catch (error) {
+      console.error('Logout error:', error)
+      localStorage.removeItem('token')
+    }
+  },
+
+  async getUser() {
+    try {
+      const response = await api.get('/user')
+      return response.data.user
+    } catch (error) {
+      throw new Error('Failed to get user data')
+    }
+  },
+
+  async getCurrentUser() {
+    try {
+      // First check if we have a token
+      if (!this.isAuthenticated()) {
+        return null
+      }
+      
+      // Try to get user data from API
+      const response = await api.get('/user')
+      return response.data.user
+    } catch (error) {
+      console.warn('Failed to get current user:', error)
+      // Return a fallback user object if API fails but token exists
+      if (this.isAuthenticated()) {
+        return { id: 'unknown', name: 'User', role: 'user' }
+      }
+      return null
+    }
+  },
+
+  isAuthenticated() {
+    return !!localStorage.getItem('token')
+  },
+
+  async isAdmin() {
+    try {
+      const user = await this.getUser()
+      return user.role === 'admin'
+    } catch (error) {
+      return false
+    }
+  },
+
+  async getUserRole() {
+    try {
+      const user = await this.getUser()
+      return user.role
+    } catch (error) {
+      return 'user'
+    }
+  }
+}
