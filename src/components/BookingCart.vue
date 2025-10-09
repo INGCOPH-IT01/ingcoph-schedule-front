@@ -1285,6 +1285,9 @@ export default {
         cartItems.value = []
         window.dispatchEvent(new CustomEvent('cart-updated'))
         
+        // Dispatch event to refresh bookings list with updated payment status
+        window.dispatchEvent(new CustomEvent('booking-created'))
+        
         closePaymentDialog()
         emit('checkout-complete')
         emit('close')
