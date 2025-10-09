@@ -2036,10 +2036,20 @@ export default {
           return
         }
         
+        // Filter out cancelled cart items
+        const activeCartItems = transaction.cart_items.filter(item => 
+          item.status !== 'cancelled'
+        )
+        
+        // Skip if no active items
+        if (activeCartItems.length === 0) {
+          return
+        }
+        
         // Group cart items by date and court
         const dateCourtGroups = {}
         
-        transaction.cart_items.forEach(item => {
+        activeCartItems.forEach(item => {
           const dateKey = typeof item.booking_date === 'string' && item.booking_date.includes('T')
             ? item.booking_date.split('T')[0]
             : item.booking_date
@@ -3095,7 +3105,7 @@ export default {
           timerProgressBar: true
         })
         
-        // Refresh in the background after a delay
+        // Refresh in the background after a short delay
         setTimeout(async () => {
           // Dispatch event to refresh other components
           window.dispatchEvent(new CustomEvent('booking-cancelled'))
@@ -3105,7 +3115,7 @@ export default {
           transactions.value = []
           
           await fetchBookings() // Refresh the list
-        }, 500)
+        }, 300)
       } catch (err) {
         console.error('Error cancelling time slots:', err)
         showAlert({
