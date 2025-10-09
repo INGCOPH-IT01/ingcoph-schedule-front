@@ -281,7 +281,6 @@ export default {
         if (user.value) {
           const count = await cartService.getCartCount()
           cartCount.value = count
-          console.log('Cart count updated:', cartCount.value)
         } else {
           cartCount.value = 0
         }

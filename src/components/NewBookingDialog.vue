@@ -835,8 +835,12 @@ export default {
         
         console.log('Cart items added:', cartItems.length)
         
-        // Dispatch custom event to update cart count
+        // Dispatch custom events to update cart count and refresh bookings
         window.dispatchEvent(new CustomEvent('cart-updated'))
+        window.dispatchEvent(new CustomEvent('booking-created'))
+        
+        // Emit booking-created event to refresh bookings list
+        emit('booking-created')
         
         showAlert({
           icon: 'success',
@@ -935,10 +939,15 @@ export default {
         // Dispatch cart updated event
         window.dispatchEvent(new CustomEvent('cart-updated'))
         
-        // Dispatch booking created event globally
+        // Emit booking-created event immediately to refresh the list
+        emit('booking-created')
+        
+        // Dispatch global events immediately
         window.dispatchEvent(new CustomEvent('booking-created'))
-
-        showAlert({
+        window.dispatchEvent(new CustomEvent('cart-updated'))
+        
+        // Show success message (non-blocking for list refresh)
+        await showAlert({
           icon: 'success',
           title: 'Payment Successful!',
           html: `
@@ -948,8 +957,8 @@ export default {
           `,
           confirmButtonText: 'OK'
         })
-
-        emit('booking-created')
+        
+        // Close dialog and reset form after user closes alert
         emit('close')
         resetForm()
       } catch (error) {

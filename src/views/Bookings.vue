@@ -770,7 +770,7 @@
                         {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
                         <span class="ml-2 font-weight-bold">₱{{ parseFloat(item.price).toFixed(2) }}</span>
                       </v-chip>
-                    </div>
+                  </div>
                     <div class="mt-2">
                       <strong>Total Duration:</strong> {{ calculateTotalDuration(selectedBooking.cart_items) }} hours
                     </div>
@@ -778,7 +778,7 @@
                   <div class="detail-item" v-else>
                     <strong>Time:</strong> {{ formatTime(selectedBooking.start_time) }} - {{ formatTime(selectedBooking.end_time) }}
                     <div class="mt-2">
-                      <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours
+                    <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours
                     </div>
                   </div>
                 </div>
@@ -1878,6 +1878,7 @@ export default {
     const cancelling = ref(null)
     const updating = ref(null)
     const newBookingDialog = ref(false)
+    const generateDialogOpen = ref(false)
 
     const user = ref(null)
     const authLoading = ref(true)
@@ -2030,10 +2031,15 @@ export default {
       const flattened = []
       
       transactions.value.forEach(transaction => {
+        // Skip transactions with no cart items
+        if (!transaction.cart_items || transaction.cart_items.length === 0) {
+          return
+        }
+        
         // Group cart items by date and court
         const dateCourtGroups = {}
         
-        transaction.cart_items?.forEach(item => {
+        transaction.cart_items.forEach(item => {
           const dateKey = typeof item.booking_date === 'string' && item.booking_date.includes('T')
             ? item.booking_date.split('T')[0]
             : item.booking_date
@@ -2055,26 +2061,29 @@ export default {
         
         // Create a separate booking for each date/court group
         Object.entries(dateCourtGroups).forEach(([groupKey, group]) => {
-          flattened.push({
-            id: `${transaction.id}_${groupKey}`,
-            transaction_id: transaction.id,
-            booking_date: group.date,
-            court: group.court,
-            cart_items: group.items,
-            price: group.price,
-            user: transaction.user,
-            approval_status: transaction.approval_status,
-            payment_method: transaction.payment_method,
-            payment_status: transaction.payment_status,
-            gcash_reference: transaction.gcash_reference,
-            proof_of_payment: transaction.proof_of_payment,
-            approved_by: transaction.approver,
-            approved_at: transaction.approved_at,
-            rejection_reason: transaction.rejection_reason,
-            qr_code: transaction.qr_code,
-            created_at: transaction.created_at,
-            original_transaction: transaction
-          })
+          // Only add if there are items
+          if (group.items.length > 0) {
+            flattened.push({
+              id: `${transaction.id}_${groupKey}`,
+              transaction_id: transaction.id,
+              booking_date: group.date,
+              court: group.court,
+              cart_items: group.items,
+              price: group.price,
+              user: transaction.user,
+              approval_status: transaction.approval_status,
+              payment_method: transaction.payment_method,
+              payment_status: transaction.payment_status,
+              gcash_reference: transaction.gcash_reference,
+              proof_of_payment: transaction.proof_of_payment,
+              approved_by: transaction.approver,
+              approved_at: transaction.approved_at,
+              rejection_reason: transaction.rejection_reason,
+              qr_code: transaction.qr_code,
+              created_at: transaction.created_at,
+              original_transaction: transaction
+            })
+          }
         })
       })
       
@@ -2279,9 +2288,11 @@ export default {
         loading.value = true
         
         // Fetch cart transactions
+        console.log('🔄 fetchBookings started...')
         try {
           // Add cache-busting parameter to ensure fresh data
           const timestamp = new Date().getTime()
+          console.log('📡 Fetching from API with timestamp:', timestamp)
           const cartResponse = await fetch(`https://bschedule.m4d8q2.com/api/cart-transactions?_=${timestamp}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -2290,8 +2301,11 @@ export default {
             }
           })
           
+          console.log('📡 Response status:', cartResponse.status)
+          
           if (cartResponse.ok) {
             const transactionsData = await cartResponse.json()
+            console.log('📦 Received transactions:', transactionsData.length, transactionsData)
             
             // Store transactions directly
             transactions.value = transactionsData
@@ -3014,15 +3028,32 @@ export default {
       const booking = typeof bookingOrId === 'object' ? bookingOrId : null
       const transactionId = booking?.transaction_id || bookingOrId
       
+      // Get cart items for this specific date and court
+      const cartItemsToDelete = booking?.cart_items || []
+      
+      if (cartItemsToDelete.length === 0) {
+        showAlert({
+          icon: 'error',
+          title: 'Error',
+          text: 'No time slots found to cancel.',
+          confirmButtonColor: '#d33'
+        })
+        return
+      }
+      
       const result = await showAlert({
-        title: 'Cancel Booking?',
-        text: 'Are you sure you want to cancel this booking? This action cannot be undone.',
+        title: 'Cancel Time Slots?',
+        html: `
+          <p>Are you sure you want to cancel these time slots?</p>
+          <p class="text-muted mt-2">${cartItemsToDelete.length} time slot(s) will be cancelled.</p>
+          <p class="text-caption">Other bookings on different dates/times will remain active.</p>
+        `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, cancel booking',
-        cancelButtonText: 'No, keep booking'
+        confirmButtonText: 'Yes, cancel slots',
+        cancelButtonText: 'No, keep them'
       })
 
       if (!result.isConfirmed) return
@@ -3030,42 +3061,57 @@ export default {
       try {
         cancelling.value = transactionId
         
-        // Delete cart transaction (which will cascade delete cart items)
-        const response = await fetch(`https://bschedule.m4d8q2.com/api/cart-transactions/${transactionId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Accept': 'application/json'
+        // Delete only the cart items for this specific date/court
+        let deletedCount = 0
+        for (const item of cartItemsToDelete) {
+          try {
+            const response = await fetch(`https://bschedule.m4d8q2.com/api/cart/${item.id}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Accept': 'application/json'
+              }
+            })
+            
+            if (response.ok) {
+              deletedCount++
+            }
+          } catch (error) {
+            console.error('Error deleting cart item:', item.id, error)
           }
-        })
+        }
 
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to delete booking')
+        if (deletedCount === 0) {
+          throw new Error('Failed to delete any time slots')
         }
         
-        // Dispatch event to refresh other components
-        window.dispatchEvent(new CustomEvent('booking-cancelled'))
-        window.dispatchEvent(new CustomEvent('cart-updated'))
-        
-        await fetchBookings() // Refresh the list
-        
-        // Show success message
+        // Show success message immediately
         showAlert({
           icon: 'success',
-          title: 'Booking Deleted!',
-          text: data.message || 'Your booking has been deleted successfully.',
+          title: 'Time Slots Cancelled!',
+          text: `Successfully cancelled ${deletedCount} time slot(s). Other bookings remain active.`,
           confirmButtonColor: '#1976d2',
-          timer: 3000,
+          timer: 2000,
           timerProgressBar: true
         })
+        
+        // Refresh in the background after a delay
+        setTimeout(async () => {
+          // Dispatch event to refresh other components
+          window.dispatchEvent(new CustomEvent('booking-cancelled'))
+          window.dispatchEvent(new CustomEvent('cart-updated'))
+          
+          // Force refresh by clearing the transactions
+          transactions.value = []
+          
+          await fetchBookings() // Refresh the list
+        }, 500)
       } catch (err) {
-        console.error('Error deleting booking:', err)
+        console.error('Error cancelling time slots:', err)
         showAlert({
           icon: 'error',
           title: 'Cancellation Failed',
-          text: 'Failed to cancel booking: ' + err.message,
+          text: 'Failed to cancel time slots: ' + err.message,
           confirmButtonColor: '#d33'
         })
       } finally {
@@ -3083,14 +3129,20 @@ export default {
     }
 
     const onBookingCreated = async () => {
+      console.log('🎉 onBookingCreated called!')
+      console.log('📊 Current bookings count:', bookings.value.length)
+      
       // Delay to ensure backend has fully processed the transaction
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      console.log('⏳ Delay complete, fetching bookings...')
       
       // Refresh bookings list
       await fetchBookings()
       
-      // Also dispatch global event for other components
-      window.dispatchEvent(new CustomEvent('booking-created'))
+      console.log('✅ Fetch complete! New bookings count:', bookings.value.length)
+      
+      // Dispatch cart-updated event only (booking-created would cause duplicate refresh)
       window.dispatchEvent(new CustomEvent('cart-updated'))
     }
 
@@ -4156,7 +4208,9 @@ export default {
       openBookingDialog,
       closeNewBookingDialog,
       onBookingCreated,
+      fetchBookings,
       newBookingDialog,
+      generateDialogOpen,
       viewBooking,
       downloadQrCode,
       viewDialog,
