@@ -37,7 +37,7 @@
 
         <v-list-item
           prepend-icon="mdi-racquetball"
-          title="Badminton"
+          title="Sports"
           value="sports"
           :to="{ name: 'Sports' }"
           class="excel-nav-item"
@@ -66,6 +66,15 @@
           title="Admin Panel"
           value="admin"
           :to="{ name: 'AdminDashboard' }"
+          class="excel-nav-item"
+        ></v-list-item>
+
+        <v-list-item
+          v-if="isAuthenticated && (isStaff || isAdmin)"
+          prepend-icon="mdi-qrcode-scan"
+          title="Staff Scanner"
+          value="staff"
+          :to="{ name: 'StaffDashboard' }"
           class="excel-nav-item"
         ></v-list-item>
       </v-list>
@@ -109,8 +118,23 @@
 
     <v-app-bar class="excel-app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
-      <v-toolbar-title class="excel-app-title">Badminton Court Booking</v-toolbar-title>
+      <v-toolbar-title class="excel-app-title">Multi-Sport Court Booking</v-toolbar-title>
       <v-spacer></v-spacer>
+      <v-btn
+        v-if="isAuthenticated"
+        icon
+        class="excel-cart-btn mr-2"
+        @click="cartDialogOpen = true"
+      >
+        <v-badge
+          :content="cartCount"
+          :model-value="cartCount > 0"
+          color="error"
+          overlap
+        >
+          <v-icon>mdi-cart</v-icon>
+        </v-badge>
+      </v-btn>
       <!-- <v-btn icon class="excel-notification-btn">
         <v-icon>mdi-bell</v-icon>
       </v-btn>
@@ -125,11 +149,18 @@
       </v-container>
     </v-main>
 
-    <!-- Global Booking Dialog -->
-    <GlobalBookingDialog
+    <!-- New Booking Dialog -->
+    <NewBookingDialog
       :is-open="bookingDialogOpen"
       @close="closeBookingDialog"
-      @saved="handleBookingSaved"
+      @booking-created="handleBookingCreated"
+    />
+
+    <!-- Booking Cart Dialog -->
+    <BookingCart
+      :is-open="cartDialogOpen"
+      @close="cartDialogOpen = false"
+      @checkout-complete="handleCheckoutComplete"
     />
 
     <!-- Floating Action Button for Quick Booking -->
@@ -149,12 +180,15 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from './services/authService'
-import GlobalBookingDialog from './components/GlobalBookingDialog.vue'
+import { cartService } from './services/cartService'
+import NewBookingDialog from './components/NewBookingDialog.vue'
+import BookingCart from './components/BookingCart.vue'
 
 export default {
   name: 'App',
   components: {
-    GlobalBookingDialog
+    NewBookingDialog,
+    BookingCart
   },
   setup() {
     const router = useRouter()
@@ -163,8 +197,11 @@ export default {
     const drawer = ref(true)
     const rail = ref(false)
     const bookingDialogOpen = ref(false)
+    const cartDialogOpen = ref(false)
+    const cartCount = ref(0)
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
+    const isStaff = computed(() => user.value?.role === 'staff')
 
     const checkAuth = async () => {
       try {
@@ -228,16 +265,44 @@ export default {
       bookingDialogOpen.value = false
     }
 
-    const handleBookingSaved = () => {
-      // Optionally refresh data or show notification
-      console.log('Booking saved successfully')
+    const handleBookingCreated = () => {
+      // Update cart count when booking is created (added to cart)
+      updateCartCount()
+      console.log('Booking created successfully')
+    }
+
+    const handleCheckoutComplete = () => {
+      updateCartCount()
+      console.log('Checkout completed successfully')
+    }
+
+    const updateCartCount = async () => {
+      try {
+        if (user.value) {
+          const count = await cartService.getCartCount()
+          cartCount.value = count
+          console.log('Cart count updated:', cartCount.value)
+        } else {
+          cartCount.value = 0
+        }
+      } catch (error) {
+        console.error('Failed to update cart count:', error)
+        cartCount.value = 0
+      }
     }
 
     onMounted(() => {
+      updateCartCount()
+      // Update cart count every 5 seconds
+      setInterval(updateCartCount, 5000)
       checkAuth()
       
       // Listen for custom event from child components
       window.addEventListener('open-booking-dialog', openBookingDialog)
+      window.addEventListener('cart-updated', updateCartCount)
+      window.addEventListener('open-cart', () => {
+        cartDialogOpen.value = true
+      })
       
       // Listen for authentication changes
       window.addEventListener('auth-changed', (event) => {
@@ -260,12 +325,16 @@ export default {
       rail,
       isAuthenticated,
       isAdmin,
+      isStaff,
       bookingDialogOpen,
+      cartDialogOpen,
+      cartCount,
       route,
       logout,
       openBookingDialog,
       closeBookingDialog,
-      handleBookingSaved,
+      handleBookingCreated,
+      handleCheckoutComplete,
       handleCourtsClick,
       handleBookingsClick
     }

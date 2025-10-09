@@ -11,13 +11,13 @@
       <div class="header-content">
         <div class="header-badge">
           <v-icon color="white" size="20" class="mr-2">mdi-racquetball</v-icon>
-          Badminton Facility
+          Multi-Sport Facility
         </div>
         <h1 class="header-title">
-          <span class="title-gradient">Our</span> Badminton Court
+          <span class="title-gradient">Our</span> Sports Courts
         </h1>
         <p class="header-subtitle">
-          Professional badminton facility designed for champions and enthusiasts of all skill levels
+          Professional sports facility designed for champions and enthusiasts of all skill levels
         </p>
       </div>
     </div>
@@ -26,8 +26,8 @@
     <div v-if="loading" class="loading-section">
       <div class="loading-card">
         <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-        <h2 class="loading-title">Loading Court Information...</h2>
-        <p class="loading-text">Please wait while we fetch the badminton court details.</p>
+        <h2 class="loading-title">Loading Sports Information...</h2>
+        <p class="loading-text">Please wait while we fetch the sports court details.</p>
       </div>
     </div>
 
@@ -37,7 +37,7 @@
         <div class="error-icon">
           <v-icon color="error" size="64">mdi-alert-circle</v-icon>
         </div>
-        <h2 class="error-title">Error Loading Court</h2>
+        <h2 class="error-title">Error Loading Sports</h2>
         <p class="error-text">{{ error }}</p>
       </div>
     </div>
@@ -126,9 +126,16 @@ export default {
 
     const getSportIcon = (sportName) => {
       const icons = {
-        'Badminton': '🏸'
+        'Badminton': '🏸',
+        'Tennis': '🎾',
+        'Basketball': '🏀',
+        'Volleyball': '🏐',
+        'Football': '⚽',
+        'Soccer': '⚽',
+        'Table Tennis': '🏓',
+        'Squash': '🎾'
       }
-      return icons[sportName] || '🏸'
+      return icons[sportName] || '🏟️'
     }
 
     const fetchSports = async () => {

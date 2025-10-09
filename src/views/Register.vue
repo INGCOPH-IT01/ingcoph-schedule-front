@@ -70,6 +70,16 @@
                   class="form-field mb-4"
                 ></v-text-field>
 
+                <v-select
+                  v-model="form.role"
+                  :items="roleOptions"
+                  label="Account Type"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-account-cog"
+                  :rules="[v => !!v || 'Please select account type']"
+                  class="form-field mb-4"
+                ></v-select>
+
                 <v-checkbox
                   v-model="form.terms"
                   :rules="[v => !!v || 'You must agree to the terms']"
@@ -139,12 +149,18 @@ export default {
       email: '',
       password: '',
       password_confirmation: '',
+      role: 'user',
       terms: false
     })
     const loading = ref(false)
     const error = ref('')
     const showPassword = ref(false)
     const showPasswordConfirm = ref(false)
+
+    const roleOptions = [
+      { title: 'Player', value: 'user' },
+      { title: 'Staff (Can scan QR codes)', value: 'staff' }
+    ]
 
     const nameRules = [
       v => !!v || 'Name is required',
@@ -197,6 +213,7 @@ export default {
       error,
       showPassword,
       showPasswordConfirm,
+      roleOptions,
       nameRules,
       emailRules,
       passwordRules,

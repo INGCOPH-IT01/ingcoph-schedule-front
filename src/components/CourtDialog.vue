@@ -37,15 +37,29 @@
           </v-col>
           
           <v-col cols="12" md="6">
-            <v-text-field
-              v-model="sportDisplay"
+            <v-select
+              v-model="form.sport_id"
+              :items="sports"
+              item-title="name"
+              item-value="id"
               label="Sport"
               variant="outlined"
-              readonly
-              prepend-inner-icon="mdi-racquetball"
-              hint="Automatically set to Badminton"
-              persistent-hint
-            ></v-text-field>
+              :rules="[v => !!v || 'Sport is required']"
+              required
+            >
+              <template v-slot:prepend-inner>
+                <span class="sport-icon">{{ form.sport_id ? getSportIcon(sports.find(sport => sport.id === form.sport_id)?.name) : '🏟️' }}</span>
+              </template>
+              <template v-slot:item="{ props, item }">
+                <v-list-item v-bind="props">
+                  <template v-slot:prepend>
+                    <span class="sport-icon">{{ getSportIcon(item.raw.name) }}</span>
+                  </template>
+                  <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
+                  <v-list-item-subtitle>{{ item.raw.description }}</v-list-item-subtitle>
+                </v-list-item>
+              </template>
+            </v-select>
           </v-col>
         </v-row>
         
@@ -117,7 +131,7 @@
                         <!-- Image -->
                         <img
                         v-if="image.image_url"
-                          :src="`https://bschedule.m4d8q2.com/storage/${image.image_url}`"
+                          :src="`${image.image_url}`"
                           class="w-100 h-100"
                           style="object-fit: cover; border-radius: 8px;"
                         />
@@ -232,7 +246,7 @@ export default {
   setup(props, { emit }) {
     const loading = ref(false)
     const error = ref('')
-    const sportDisplay = ref('Badminton')
+    const sports = ref([])
     
     const form = ref({
       name: '',
@@ -241,12 +255,36 @@ export default {
       location: '',
       amenities: [],
       is_active: true,
-      images: []
+      images: [],
+      sport_id: null
     })
 
     const previewImages = ref([])
     
     const isEdit = computed(() => !!props.court)
+    
+    const getSportIcon = (sportName) => {
+      const icons = {
+        'Badminton': '🏸',
+        'Tennis': '🎾',
+        'Basketball': '🏀',
+        'Volleyball': '🏐',
+        'Football': '⚽',
+        'Soccer': '⚽',
+        'Table Tennis': '🏓',
+        'Squash': '🎾'
+      }
+      return icons[sportName] || '🏟️'
+    }
+    
+    const fetchSports = async () => {
+      try {
+        sports.value = await courtService.getSports()
+        console.log('Loaded sports:', sports.value) // Debug: see what sports are loaded
+      } catch (err) {
+        console.error('Failed to fetch sports:', err)
+      }
+    }
     
     const resetForm = () => {
       form.value = {
@@ -257,9 +295,12 @@ export default {
         amenities: [],
         is_active: true,
         images: [],
+        sport_id: null, // No default sport - user must select
         trashImages: []
       }
       error.value = ''
+      previewImages.value = []
+      form.value.trashImages = []
     }
     
     const populateForm = () => {
@@ -272,6 +313,7 @@ export default {
           amenities: [...(props.court.amenities || [])],
           is_active: props.court.is_active !== false,
           images: [...([])],
+          sport_id: props.court.sport_id || null,
           trashImages: [...(props.court.trashImages || [])]
         }
         previewImages.value = [...(props.court.images || [])]
@@ -357,13 +399,17 @@ export default {
       }
     })
     
+    onMounted(() => {
+      fetchSports()
+    })
     
     return {
-      sportDisplay,
+      sports,
       form,
       loading,
       error,
       isEdit,
+      getSportIcon,
       handleSubmit,
       closeModal,
       uploadImages,
@@ -377,6 +423,11 @@ export default {
 </script>
 
 <style scoped>
+.sport-icon {
+  font-size: 20px;
+  margin-right: 8px;
+}
+
 /* Modern Sports Court Dialog Theme */
 .court-dialog-card {
   border-radius: 20px !important;

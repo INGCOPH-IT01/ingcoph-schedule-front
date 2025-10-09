@@ -50,5 +50,11 @@ export const bookingService = {
   async rejectBooking(id, reason = '') {
     const response = await api.post(`/admin/bookings/${id}/reject`, { reason })
     return response.data
+  },
+
+  // Staff functions
+  async getApprovedBookings() {
+    const response = await api.get('/staff/bookings/approved')
+    return response.data
   }
 }

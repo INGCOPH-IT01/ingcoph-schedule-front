@@ -121,5 +121,24 @@ export const courtService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to save image')
     }
+  },
+
+  // QR Code methods
+  async validateQrCode(qrCode) {
+    try {
+      const response = await api.post('/bookings/validate-qr', { qr_code: qrCode })
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to validate QR code')
+    }
+  },
+
+  async getQrCode(bookingId) {
+    try {
+      const response = await api.get(`/bookings/${bookingId}/qr-code`)
+      return response.data.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to get QR code')
+    }
   }
 }

@@ -7,6 +7,7 @@ import Courts from '../views/Courts.vue'
 import Bookings from '../views/Bookings.vue'
 import CourtDetail from '../views/CourtDetail.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
+import StaffDashboard from '../views/StaffDashboard.vue'
 import { authService } from '../services/authService'
 
 const routes = [
@@ -54,6 +55,23 @@ const routes = [
       try {
         const isAdmin = await authService.isAdmin()
         if (isAdmin) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
+    path: '/staff',
+    name: 'StaffDashboard',
+    component: StaffDashboard,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const user = await authService.getCurrentUser()
+        if (user && (user.role === 'staff' || user.role === 'admin')) {
           next()
         } else {
           next('/')

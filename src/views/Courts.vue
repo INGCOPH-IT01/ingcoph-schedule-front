@@ -17,7 +17,7 @@
           <span class="title-gradient">{{ isAdmin ? 'Manage' : 'Explore' }}</span> Courts
         </h1>
         <p class="header-subtitle">
-          {{ isAdmin ? 'Manage and organize badminton court facilities with professional precision' : 'Discover and book premium badminton court facilities' }}
+          {{ isAdmin ? 'Manage and organize multi-sport court facilities with professional precision' : 'Discover and book premium multi-sport court facilities' }}
         </p>
         <div v-if="isAdmin" class="header-actions">
           <v-btn
@@ -39,7 +39,7 @@
         <div class="search-section">
           <v-text-field
             v-model="searchQuery"
-            placeholder="Search badminton courts..."
+            placeholder="Search courts..."
             prepend-inner-icon="mdi-magnify"
             variant="outlined"
             density="compact"
@@ -228,12 +228,6 @@ export default {
           court.sport.name.toLowerCase().includes(query)
         )
       }
-
-      // Add sport_name field for the data table (always Badminton)
-      filtered = filtered.map(court => ({
-        ...court,
-        sport_name: 'Badminton' // Always Badminton since system is restricted to badminton only
-      }))
 
       return filtered
     })

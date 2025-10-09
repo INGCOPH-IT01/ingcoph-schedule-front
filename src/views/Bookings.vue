@@ -10,14 +10,14 @@
     <div class="bookings-header">
       <div class="header-content">
         <div class="header-badge">
-          <v-icon color="white" size="20" class="mr-2">mdi-calendar-check</v-icon>
-          Booking Management
+          <v-icon color="white" size="20" class="mr-2">mdi-receipt-text-check</v-icon>
+          Transaction Management
         </div>
         <h1 class="header-title">
-          <span class="title-gradient">My</span> Bookings
+          <span class="title-gradient">My</span> Transactions
         </h1>
         <p class="header-subtitle">
-          Manage your court reservations and recurring schedules with professional precision
+          Track your booking transactions and approval status
         </p>
         <div class="header-actions">
           <v-btn
@@ -70,17 +70,6 @@
           <!-- Enhanced Toolbar -->
           <div class="bookings-toolbar">
             <div class="toolbar-section">
-              <div class="search-section">
-                <v-text-field
-                  v-model="searchQuery"
-                  placeholder="Search bookings..."
-                  prepend-inner-icon="mdi-magnify"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="search-field"
-                ></v-text-field>
-              </div>
               <div class="filters-section">
                 <v-text-field
                   v-model="dateFilter"
@@ -136,8 +125,220 @@
             </div>
           </div>
 
-          <!-- Excel-like Data Table -->
-          <div class="excel-table-container">
+          <!-- Cart Transactions List -->
+          <div class="bookings-cards-container">
+            <v-progress-circular
+              v-if="loading"
+              indeterminate
+              color="primary"
+              size="64"
+              class="loading-spinner"
+            ></v-progress-circular>
+
+            <div v-else-if="transactions.length === 0" class="no-bookings">
+              <v-icon size="80" color="grey-lighten-1">mdi-receipt-text-remove</v-icon>
+              <h3 class="mt-4">No transactions found</h3>
+              <p class="text-grey">Your booking transactions will appear here after checkout</p>
+              <v-btn color="primary" class="mt-4" @click="openBookingDialog">
+                <v-icon start>mdi-plus</v-icon>
+                Create New Booking
+              </v-btn>
+            </div>
+
+            <div v-else class="bookings-grid-container">
+              <!-- All Bookings Cards in Grid -->
+              <div class="bookings-grid">
+                <v-card
+                  v-for="booking in filteredTransactions"
+                  :key="booking.id"
+                  class="booking-card-compact"
+                  :class="{ 
+                    'pending-card': booking.approval_status === 'pending',
+                    'approved-card': booking.approval_status === 'approved',
+                    'rejected-card': booking.approval_status === 'rejected'
+                  }"
+                  elevation="2"
+                >
+                    <!-- Status Banner -->
+                    <div v-if="isBookingExpired(booking)" class="status-banner-compact expired-banner">
+                      <v-icon size="x-small" class="mr-1">mdi-clock-remove</v-icon>
+                      EXPIRED
+                    </div>
+                    <div v-else-if="booking.approval_status === 'pending'" class="status-banner-compact pending-banner">
+                      <v-icon size="x-small" class="mr-1">mdi-clock-alert</v-icon>
+                      PENDING
+                    </div>
+                    <div v-else-if="booking.approval_status === 'approved'" class="status-banner-compact approved-banner">
+                      <v-icon size="x-small" class="mr-1">mdi-check-circle</v-icon>
+                      APPROVED
+                    </div>
+                    <div v-else-if="booking.approval_status === 'rejected'" class="status-banner-compact rejected-banner">
+                      <v-icon size="x-small" class="mr-1">mdi-close-circle</v-icon>
+                      REJECTED
+                    </div>
+
+                    <v-card-text class="pa-3">
+                      <!-- Booking Date Header -->
+                      <div class="booking-date-header">
+                        <v-icon color="primary" size="16" class="mr-1">mdi-calendar</v-icon>
+                        <span class="booking-date-text">
+                          {{ formatDate(booking.booking_date) }}
+                        </span>
+                      </div>
+
+                      <!-- Court Image and Info -->
+                      <div class="booking-court-info-compact">
+                        <CourtImageGallery 
+                          :images="booking.court?.images || []"
+                          :court-name="booking.court?.name || 'Unknown Court'"
+                          size="small"
+                          @image-error="handleImageError"
+                        />
+                        <div class="mt-2">
+                          <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
+                          <v-chip
+                            :color="getSportColor(booking.court?.sport?.name)"
+                            size="x-small"
+                            variant="flat"
+                            class="text-white mt-1"
+                          >
+                            <v-icon start size="x-small">
+                              {{ getSportIcon(booking.court?.sport?.name) }}
+                            </v-icon>
+                            {{ booking.court?.sport?.name || 'Unknown Sport' }}
+                          </v-chip>
+                        </div>
+                      </div>
+
+                      <!-- Booking Details -->
+                      <div class="booking-details-compact">
+                        <!-- Time Slots (Grouped) -->
+                        <div class="detail-row-compact">
+                          <div class="detail-icon-compact time-icon">
+                            <v-icon color="white" size="16">mdi-clock-outline</v-icon>
+                          </div>
+                          <div class="detail-content-compact">
+                            <div class="detail-label-compact">Time Slots</div>
+                            <div class="detail-value-compact">
+                              <div class="time-slots-group">
+                                <div class="time-slot-display">
+                                  {{ getGroupedTimeDisplay(booking.cart_items) }}
+                                </div>
+                                <v-chip size="x-small" color="blue-grey" variant="flat" class="ml-1 text-white">
+                                  {{ booking.cart_items.length }} slot{{ booking.cart_items.length > 1 ? 's' : '' }}
+                                </v-chip>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Price -->
+                        <div class="detail-row-compact">
+                          <div class="detail-icon-compact price-icon">
+                            <v-icon color="white" size="16">mdi-cash</v-icon>
+                          </div>
+                          <div class="detail-content-compact">
+                            <div class="detail-label-compact">Price</div>
+                            <div class="detail-value-compact price-value-compact">
+                              ₱{{ parseFloat(booking.price).toFixed(2) }}
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Booked By -->
+                        <div class="detail-row-compact">
+                          <div class="detail-icon-compact user-icon">
+                            <v-icon color="white" size="16">mdi-account</v-icon>
+                          </div>
+                          <div class="detail-content-compact">
+                            <div class="detail-label-compact">Booked by</div>
+                            <div class="detail-value-compact">{{ booking.user?.name || 'Unknown' }}</div>
+                          </div>
+                        </div>
+
+                        <!-- Payment Status -->
+                        <div class="detail-row-compact">
+                          <div class="detail-icon-compact payment-icon">
+                            <v-icon color="white" size="16">mdi-credit-card-check</v-icon>
+                          </div>
+                          <div class="detail-content-compact">
+                            <div class="detail-label-compact">Payment</div>
+                            <div class="detail-value-compact">
+                              <v-chip 
+                                :color="booking.payment_status === 'paid' ? 'success' : 'warning'" 
+                                size="x-small"
+                                variant="flat"
+                                class="text-white"
+                              >
+                                {{ booking.payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
+                              </v-chip>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Rejection Reason -->
+                        <div v-if="booking.approval_status === 'rejected' && booking.rejection_reason" class="rejection-notice-compact mt-2">
+                          <v-icon color="error" size="16" class="mr-1">mdi-alert-circle</v-icon>
+                          <div class="rejection-text-compact">{{ booking.rejection_reason }}</div>
+                        </div>
+                      </div>
+
+                      <!-- Actions -->
+                      <div class="booking-actions-compact">
+                        <v-btn
+                          v-if="booking.approval_status === 'pending' && booking.payment_status !== 'paid' && !isBookingExpired(booking)"
+                          icon="mdi-pencil"
+                          size="x-small"
+                          variant="tonal"
+                          color="warning"
+                          @click="editBooking(booking)"
+                          title="Edit Booking"
+                        ></v-btn>
+                        <v-btn
+                          v-if="booking.approval_status === 'approved' && booking.qr_code"
+                          icon="mdi-qrcode"
+                          size="x-small"
+                          variant="tonal"
+                          color="success"
+                          @click="viewBooking(booking)"
+                          title="Show QR Code"
+                        ></v-btn>
+                        <v-btn
+                          v-if="booking.approval_status === 'pending'"
+                          icon="mdi-eye"
+                          size="x-small"
+                          variant="tonal"
+                          color="primary"
+                          @click="viewBooking(booking)"
+                          title="View Details"
+                        ></v-btn>
+                        <v-btn
+                          v-if="booking.approval_status === 'rejected'"
+                          icon="mdi-information"
+                          size="x-small"
+                          variant="tonal"
+                          color="error"
+                          @click="viewBooking(booking)"
+                          title="View Rejection Reason"
+                        ></v-btn>
+                        <v-btn
+                          v-if="(booking.approval_status === 'pending' && booking.payment_status !== 'paid') || isBookingExpired(booking)"
+                          icon="mdi-delete"
+                          size="x-small"
+                          variant="tonal"
+                          color="error"
+                          @click="cancelBooking(booking)"
+                          title="Cancel Booking"
+                        ></v-btn>
+                      </div>
+                    </v-card-text>
+                </v-card>
+              </div>
+            </div>
+          </div>
+
+          <!-- Old Data Table (Hidden) -->
+          <div v-if="false" class="excel-table-container">
             <v-data-table
               :headers="headers"
               :items="filteredBookings"
@@ -147,12 +348,21 @@
               no-data-text="No bookings found"
               loading-text="Loading bookings..."
               :item-props="itemProps"
+              show-expand
+              :expanded="expanded"
             >
               <template v-slot:item="{ item }">
                 <tr class="excel-table-row">
                   <td class="excel-cell">
                     <div class="excel-cell-content">
-                      <div class="excel-cell-icon">🏟️</div>
+                      <div class="excel-cell-icon">
+                        <CourtImageGallery 
+                          :images="item.court?.images || []"
+                          :court-name="item.court?.name || 'Unknown Court'"
+                          size="small"
+                          @image-error="handleImageError"
+                        />
+                      </div>
                       <div class="excel-cell-text">
                         <div class="excel-cell-title">{{ item.court?.name || 'Unknown Court' }}</div>
                         <div class="excel-cell-subtitle">{{ item.court?.sport?.name || 'Unknown Sport' }}</div>
@@ -227,6 +437,17 @@
               </div>
             </td>
             <td class="excel-cell">
+              <div class="excel-creator">
+                <div class="excel-creator-content">
+                  <div class="excel-creator-icon">👤</div>
+                  <div class="excel-creator-text">
+                    <div class="excel-creator-name">{{ item.user?.name || 'Unknown User' }}</div>
+                    <div class="excel-creator-email">{{ item.user?.email || '' }}</div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="excel-cell">
               <div v-if="item.status === 'recurring_schedule'" class="excel-price">
                 <span class="excel-price-amount">{{ getRecurringPriceText(item.recurring_schedule_data) }}</span>
               </div>
@@ -244,7 +465,36 @@
             </td>
             <td class="excel-cell">
               <div class="excel-payment-status">
+                <v-tooltip
+                  v-if="item.payment_method === 'gcash' && item.gcash_reference"
+                  location="top"
+                >
+                  <template v-slot:activator="{ props }">
                 <v-chip
+                      v-bind="props"
+                      :color="getPaymentStatusColor(item)"
+                      variant="tonal"
+                      size="small"
+                      class="excel-payment-chip"
+                    >
+                      <v-icon 
+                        :icon="getPaymentStatusIcon(item)" 
+                        size="x-small" 
+                        class="mr-1"
+                      ></v-icon>
+                      {{ getPaymentStatusText(item) }}
+                    </v-chip>
+                  </template>
+                  <div class="payment-tooltip">
+                    <div><strong>GCash Reference:</strong></div>
+                    <div>{{ item.gcash_reference }}</div>
+                    <div v-if="item.paid_at" class="text-caption mt-1">
+                      Paid: {{ formatDate(item.paid_at) }}
+                    </div>
+                  </div>
+                </v-tooltip>
+                <v-chip
+                  v-else
                   :color="getPaymentStatusColor(item)"
                   variant="tonal"
                   size="small"
@@ -337,7 +587,86 @@
                   class="excel-action-btn"
                   @click="viewBooking(item)"
                 ></v-btn>
+                <v-btn
+                  v-if="item.status === 'approved'"
+                  icon="mdi-qrcode"
+                  size="small"
+                  variant="text"
+                  color="success"
+                  class="excel-action-btn"
+                  @click="showQrCode(item)"
+                  title="Show QR Code"
+                ></v-btn>
               </div>
+            </td>
+            <td class="excel-cell">
+              <v-chip
+                v-if="item.cart_transaction?.cart_items && item.cart_transaction.cart_items.length > 0"
+                color="info"
+                variant="tonal"
+                size="small"
+              >
+                <v-icon start size="small">mdi-cart</v-icon>
+                {{ item.cart_transaction.cart_items.length }} item{{ item.cart_transaction.cart_items.length > 1 ? 's' : '' }}
+              </v-chip>
+              <span v-else class="text-grey">—</span>
+            </td>
+          </tr>
+              </template>
+
+              <!-- Expanded Row Template -->
+              <template v-slot:expanded-row="{ columns, item }">
+                <tr>
+                  <td :colspan="columns.length" class="pa-0">
+                    <v-card flat class="ma-2">
+                      <v-card-title class="text-subtitle-1 bg-grey-lighten-4">
+                        <v-icon class="mr-2" color="info">mdi-cart-outline</v-icon>
+                        Cart Items Details ({{ item.cart_transaction?.cart_items?.length || 0 }} items)
+                      </v-card-title>
+                      <v-card-text v-if="item.cart_transaction?.cart_items && item.cart_transaction.cart_items.length > 0" class="pa-4">
+                        <v-table density="compact">
+                          <thead>
+                            <tr>
+                              <th>Court</th>
+                              <th>Date</th>
+                              <th>Start Time</th>
+                              <th>End Time</th>
+                              <th>Duration</th>
+                              <th>Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="cartItem in item.cart_transaction.cart_items" :key="cartItem.id">
+                              <td>
+                                <div class="d-flex align-center">
+                                  <v-icon class="mr-2" size="small" :color="getSportColor(cartItem.court?.sport?.name)">
+                                    {{ getSportIcon(cartItem.court?.sport?.name) }}
+                                  </v-icon>
+                                  {{ cartItem.court?.name || 'N/A' }}
+                                </div>
+                              </td>
+                              <td>{{ formatDate(cartItem.booking_date) }}</td>
+                              <td>{{ cartItem.start_time }}</td>
+                              <td>{{ cartItem.end_time }}</td>
+                              <td>{{ calculateCartItemDuration(cartItem.start_time, cartItem.end_time) }}</td>
+                              <td>
+                                <strong class="text-success">₱{{ parseFloat(cartItem.price).toFixed(2) }}</strong>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-table>
+                        <v-divider class="my-3"></v-divider>
+                        <div class="d-flex justify-end">
+                          <div class="text-subtitle-2">
+                            Total Cart Items: <strong class="text-info">{{ item.cart_transaction.cart_items.length }}</strong>
+                          </div>
+                        </div>
+                      </v-card-text>
+                      <v-card-text v-else class="text-center text-grey pa-4">
+                        <v-icon size="48" color="grey-lighten-1">mdi-cart-off</v-icon>
+                        <div class="mt-2">No cart items associated with this booking</div>
+                      </v-card-text>
+                    </v-card>
             </td>
           </tr>
               </template>
@@ -347,8 +676,8 @@
 
     <!-- Booking Details Dialog -->
     <v-dialog v-model="viewDialog" max-width="600px">
-      <v-card>
-        <v-card-title class="text-h5">
+      <v-card class="booking-details-dialog">
+        <v-card-title class="text-h5 dialog-title">
           <v-icon class="mr-2">mdi-calendar-detail</v-icon>
           Booking Details
         </v-card-title>
@@ -365,6 +694,9 @@
                   <div class="detail-item">
                     <strong>Sport:</strong> {{ selectedBooking.court?.sport?.name || 'Unknown' }}
                   </div>
+                  <div class="detail-item">
+                    <strong>Price:</strong> ₱{{ (parseFloat(selectedBooking.court?.price_per_hour) || 0).toFixed(2) }}/hour
+                  </div>
                 </div>
               </div>
             </v-col>
@@ -373,6 +705,9 @@
               <div class="detail-section">
                 <h4 class="detail-label">Booking Information</h4>
                 <div class="detail-content">
+                  <div class="detail-item">
+                    <strong>User:</strong> {{ selectedBooking.user?.name || 'Unknown' }}
+                  </div>
                   <div class="detail-item">
                     <strong>Status:</strong> 
                     <v-chip
@@ -392,19 +727,59 @@
             </v-col>
           </v-row>
           
+          <!-- Court Images Gallery -->
+          <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0">
+            <v-col cols="12">
+              <div class="detail-section">
+                <h4 class="detail-label">
+                  <v-icon class="mr-2">mdi-image-multiple</v-icon>
+                  Court Images
+                </h4>
+                <div class="detail-content">
+                  <CourtImageGallery 
+                    :images="selectedBooking.court.images"
+                    :court-name="selectedBooking.court.name"
+                    size="large"
+                    @image-error="handleImageError"
+                  />
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+          
           <v-row>
-            <v-col cols="12" md="6">
+            <v-col cols="12">
               <div class="detail-section">
                 <h4 class="detail-label">Date & Time</h4>
                 <div class="detail-content">
                   <div class="detail-item">
-                    <strong>Date:</strong> {{ formatDate(selectedBooking.start_time) }}
+                    <strong>Date:</strong> {{ selectedBooking.booking_date || formatDate(selectedBooking.start_time) }}
                   </div>
-                  <div class="detail-item">
+                  <div class="detail-item" v-if="selectedBooking.cart_items && selectedBooking.cart_items.length > 0">
+                    <strong>Time Slots:</strong>
+                    <div class="time-slots-detail-list mt-2">
+                      <v-chip
+                        v-for="(item, index) in selectedBooking.cart_items"
+                        :key="index"
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        class="mr-2 mb-2"
+                      >
+                        <v-icon start size="small">mdi-clock-outline</v-icon>
+                        {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
+                        <span class="ml-2 font-weight-bold">₱{{ parseFloat(item.price).toFixed(2) }}</span>
+                      </v-chip>
+                    </div>
+                    <div class="mt-2">
+                      <strong>Total Duration:</strong> {{ calculateTotalDuration(selectedBooking.cart_items) }} hours
+                    </div>
+                  </div>
+                  <div class="detail-item" v-else>
                     <strong>Time:</strong> {{ formatTime(selectedBooking.start_time) }} - {{ formatTime(selectedBooking.end_time) }}
-                  </div>
-                  <div class="detail-item">
-                    <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours
+                    <div class="mt-2">
+                      <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours
+                    </div>
                   </div>
                 </div>
               </div>
@@ -412,17 +787,72 @@
             
             <v-col cols="12" md="6">
               <div class="detail-section">
-                <h4 class="detail-label">Status</h4>
+                <h4 class="detail-label">Status & Payment</h4>
                 <div class="detail-content">
                   <div class="detail-item">
+                    <strong>Status:</strong>
                     <v-chip
-                      :color="getStatusColor(selectedBooking.status)"
+                      :color="getStatusColor(selectedBooking.approval_status || selectedBooking.status)"
                       variant="tonal"
                       size="small"
+                      class="ml-2"
                     >
-                      {{ selectedBooking.status }}
+                      {{ selectedBooking.approval_status || selectedBooking.status || 'Pending' }}
                     </v-chip>
                   </div>
+                  <div class="detail-item" v-if="selectedBooking.payment_status">
+                    <strong>Payment:</strong>
+                    <v-chip
+                      :color="selectedBooking.payment_status === 'paid' ? 'success' : 'warning'"
+                      variant="tonal"
+                      size="small"
+                      class="ml-2"
+                    >
+                      {{ selectedBooking.payment_status }}
+                    </v-chip>
+                  </div>
+                  <div class="detail-item" v-if="selectedBooking.total_price">
+                    <strong>Total Amount:</strong>
+                    <span class="ml-2 text-h6 text-success font-weight-bold">
+                      ₱{{ parseFloat(selectedBooking.total_price).toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+          
+          <!-- QR Code Section (Only for Approved Bookings) -->
+          <v-row v-if="selectedBooking.approval_status === 'approved' && selectedBooking.qr_code">
+            <v-col cols="12">
+              <div class="detail-section">
+                <h4 class="detail-label">
+                  <v-icon class="mr-2" color="success">mdi-qrcode</v-icon>
+                  QR Code for Check-in
+                </h4>
+                <div class="detail-content text-center">
+                  <v-alert type="success" variant="tonal" class="mb-4">
+                    <div class="text-body-2">
+                      <strong>Your booking has been approved!</strong><br>
+                      Present this QR code at the venue for check-in.
+                    </div>
+                  </v-alert>
+                  <div class="qr-code-wrapper">
+                    <canvas ref="qrCanvas" class="qr-code-display" width="250" height="250"></canvas>
+                  </div>
+                  <div class="text-caption mt-2 text-grey">
+                    Transaction ID: #{{ selectedBooking.transaction_id || selectedBooking.id }}
+                  </div>
+                  <v-btn
+                    color="primary"
+                    variant="outlined"
+                    prepend-icon="mdi-download"
+                    size="small"
+                    class="mt-3"
+                    @click="downloadQrCode"
+                  >
+                    Download QR Code
+                  </v-btn>
                 </div>
               </div>
             </v-col>
@@ -663,7 +1093,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Edit Booking Dialog - DEPRECATED: Now using GlobalBookingDialog -->
+    <!-- Edit Booking Dialog -->
     <v-dialog :model-value="false" max-width="500px" style="display: none;">
       <v-card>
         <v-card-title class="text-h5">
@@ -1159,7 +1589,7 @@
                     <v-icon class="mr-2">mdi-gift</v-icon>
                     <strong>Free Booking</strong>
                     <span class="free-booking-text">
-                      This is a company-owned badminton court system - all bookings are free!
+                      This is a company-owned multi-sport court system - all bookings are free!
                     </span>
                   </div>
                 </v-alert>
@@ -1260,12 +1690,153 @@
       @update:is-open="recurringViewDialog = $event"
     />
 
-    <!-- Global Booking Dialog for Editing -->
-    <GlobalBookingDialog
-      :is-open="globalEditDialog"
-      :editBooking="editingBooking"
-      @close="closeGlobalEditDialog"
-      @show-snackbar="showSnackbar"
+    <!-- New Booking Dialog with Improved Flow -->
+    <NewBookingDialog
+      :is-open="newBookingDialog"
+      @close="closeNewBookingDialog"
+      @booking-created="onBookingCreated"
+    />
+
+    <!-- Edit Booking Dialog (Cart-style) -->
+    <v-dialog v-model="globalEditDialog" max-width="600px" persistent>
+      <v-card>
+        <v-card-title class="text-h5 pa-4" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white;">
+          <v-icon class="mr-2" color="white">mdi-pencil</v-icon>
+          Edit Booking
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <v-form ref="editForm">
+            <!-- Court Selection -->
+            <v-select
+              v-model="editItem.court_id"
+              :items="courts"
+              item-title="name"
+              item-value="id"
+              label="Court"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-stadium"
+              class="mb-4"
+              :rules="[v => !!v || 'Court is required']"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item v-bind="props">
+                  <template v-slot:prepend>
+                    <v-icon :color="getSportColor(item.raw.sport?.name)">
+                      {{ getSportIcon(item.raw.sport?.name) }}
+                    </v-icon>
+                  </template>
+                  <template v-slot:subtitle>
+                    {{ item.raw.sport?.name }} • ₱{{ item.raw.price_per_hour }}/hr
+                  </template>
+                </v-list-item>
+              </template>
+            </v-select>
+
+            <!-- Date Selection -->
+            <v-text-field
+              v-model="editItem.booking_date"
+              type="date"
+              label="Date"
+              variant="outlined"
+              density="comfortable"
+              prepend-inner-icon="mdi-calendar"
+              class="mb-4"
+              :rules="[v => !!v || 'Date is required']"
+              :min="new Date().toISOString().split('T')[0]"
+              @update:model-value="fetchEditAvailableSlots"
+            ></v-text-field>
+
+            <!-- Available Time Slots -->
+            <div v-if="editItem.court_id && editItem.booking_date">
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="d-flex align-center gap-2">
+                  <h4 class="text-subtitle-1" style="color: #1f2937 !important;">Available Time Slots</h4>
+                  <v-chip v-if="editSelectedSlots.length > 0" color="primary" size="small">
+                    {{ editSelectedSlots.length }} selected
+                  </v-chip>
+                </div>
+                <v-btn
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  @click="fetchEditAvailableSlots"
+                  :loading="loadingSlotsEdit"
+                >
+                  <v-icon start>mdi-refresh</v-icon>
+                  Refresh
+                </v-btn>
+              </div>
+
+              <v-progress-linear v-if="loadingSlotsEdit" indeterminate color="primary" class="mb-3"></v-progress-linear>
+
+              <div v-else-if="editAvailableSlots.length === 0" class="text-center pa-4">
+                <v-icon size="48" color="grey">mdi-calendar-remove</v-icon>
+                <p class="text-grey mt-2">No available slots for this date</p>
+              </div>
+
+              <div v-else class="time-slots-container mb-4">
+                <div class="time-slots-grid">
+                  <v-chip
+                    v-for="slot in editAvailableSlots"
+                    :key="`${slot.start}-${slot.end}`"
+                    :color="isEditSlotSelected(slot) ? 'primary' : (canSelectEditSlot(slot) ? 'success' : 'error')"
+                    :variant="isEditSlotSelected(slot) ? 'elevated' : 'outlined'"
+                    :disabled="!canSelectEditSlot(slot)"
+                    class="time-slot-chip"
+                    @click="selectEditTimeSlot(slot)"
+                  >
+                    <div class="time-slot-content">
+                      <v-icon start size="small">mdi-clock-outline</v-icon>
+                      <span class="time-text">{{ formatTimeSlot(slot.start) }} - {{ formatTimeSlot(slot.end) }}</span>
+                      <span class="price-text">₱{{ slot.price }}</span>
+                    </div>
+                  </v-chip>
+                </div>
+              </div>
+            </div>
+
+            <!-- Price Preview -->
+            <v-alert v-if="editItem.court_id && editItem.start_time && editItem.end_time" type="info" density="compact" class="mt-2">
+              <div class="d-flex align-center justify-space-between">
+                <span>Estimated Price:</span>
+                <strong class="text-h6">₱{{ calculateEditPrice() }}</strong>
+              </div>
+            </v-alert>
+          </v-form>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4">
+          <v-btn variant="text" @click="closeCartEditDialog">
+            Cancel
+          </v-btn>
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            :loading="updatingBooking"
+            @click="saveEditBooking"
+          >
+            <v-icon start>mdi-content-save</v-icon>
+            Save Changes
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- QR Code Display Dialog -->
+    <QrCodeDisplay
+      v-if="qrCodeDialog"
+      :booking="selectedBooking"
+      @close="closeQrCodeDialog"
+    />
+
+    <!-- QR Code Scanner Dialog -->
+    <QrCodeScanner
+      v-if="qrScannerDialog"
+      @close="closeQrScannerDialog"
     />
     </div>
   </div>
@@ -1276,8 +1847,13 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
+import { cartService } from '../services/cartService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
-import GlobalBookingDialog from '../components/GlobalBookingDialog.vue'
+import NewBookingDialog from '../components/NewBookingDialog.vue'
+import QrCodeDisplay from '../components/QrCodeDisplay.vue'
+import QrCodeScanner from '../components/QrCodeScanner.vue'
+import QRCode from 'qrcode'
+import CourtImageGallery from '../components/CourtImageGallery.vue'
 import Swal from 'sweetalert2'
 import { formatPrice, formatNumber } from '../utils/formatters'
 
@@ -1285,18 +1861,23 @@ export default {
   name: 'Bookings',
   components: {
     RecurringScheduleViewDialog,
-    GlobalBookingDialog
+    NewBookingDialog,
+    QrCodeDisplay,
+    QrCodeScanner,
+    CourtImageGallery
   },
   setup() {
     const route = useRoute()
     const bookings = ref([])
-    const searchQuery = ref('')
+    const transactions = ref([])
+    const expandedTransactions = ref([])
     const statusFilter = ref('')
     const dateFilter = ref('')
     const loading = ref(true)
     const error = ref(null)
     const cancelling = ref(null)
     const updating = ref(null)
+    const newBookingDialog = ref(false)
 
     const user = ref(null)
     const authLoading = ref(true)
@@ -1311,16 +1892,20 @@ export default {
     
     // View booking dialog
     const viewDialog = ref(false)
+    const expanded = ref([])
     
     // Recurring schedule view dialog
     const recurringViewDialog = ref(false)
     const selectedRecurringSchedule = ref(null)
     const selectedBooking = ref(null)
+    const qrCanvas = ref(null)
     
     // Edit booking dialog
     const editDialog = ref(false)
     const globalEditDialog = ref(false)
     const editingBooking = ref(null)
+    const qrCodeDialog = ref(false)
+    const qrScannerDialog = ref(false)
     const editForm = ref({
       court_id: '',
       date: '',
@@ -1343,6 +1928,22 @@ export default {
     const availableSlots = ref([])
     const selectedCourt = ref(null)
     const totalPrice = ref(0)
+    
+    // Edit booking dialog state
+    const editItem = ref({
+      id: null,
+      transaction_id: null,
+      court_id: null,
+      booking_date: null,
+      start_time: null,
+      end_time: null,
+      originalItems: []
+    })
+    const editSelectedSlots = ref([]) // For multiple slot selection
+    const editAvailableSlots = ref([])
+    const loadingSlotsEdit = ref(false)
+    const updatingBooking = ref(false)
+    const isInitializingEdit = ref(false) // Flag to prevent watchers during initial load
     
     const durationOptions = [
       { title: '1 hour', value: 1 },
@@ -1388,11 +1989,9 @@ export default {
 
     const statusOptions = [
       { title: 'All Status', value: '' },
-      { title: 'Pending', value: 'pending' },
+      { title: 'Pending Approval', value: 'pending' },
       { title: 'Approved', value: 'approved' },
-      { title: 'Rejected', value: 'rejected' },
-      { title: 'Cancelled', value: 'cancelled' },
-      { title: 'Completed', value: 'completed' }
+      { title: 'Rejected', value: 'rejected' }
     ]
 
 
@@ -1405,13 +2004,16 @@ export default {
     })
 
     const headers = [
-      { title: 'Court', key: 'court_name', sortable: true, width: '20%' },
-      { title: 'Date & Time', key: 'start_time', sortable: true, width: '20%' },
-      { title: 'Duration', key: 'duration', sortable: false, width: '12%' },
-      { title: 'Total Price', key: 'total_price', sortable: true, width: '12%' },
-      { title: 'Payment', key: 'payment_status', sortable: true, width: '12%' },
-      { title: 'Status', key: 'status', sortable: true, width: '12%' },
-      { title: 'Actions', key: 'actions', sortable: false, width: '12%' }
+      { title: '', key: 'data-table-expand', width: '3%' },
+      { title: 'Court & Sport', key: 'court_name', sortable: true, width: '18%' },
+      { title: 'Date & Time', key: 'start_time', sortable: true, width: '16%' },
+      { title: 'Duration', key: 'duration', sortable: false, width: '10%' },
+      { title: 'Booked By', key: 'user_name', sortable: true, width: '13%' },
+      { title: 'Price', key: 'total_price', sortable: true, width: '9%' },
+      { title: 'Payment', key: 'payment_status', sortable: true, width: '11%' },
+      { title: 'Status', key: 'status', sortable: true, width: '8%' },
+      { title: 'Cart Items', key: 'cart_items_count', sortable: true, width: '7%' },
+      { title: 'Actions', key: 'actions', sortable: false, width: '5%' }
     ]
 
     const recurringHeaders = [
@@ -1422,6 +2024,90 @@ export default {
       { title: 'Status', key: 'is_active', sortable: true, width: '10%' },
       { title: 'Actions', key: 'actions', sortable: false, width: '15%' }
     ]
+
+    // Flatten transactions into individual bookings (one card per date/court)
+    const flattenedBookings = computed(() => {
+      const flattened = []
+      
+      transactions.value.forEach(transaction => {
+        // Group cart items by date and court
+        const dateCourtGroups = {}
+        
+        transaction.cart_items?.forEach(item => {
+          const dateKey = typeof item.booking_date === 'string' && item.booking_date.includes('T')
+            ? item.booking_date.split('T')[0]
+            : item.booking_date
+          const courtId = item.court?.id
+          const groupKey = `${dateKey}_${courtId}`
+          
+          if (!dateCourtGroups[groupKey]) {
+            dateCourtGroups[groupKey] = {
+              date: dateKey,
+              court: item.court,
+              items: [],
+              price: 0
+            }
+          }
+          
+          dateCourtGroups[groupKey].items.push(item)
+          dateCourtGroups[groupKey].price += parseFloat(item.price || 0)
+        })
+        
+        // Create a separate booking for each date/court group
+        Object.entries(dateCourtGroups).forEach(([groupKey, group]) => {
+          flattened.push({
+            id: `${transaction.id}_${groupKey}`,
+            transaction_id: transaction.id,
+            booking_date: group.date,
+            court: group.court,
+            cart_items: group.items,
+            price: group.price,
+            user: transaction.user,
+            approval_status: transaction.approval_status,
+            payment_method: transaction.payment_method,
+            payment_status: transaction.payment_status,
+            gcash_reference: transaction.gcash_reference,
+            proof_of_payment: transaction.proof_of_payment,
+            approved_by: transaction.approver,
+            approved_at: transaction.approved_at,
+            rejection_reason: transaction.rejection_reason,
+            qr_code: transaction.qr_code,
+            created_at: transaction.created_at,
+            original_transaction: transaction
+          })
+        })
+      })
+      
+      // Sort by booking date (oldest first)
+      return flattened.sort((a, b) => {
+        const dateA = new Date(a.booking_date)
+        const dateB = new Date(b.booking_date)
+        return dateA - dateB
+      })
+    })
+
+    const filteredTransactions = computed(() => {
+      let filtered = flattenedBookings.value
+
+      // Filter by date
+      if (dateFilter.value) {
+        const filterDate = new Date(dateFilter.value)
+        filtered = filtered.filter(t => {
+          if (t.booking_date) {
+            const bookingDate = new Date(t.booking_date)
+            return bookingDate.toDateString() === filterDate.toDateString()
+          }
+          return false
+        })
+      }
+
+      // Filter by status
+      if (statusFilter.value) {
+        filtered = filtered.filter(t => t.approval_status === statusFilter.value)
+      }
+
+      return filtered
+    })
 
     const filteredBookings = computed(() => {
       let filtered = bookings.value
@@ -1440,18 +2126,148 @@ export default {
         filtered = filtered.filter(booking => booking.status === statusFilter.value)
       }
 
-      // Filter by search query
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(booking =>
-          booking.court?.name?.toLowerCase().includes(query) ||
-          booking.court?.sport?.name?.toLowerCase().includes(query) ||
-          booking.status?.toLowerCase().includes(query)
-        )
-      }
-
       return filtered
     })
+
+    const toggleTransactionDetails = (transactionId) => {
+      const index = expandedTransactions.value.indexOf(transactionId)
+      if (index > -1) {
+        expandedTransactions.value.splice(index, 1)
+      } else {
+        expandedTransactions.value.push(transactionId)
+      }
+    }
+
+    // Group transactions by booking/schedule date
+    const groupedByDay = computed(() => {
+      const groups = {}
+      
+      filteredBookings.value.forEach(booking => {
+        // For transactions, we need to group by the actual booking dates from cart items
+        if (booking.isTransaction && booking.cart_transaction?.cart_items) {
+          // A transaction can have multiple dates, so we need to create entries for each date
+          const dateGroups = {}
+          
+          booking.cart_transaction.cart_items.forEach(item => {
+            let itemDate = item.booking_date
+            if (typeof itemDate === 'string' && itemDate.includes('T')) {
+              itemDate = itemDate.split('T')[0]
+            }
+            
+            if (!dateGroups[itemDate]) {
+              dateGroups[itemDate] = {
+                items: [],
+                price: 0
+              }
+            }
+            dateGroups[itemDate].items.push(item)
+            dateGroups[itemDate].price += parseFloat(item.price || 0)
+          })
+          
+          // Create a booking entry for each date
+          Object.entries(dateGroups).forEach(([dateStr, dateData]) => {
+            const groupDate = new Date(dateStr)
+            
+            if (isNaN(groupDate.getTime())) {
+              console.warn('Invalid date:', dateStr)
+              return
+            }
+            
+            const dateKey = groupDate.toISOString().split('T')[0]
+            
+            if (!groups[dateKey]) {
+              groups[dateKey] = {
+                date: dateKey,
+                dayLabel: formatDayLabel(groupDate),
+                bookings: [],
+                totalPrice: 0,
+                transactionCount: 0
+              }
+            }
+            
+            // Add the transaction with date-specific info
+            groups[dateKey].bookings.push({
+              ...booking,
+              dateSpecificItems: dateData.items,
+              dateSpecificPrice: dateData.price
+            })
+            groups[dateKey].totalPrice += dateData.price
+            groups[dateKey].transactionCount++
+          })
+        } else if (booking.start_time) {
+          // Regular booking - group by start_time
+          const groupDate = new Date(booking.start_time)
+          
+          if (isNaN(groupDate.getTime())) {
+            console.warn('Invalid date for booking:', booking)
+            return
+          }
+          
+          const dateKey = groupDate.toISOString().split('T')[0]
+          
+          if (!groups[dateKey]) {
+            groups[dateKey] = {
+              date: dateKey,
+              dayLabel: formatDayLabel(groupDate),
+              bookings: [],
+              totalPrice: 0,
+              transactionCount: 0
+            }
+          }
+          
+          groups[dateKey].bookings.push(booking)
+          groups[dateKey].totalPrice += parseFloat(booking.total_price || 0)
+        } else {
+          console.warn('Booking missing date:', booking)
+        }
+      })
+      
+      // Convert to array and sort by date (oldest first)
+      const sortedGroups = Object.values(groups)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map(group => ({
+          ...group,
+          totalPrice: group.totalPrice.toFixed(2),
+          // Sort bookings within each group by created_at (oldest first)
+          bookings: group.bookings.sort((a, b) => {
+            const aCreated = new Date(a.created_at || a.cart_transaction?.created_at || 0)
+            const bCreated = new Date(b.created_at || b.cart_transaction?.created_at || 0)
+            return aCreated - bCreated
+          })
+        }))
+      
+      return sortedGroups
+    })
+
+    const formatDayLabel = (date) => {
+      const today = new Date()
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+      
+      if (date.toDateString() === today.toDateString()) {
+        return 'Today, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      } else if (date.toDateString() === tomorrow.toDateString()) {
+        return 'Tomorrow, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      } else {
+        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+      }
+    }
+
+    // Expanded cart items
+    const expandedCartItems = ref([])
+    
+    const toggleCartItems = (bookingId) => {
+      const index = expandedCartItems.value.indexOf(bookingId)
+      if (index > -1) {
+        expandedCartItems.value.splice(index, 1)
+      } else {
+        expandedCartItems.value.push(bookingId)
+      }
+    }
 
 
     const itemProps = (item) => ({
@@ -1462,22 +2278,131 @@ export default {
       try {
         loading.value = true
         
-        const data = await courtService.getBookings()
-        
-        // Process data to ensure total_price is a number
-        bookings.value = (data || []).map(booking => ({
-          ...booking,
-          total_price: parseFloat(booking.total_price) || 0
-        }))
+        // Fetch cart transactions
+        try {
+          // Add cache-busting parameter to ensure fresh data
+          const timestamp = new Date().getTime()
+          const cartResponse = await fetch(`http://192.168.10.57:8010/api/cart-transactions?_=${timestamp}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          })
+          
+          if (cartResponse.ok) {
+            const transactionsData = await cartResponse.json()
+            
+            // Store transactions directly
+            transactions.value = transactionsData
+            
+            // Also convert transactions to booking format for backward compatibility
+            const transactionBookings = transactionsData.map(transaction => {
+              // Get earliest start time and latest end time from cart items
+              let earliestStart = null
+              let latestEnd = null
+              let bookingDate = null
+              
+              transaction.cart_items.forEach(item => {
+                const itemDate = typeof item.booking_date === 'string' && item.booking_date.includes('T') 
+                  ? item.booking_date.split('T')[0] 
+                  : item.booking_date
+                
+                if (!bookingDate) bookingDate = itemDate
+                
+                const startTime = `${itemDate} ${item.start_time}`
+                const endTime = `${itemDate} ${item.end_time}`
+                
+                if (!earliestStart || startTime < earliestStart) earliestStart = startTime
+                if (!latestEnd || endTime > latestEnd) latestEnd = endTime
+              })
+              
+              return {
+                id: `transaction_${transaction.id}`,
+                transaction_id: transaction.id,
+                isTransaction: true,
+                user: transaction.user,
+                court: transaction.cart_items[0]?.court || {},
+                start_time: earliestStart,
+                end_time: latestEnd,
+                total_price: parseFloat(transaction.total_price),
+                status: transaction.approval_status, // pending, approved, rejected
+                payment_method: transaction.payment_method,
+                payment_status: transaction.payment_status,
+                gcash_reference: transaction.gcash_reference,
+                proof_of_payment: transaction.proof_of_payment,
+                approval_status: transaction.approval_status,
+                approved_by: transaction.approver,
+                approved_at: transaction.approved_at,
+                rejection_reason: transaction.rejection_reason,
+                qr_code: transaction.qr_code,
+                cart_transaction: transaction,
+                created_at: transaction.created_at
+              }
+            })
+            
+            // Set bookings to cart transactions
+            bookings.value = transactionBookings
+            
+            // Check for expired bookings (unpaid for more than 1 hour)
+            const now = new Date()
+            const expiredBookings = transactionsData.filter(transaction => {
+              if (transaction.payment_status !== 'paid' && transaction.approval_status === 'pending') {
+                const createdAt = new Date(transaction.created_at)
+                const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60)
+                return hoursSinceCreation >= 1
+              }
+              return false
+            })
+            
+            // Show notification if bookings expired (only once per session)
+            if (expiredBookings.length > 0) {
+              const expiredIds = expiredBookings.map(b => b.id).sort().join(',')
+              const lastNotifiedIds = sessionStorage.getItem('expiredBookingsNotified')
+              
+              // Only show if this is a new set of expired bookings
+              if (lastNotifiedIds !== expiredIds) {
+                sessionStorage.setItem('expiredBookingsNotified', expiredIds)
+                
+                showAlert({
+                  icon: 'warning',
+                  title: 'Bookings Expired',
+                  html: `
+                    <p><strong>${expiredBookings.length}</strong> booking${expiredBookings.length > 1 ? 's have' : ' has'} expired due to non-payment.</p>
+                    <p class="text-caption mt-2">Bookings must be paid within 1 hour to remain active.</p>
+                    <p class="text-caption">The time slots have been released for other users.</p>
+                  `,
+                  confirmButtonText: 'OK',
+                  confirmButtonColor: '#1976d2'
+                })
+              }
+            }
+          } else {
+            console.error('❌ Failed to fetch cart items')
+            bookings.value = []
+          }
+        } catch (cartErr) {
+          console.error('❌ Error fetching cart items:', cartErr)
+          bookings.value = []
+        }
       } catch (err) {
-        console.error('Bookings - Error fetching bookings:', err)
-        console.error('Bookings - Error response:', err.response?.data)
-        console.error('Bookings - Error status:', err.response?.status)
+        console.error('❌ Bookings - Error:', err)
         error.value = err.message
         bookings.value = []
       } finally {
         loading.value = false
       }
+    }
+
+    const isBookingExpired = (booking) => {
+      // Check if booking is unpaid and pending
+      if (booking.payment_status !== 'paid' && booking.approval_status === 'pending' && booking.created_at) {
+        const now = new Date()
+        const createdAt = new Date(booking.created_at)
+        const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60)
+        return hoursSinceCreation >= 1
+      }
+      return false
     }
 
     const formatDate = (dateTime) => {
@@ -1487,6 +2412,43 @@ export default {
     const formatTime = (dateTime) => {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
+    
+    const formatTimeSlot = (time) => {
+      if (!time) return ''
+      const [hours, minutes] = time.split(':')
+      const hour = parseInt(hours)
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const hour12 = hour % 12 || 12
+      return `${hour12}:${minutes} ${ampm}`
+    }
+
+    const calculateTotalDuration = (cartItems) => {
+      if (!cartItems || cartItems.length === 0) return 0
+      
+      // Calculate total hours by summing all individual slot durations
+      let totalHours = 0
+      cartItems.forEach(item => {
+        const startTime = item.start_time.split(':')
+        const endTime = item.end_time.split(':')
+        const startHour = parseInt(startTime[0]) + parseInt(startTime[1]) / 60
+        const endHour = parseInt(endTime[0]) + parseInt(endTime[1]) / 60
+        totalHours += (endHour - startHour)
+      })
+      
+      return totalHours.toFixed(1)
+    }
+
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return 'N/A'
+      const date = new Date(dateTime)
+      return date.toLocaleString('en-US', { 
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
 
     const getDuration = (startTime, endTime) => {
       const start = new Date(startTime)
@@ -1495,8 +2457,105 @@ export default {
       return Math.round(diffInHours)
     }
 
+    // Group transaction cart items by date
+    const getTransactionDateGroups = (transaction) => {
+      if (!transaction || !transaction.cart_items) return {}
+      
+      const dateGroups = {}
+      
+      transaction.cart_items.forEach(item => {
+        let itemDate = item.booking_date
+        if (typeof itemDate === 'string' && itemDate.includes('T')) {
+          itemDate = itemDate.split('T')[0]
+        }
+        
+        if (!dateGroups[itemDate]) {
+          dateGroups[itemDate] = {
+            items: [],
+            price: 0
+          }
+        }
+        dateGroups[itemDate].items.push(item)
+        dateGroups[itemDate].price += parseFloat(item.price || 0)
+      })
+      
+      return dateGroups
+    }
+
+    // Group consecutive time slots like in cart (e.g., "7:00 - 9:00" for 7-8 and 8-9)
+    const getGroupedTimeDisplay = (items) => {
+      if (!items || items.length === 0) return ''
+      
+      // Helper function to normalize time format (remove seconds if present)
+      const normalizeTime = (time) => {
+        if (!time) return ''
+        // If time has seconds (HH:MM:SS), remove them
+        if (time.length > 5 && time.split(':').length === 3) {
+          return time.substring(0, 5) // Get HH:MM only
+        }
+        return time
+      }
+      
+      // Sort items by start time
+      const sortedItems = [...items].sort((a, b) => {
+        return a.start_time.localeCompare(b.start_time)
+      })
+      
+      // Group consecutive slots
+      const groups = []
+      let currentGroup = {
+        start: normalizeTime(sortedItems[0].start_time),
+        end: normalizeTime(sortedItems[0].end_time)
+      }
+      
+      for (let i = 1; i < sortedItems.length; i++) {
+        const item = sortedItems[i]
+        const itemStart = normalizeTime(item.start_time)
+        const itemEnd = normalizeTime(item.end_time)
+        
+        // Check if this slot is consecutive (current end = next start)
+        if (currentGroup.end === itemStart) {
+          // Extend the current group
+          currentGroup.end = itemEnd
+        } else {
+          // Save current group and start a new one
+          groups.push(`${currentGroup.start} - ${currentGroup.end}`)
+          currentGroup = {
+            start: itemStart,
+            end: itemEnd
+          }
+        }
+      }
+      
+      // Add the last group
+      groups.push(`${currentGroup.start} - ${currentGroup.end}`)
+      
+      // Return formatted string
+      return groups.join(', ')
+    }
+
+    const calculateCartItemDuration = (startTime, endTime) => {
+      try {
+        const [startHour, startMin] = startTime.split(':').map(Number)
+        const [endHour, endMin] = endTime.split(':').map(Number)
+        const startMinutes = startHour * 60 + startMin
+        const endMinutes = endHour * 60 + endMin
+        const durationMinutes = endMinutes - startMinutes
+        const hours = Math.floor(durationMinutes / 60)
+        const minutes = durationMinutes % 60
+        
+        if (minutes === 0) {
+          return `${hours} hour${hours !== 1 ? 's' : ''}`
+        }
+        return `${hours}h ${minutes}m`
+      } catch (error) {
+        return 'N/A'
+      }
+    }
+
     const getStatusColor = (status) => {
       const colors = {
+        in_cart: 'purple',
         pending: 'warning',
         approved: 'success',
         rejected: 'error',
@@ -1504,6 +2563,47 @@ export default {
         completed: 'info'
       }
       return colors[status] || 'grey'
+    }
+
+    const getStatusIcon = (status) => {
+      const icons = {
+        pending: 'mdi-clock-alert',
+        approved: 'mdi-check-circle',
+        rejected: 'mdi-close-circle'
+      }
+      return icons[status] || 'mdi-help-circle'
+    }
+
+    const getSportIcon = (sportName) => {
+      if (!sportName) return 'mdi-help-circle'
+      const name = sportName.toLowerCase()
+      const icons = {
+        basketball: 'mdi-basketball',
+        badminton: 'mdi-badminton',
+        tennis: 'mdi-tennis',
+        volleyball: 'mdi-volleyball',
+        football: 'mdi-soccer',
+        soccer: 'mdi-soccer',
+        tableTennis: 'mdi-table-tennis',
+        'table tennis': 'mdi-table-tennis'
+      }
+      return icons[name] || 'mdi-run'
+    }
+
+    const getSportColor = (sportName) => {
+      if (!sportName) return 'grey'
+      const name = sportName.toLowerCase()
+      const colors = {
+        basketball: 'orange',
+        badminton: 'green',
+        tennis: 'yellow-darken-2',
+        volleyball: 'blue',
+        football: 'black',
+        soccer: 'black',
+        tableTennis: 'red',
+        'table tennis': 'red'
+      }
+      return colors[name] || 'primary'
     }
 
     const formatRecurrenceType = (type) => {
@@ -1683,6 +2783,16 @@ export default {
     }
 
     const getPaymentStatusColor = (booking) => {
+      // Check for new payment fields
+      if (booking.payment_status === 'paid') {
+        return 'success'
+      }
+      
+      if (booking.payment_status === 'unpaid') {
+        return 'warning'
+      }
+
+      // Legacy payment status check
       const status = getPaymentStatus(booking)
       const colors = {
         complete: 'success',
@@ -1695,18 +2805,44 @@ export default {
     }
 
     const getPaymentStatusText = (booking) => {
+      // Check for new payment fields
+      if (booking.payment_status === 'paid') {
+        if (booking.payment_method === 'gcash') {
+          return 'GCash Paid'
+        }
+        return 'Paid'
+      }
+      
+      if (booking.payment_status === 'unpaid') {
+        return 'Pending Payment'
+      }
+
+      // Legacy payment status check
       const status = getPaymentStatus(booking)
       const texts = {
         complete: 'Complete',
         missing_proof: 'Missing Proof',
         missing_method: 'Missing Method',
         incomplete: 'Incomplete',
-        unknown: 'Unknown'
+        unknown: 'Pending'
       }
-      return texts[status] || 'Unknown'
+      return texts[status] || 'Pending'
     }
 
     const getPaymentStatusIcon = (booking) => {
+      // Check for new payment fields
+      if (booking.payment_status === 'paid') {
+        if (booking.payment_method === 'gcash') {
+          return 'mdi-cellphone-check'
+        }
+        return 'mdi-check-circle'
+      }
+      
+      if (booking.payment_status === 'unpaid') {
+        return 'mdi-clock-outline'
+      }
+
+      // Legacy payment status check
       const status = getPaymentStatus(booking)
       const icons = {
         complete: 'mdi-check-circle',
@@ -1720,7 +2856,6 @@ export default {
 
     // Clear all filters function
     const clearFilters = () => {
-      searchQuery.value = ''
       statusFilter.value = ''
       dateFilter.value = ''
     }
@@ -1796,8 +2931,90 @@ export default {
       }
     }
 
-    const cancelBooking = async (bookingId) => {
-      const result = await Swal.fire({
+    // SweetAlert wrapper with high z-index for dialogs
+    const showAlert = (options) => {
+      return Swal.fire({
+        ...options,
+        customClass: {
+          container: 'swal2-container-high-z'
+        },
+        didOpen: () => {
+          const container = document.querySelector('.swal2-container')
+          if (container) {
+            container.style.zIndex = '99999'
+          }
+          const popup = document.querySelector('.swal2-popup')
+          if (popup) {
+            popup.style.zIndex = '99999'
+          }
+        }
+      })
+    }
+
+    // Open cart dialog
+    const openCart = () => {
+      // Dispatch a custom event to open the cart dialog in App.vue
+      window.dispatchEvent(new CustomEvent('open-cart'))
+    }
+
+    // Remove from cart
+    const removeFromCart = async (booking) => {
+      const result = await showAlert({
+        title: 'Remove from Cart?',
+        text: 'Are you sure you want to remove this item from your cart?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, remove it',
+        cancelButtonText: 'Cancel'
+      })
+
+      if (result.isConfirmed) {
+        try {
+          // Remove all cart items associated with this booking
+          if (booking.cart_transaction?.cart_items) {
+            for (const item of booking.cart_transaction.cart_items) {
+              await fetch(`http://192.168.10.57:8010/api/cart/${item.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                  'Accept': 'application/json'
+                }
+              })
+            }
+          }
+
+          await showAlert({
+            icon: 'success',
+            title: 'Removed!',
+            text: 'Item has been removed from your cart.',
+            timer: 2000,
+            showConfirmButton: false
+          })
+
+          // Refresh the cart
+          fetchBookings()
+          
+          // Update cart count
+          window.dispatchEvent(new CustomEvent('cart-updated'))
+        } catch (error) {
+          console.error('Error removing from cart:', error)
+          await showAlert({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to remove item from cart. Please try again.'
+          })
+        }
+      }
+    }
+
+    const cancelBooking = async (bookingOrId) => {
+      // Handle both booking object and booking ID
+      const booking = typeof bookingOrId === 'object' ? bookingOrId : null
+      const transactionId = booking?.transaction_id || bookingOrId
+      
+      const result = await showAlert({
         title: 'Cancel Booking?',
         text: 'Are you sure you want to cancel this booking? This action cannot be undone.',
         icon: 'warning',
@@ -1811,25 +3028,41 @@ export default {
       if (!result.isConfirmed) return
       
       try {
-        cancelling.value = bookingId
-        await courtService.updateBooking(bookingId, { status: 'cancelled' })
+        cancelling.value = transactionId
+        
+        // Delete cart transaction (which will cascade delete cart items)
+        const response = await fetch(`http://192.168.10.57:8010/api/cart-transactions/${transactionId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to delete booking')
+        }
         
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-cancelled'))
+        window.dispatchEvent(new CustomEvent('cart-updated'))
         
         await fetchBookings() // Refresh the list
         
         // Show success message
-        Swal.fire({
+        showAlert({
           icon: 'success',
-          title: 'Booking Cancelled!',
-          text: 'Your booking has been cancelled successfully.',
+          title: 'Booking Deleted!',
+          text: data.message || 'Your booking has been deleted successfully.',
           confirmButtonColor: '#1976d2',
           timer: 3000,
           timerProgressBar: true
         })
       } catch (err) {
-        Swal.fire({
+        console.error('Error deleting booking:', err)
+        showAlert({
           icon: 'error',
           title: 'Cancellation Failed',
           text: 'Failed to cancel booking: ' + err.message,
@@ -1841,25 +3074,66 @@ export default {
     }
 
     const openBookingDialog = () => {
-      // Emit event to parent (App.vue) to open the global booking dialog
-      window.dispatchEvent(new CustomEvent('open-booking-dialog'))
+      // Open the new booking dialog with improved flow
+      newBookingDialog.value = true
     }
 
-    const viewBooking = (booking) => {
+    const closeNewBookingDialog = () => {
+      newBookingDialog.value = false
+    }
+
+    const onBookingCreated = async () => {
+      // Delay to ensure backend has fully processed the transaction
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Refresh bookings list
+      await fetchBookings()
+      
+      // Also dispatch global event for other components
+      window.dispatchEvent(new CustomEvent('booking-created'))
+      window.dispatchEvent(new CustomEvent('cart-updated'))
+    }
+
+    const viewBooking = async (booking) => {
       selectedBooking.value = booking
       viewDialog.value = true
+      
+      // Generate QR code if booking is approved and has QR data
+      if (booking.approval_status === 'approved' && booking.qr_code) {
+        await nextTick()
+        
+        if (qrCanvas.value) {
+          try {
+            await QRCode.toCanvas(qrCanvas.value, booking.qr_code, {
+              width: 250,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            })
+          } catch (error) {
+            console.error('Failed to generate QR code:', error)
+          }
+        }
+      }
+    }
+
+    const downloadQrCode = () => {
+      if (qrCanvas.value) {
+        const url = qrCanvas.value.toDataURL('image/png')
+        const link = document.createElement('a')
+        link.download = `booking-qr-${selectedBooking.value.transaction_id || selectedBooking.value.id}.png`
+        link.href = url
+        link.click()
+      }
     }
 
     const testEditDialog = () => {
-      console.log('Testing edit dialog...')
       editDialog.value = true
-      console.log('Edit dialog state:', editDialog.value)
     }
 
     const forcePopulateForm = () => {
-      console.log('Force populating form...')
-      console.log('Current editingBooking:', editingBooking.value)
-      
       if (editingBooking.value) {
         // Simple form population
         editForm.court_id = editingBooking.value.court_id || 1
@@ -1876,23 +3150,513 @@ export default {
         editForm.payment_method = editingBooking.value.payment_method || ''
         editForm.gcash_amount = ''
         editForm.proof_of_payment = null
-        
-        console.log('Form force populated:', editForm)
       }
     }
 
 
     const editBooking = async (booking) => {
       try {
-        // Convert Proxy to plain object to avoid reactivity issues
-        const plainBooking = JSON.parse(JSON.stringify(booking))
-        editingBooking.value = plainBooking
+        console.log('🔧 Edit booking clicked:', booking)
+        
+        // Set flag to prevent watchers from triggering
+        isInitializingEdit.value = true
+        
+        // Populate edit form with booking data
+        editItem.value = {
+          id: booking.id,
+          transaction_id: booking.transaction_id,
+          court_id: booking.court?.id,
+          booking_date: booking.booking_date,
+          start_time: booking.cart_items && booking.cart_items.length > 0 
+            ? booking.cart_items[0].start_time 
+            : null,
+          end_time: booking.cart_items && booking.cart_items.length > 0
+            ? booking.cart_items[booking.cart_items.length - 1].end_time
+            : null,
+          originalItems: JSON.parse(JSON.stringify(booking.cart_items || []))
+        }
+        
+        console.log('🔧 Edit item populated:', editItem.value)
+        
         globalEditDialog.value = true
+        
+        // Wait for dialog to render, then load available slots
+        await nextTick()
+        
+        if (editItem.value.court_id && editItem.value.booking_date) {
+          console.log('🔧 Calling fetchEditAvailableSlots...')
+          await fetchEditAvailableSlots()
+          
+          // Mark user's own booked slots as available so they can be deselected
+          if (booking.cart_items && booking.cart_items.length > 0) {
+            booking.cart_items.forEach(cartItem => {
+              // Normalize time format (remove seconds if present)
+              const normalizeTime = (time) => {
+                if (!time) return time
+                // If format is HH:MM:SS, convert to HH:MM
+                return time.substring(0, 5)
+              }
+              
+              const normalizedStart = normalizeTime(cartItem.start_time)
+              const normalizedEnd = normalizeTime(cartItem.end_time)
+              
+              const slotIndex = editAvailableSlots.value.findIndex(
+                slot => normalizeTime(slot.start) === normalizedStart && normalizeTime(slot.end) === normalizedEnd
+              )
+              
+              if (slotIndex !== -1) {
+                // Mark own slot as available and ensure price is set
+                const slot = editAvailableSlots.value[slotIndex]
+                console.log('🔍 Before marking - slot.price:', slot.price)
+                console.log('🔍 Before marking - slot keys:', Object.keys(slot))
+                
+                slot.available = true
+                
+                // Recalculate price if missing, invalid, or negative
+                const currentPrice = parseFloat(slot.price)
+                if (!slot.price || isNaN(currentPrice) || currentPrice < 0) {
+                  console.log('⚠️ Price is missing/invalid/negative, recalculating...', currentPrice)
+                  const court = courts.value.find(c => c.id === editItem.value.court_id)
+                  if (court) {
+                    const start = new Date(`2000-01-01 ${slot.start}`)
+                    const end = new Date(`2000-01-01 ${slot.end}`)
+                    const hours = (end - start) / (1000 * 60 * 60)
+                    slot.price = (court.price_per_hour * hours).toFixed(2)
+                    console.log('💰 Recalculated price for own slot:', slot.price)
+                    console.log('💰 Court price_per_hour:', court.price_per_hour)
+                    console.log('💰 Hours:', hours)
+                  } else {
+                    console.error('❌ Court not found for recalculation')
+                  }
+                } else {
+                  console.log('✅ Price already exists:', slot.price)
+                }
+                
+                console.log('🔓 After marking - slot.price:', slot.price)
+                console.log('🔓 Marked own slot as available:', slot)
+              } else {
+                // If slot not in list, add it (shouldn't happen, but just in case)
+                const court = courts.value.find(c => c.id === editItem.value.court_id)
+                if (court) {
+                  const start = new Date(`2000-01-01 ${cartItem.start_time}`)
+                  const end = new Date(`2000-01-01 ${cartItem.end_time}`)
+                  const hours = (end - start) / (1000 * 60 * 60)
+                  
+                  editAvailableSlots.value.push({
+                    start: cartItem.start_time,
+                    end: cartItem.end_time,
+                    available: true,
+                    price: (court.price_per_hour * hours).toFixed(2)
+                  })
+                  
+                  console.log('➕ Added missing own slot:', cartItem.start_time, '-', cartItem.end_time)
+                }
+              }
+            })
+            
+            // Remove duplicates (keep first occurrence)
+            const uniqueSlots = []
+            const seenKeys = new Set()
+            
+            editAvailableSlots.value.forEach(slot => {
+              const key = `${slot.start}-${slot.end}`
+              if (!seenKeys.has(key)) {
+                seenKeys.add(key)
+                uniqueSlots.push(slot)
+              } else {
+                console.log('🗑️ Removed duplicate slot:', slot)
+              }
+            })
+            
+            editAvailableSlots.value = uniqueSlots
+            
+            // Sort all slots by start time
+            editAvailableSlots.value.sort((a, b) => {
+              const timeA = new Date(`2000-01-01 ${a.start}`)
+              const timeB = new Date(`2000-01-01 ${b.start}`)
+              return timeA - timeB
+            })
+          }
+          
+          // Pre-populate selected slots from existing booking cart items
+          if (booking.cart_items && booking.cart_items.length > 0) {
+            editSelectedSlots.value = []
+            
+            // Normalize time format helper
+            const normalizeTime = (time) => {
+              if (!time) return time
+              return time.substring(0, 5) // HH:MM:SS -> HH:MM
+            }
+            
+            // Match cart items with available slots (now they should all be marked as available)
+            booking.cart_items.forEach(cartItem => {
+              const normalizedStart = normalizeTime(cartItem.start_time)
+              const normalizedEnd = normalizeTime(cartItem.end_time)
+              
+              const matchingSlot = editAvailableSlots.value.find(
+                slot => normalizeTime(slot.start) === normalizedStart && normalizeTime(slot.end) === normalizedEnd
+              )
+              
+              if (matchingSlot) {
+                console.log('🔍 Pre-selecting slot, checking price...')
+                console.log('   - matchingSlot.price:', matchingSlot.price)
+                console.log('   - matchingSlot keys:', Object.keys(matchingSlot))
+                
+                editSelectedSlots.value.push(matchingSlot)
+                console.log('✅ Pre-selected slot:', matchingSlot)
+              } else {
+                console.warn('⚠️ Could not find matching slot for:', cartItem, {
+                  looking_for: `${normalizedStart} - ${normalizedEnd}`,
+                  available: editAvailableSlots.value.map(s => `${normalizeTime(s.start)} - ${normalizeTime(s.end)}`)
+                })
+              }
+            })
+            
+            // Sort selected slots by start time
+            editSelectedSlots.value.sort((a, b) => {
+              const timeA = new Date(`2000-01-01 ${a.start}`)
+              const timeB = new Date(`2000-01-01 ${b.start}`)
+              return timeA - timeB
+            })
+            
+            console.log('🔧 Pre-selected slots:', editSelectedSlots.value)
+          }
+        } else {
+          console.warn('🔧 Not fetching slots - missing court_id or booking_date')
+        }
+        
+        // Clear flag after initialization is complete
+        isInitializingEdit.value = false
       } catch (error) {
         console.error('Error in editBooking:', error)
-        showSnackbar('Failed to open edit dialog', 'error')
+        isInitializingEdit.value = false // Clear flag on error too
+        showAlert({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to open edit dialog'
+        })
       }
     }
+    
+    const fetchEditAvailableSlots = async () => {
+      if (!editItem.value.court_id || !editItem.value.booking_date) {
+        console.log('⚠️ Missing court_id or booking_date:', {
+          court_id: editItem.value.court_id,
+          booking_date: editItem.value.booking_date
+        })
+        return
+      }
+      
+      loadingSlotsEdit.value = true
+      const url = `http://192.168.10.57:8010/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`
+      console.log('📡 Fetching available slots from:', url)
+      
+      try {
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json'
+          }
+        })
+        
+        console.log('📡 Response status:', response.status)
+        
+        if (response.ok) {
+          const data = await response.json()
+          console.log('📡 Response data:', data)
+          
+          // API returns data in data.data, not data.slots
+          let slots = data.data || data.slots || []
+          console.log('📡 Raw slots from API:', slots.length, slots)
+          
+          // Deduplicate immediately after fetching
+          const uniqueSlots = []
+          const seenKeys = new Set()
+          
+          slots.forEach(slot => {
+            const key = `${slot.start}-${slot.end}`
+            if (!seenKeys.has(key)) {
+              seenKeys.add(key)
+              uniqueSlots.push(slot)
+            } else {
+              console.log('🗑️ API returned duplicate, removing:', slot)
+            }
+          })
+          
+          editAvailableSlots.value = uniqueSlots
+          console.log('✅ Available slots loaded (deduplicated):', editAvailableSlots.value.length)
+        } else {
+          const errorText = await response.text()
+          console.error('❌ API Error:', response.status, errorText)
+          editAvailableSlots.value = []
+        }
+      } catch (error) {
+        console.error('❌ Error fetching available slots:', error)
+        editAvailableSlots.value = []
+      } finally {
+        loadingSlotsEdit.value = false
+      }
+    }
+    
+    const isEditSlotSelected = (slot) => {
+      return editSelectedSlots.value.some(s => s.start === slot.start && s.end === slot.end)
+    }
+    
+    const isOwnBookedSlot = (slot) => {
+      // Check if this slot is part of the original booking being edited
+      return editItem.value.originalItems.some(
+        item => item.start_time === slot.start && item.end_time === slot.end
+      )
+    }
+    
+    const canSelectEditSlot = (slot) => {
+      // Can select if: available OR it's the user's own booked slot
+      return slot.available || isOwnBookedSlot(slot)
+    }
+    
+    const selectEditTimeSlot = (slot) => {
+      console.log('🖱️ Clicked slot:', JSON.parse(JSON.stringify(slot)))
+      
+      // Allow selection if it's available or the user's own slot
+      if (!canSelectEditSlot(slot)) {
+        console.log('❌ Slot not selectable')
+        return
+      }
+      
+      const index = editSelectedSlots.value.findIndex(s => s.start === slot.start && s.end === slot.end)
+      
+      if (index > -1) {
+        // Deselect if already selected
+        console.log('➖ Deselecting slot at index:', index)
+        editSelectedSlots.value.splice(index, 1)
+      } else {
+        // Validate and ensure price exists before adding
+        console.log('➕ Adding new slot, checking price...')
+        console.log('   - Original slot.price:', slot.price)
+        
+        let validSlot = { ...slot }
+        
+        // If price is missing, invalid, or negative, calculate it
+        const currentPrice = parseFloat(validSlot.price)
+        if (!validSlot.price || isNaN(currentPrice) || currentPrice < 0) {
+          console.log('⚠️ Price missing/invalid/negative, calculating...', currentPrice)
+          const court = courts.value.find(c => c.id === editItem.value.court_id)
+          console.log('   - Court found:', court ? court.id : 'NOT FOUND')
+          
+          if (court) {
+            const start = new Date(`2000-01-01 ${slot.start}`)
+            const end = new Date(`2000-01-01 ${slot.end}`)
+            const hours = (end - start) / (1000 * 60 * 60)
+            validSlot.price = (court.price_per_hour * hours).toFixed(2)
+            console.log('💰 Calculated price for slot:', validSlot.price)
+            console.log('💰 Full valid slot:', JSON.parse(JSON.stringify(validSlot)))
+          } else {
+            console.error('❌ Court not found for price calculation, court_id:', editItem.value.court_id)
+            console.error('❌ Available courts:', courts.value.map(c => c.id))
+            return
+          }
+        } else {
+          console.log('✅ Slot already has valid price:', validSlot.price)
+        }
+        
+        // Add to selection with validated price
+        console.log('➕ Adding slot to selection:', JSON.parse(JSON.stringify(validSlot)))
+        editSelectedSlots.value.push(validSlot)
+      }
+      
+      // Sort slots by start time
+      editSelectedSlots.value.sort((a, b) => {
+        const timeA = new Date(`2000-01-01 ${a.start}`)
+        const timeB = new Date(`2000-01-01 ${b.start}`)
+        return timeA - timeB
+      })
+      
+      // Update start_time and end_time based on selected slots
+      if (editSelectedSlots.value.length > 0) {
+        editItem.value.start_time = editSelectedSlots.value[0].start
+        editItem.value.end_time = editSelectedSlots.value[editSelectedSlots.value.length - 1].end
+      } else {
+        editItem.value.start_time = null
+        editItem.value.end_time = null
+      }
+    }
+    
+    const calculateEditPrice = () => {
+      if (editSelectedSlots.value.length === 0) {
+        return 0
+      }
+      
+      const court = courts.value.find(c => c.id === editItem.value.court_id)
+      if (!court) return 0
+      
+      // Calculate total price from all selected slots
+      const totalPrice = editSelectedSlots.value.reduce((sum, slot) => {
+        return sum + (parseFloat(slot.price) || 0)
+      }, 0)
+      
+      return totalPrice.toFixed(2)
+    }
+    
+    const closeCartEditDialog = () => {
+      globalEditDialog.value = false
+      editItem.value = {
+        id: null,
+        transaction_id: null,
+        court_id: null,
+        booking_date: null,
+        start_time: null,
+        end_time: null,
+        originalItems: []
+      }
+      editSelectedSlots.value = []
+      editAvailableSlots.value = []
+    }
+    
+    const saveEditBooking = async () => {
+      if (!editItem.value.court_id || editSelectedSlots.value.length === 0) {
+        showAlert({
+          icon: 'warning',
+          title: 'Incomplete Data',
+          text: 'Please select a court and at least one time slot'
+        })
+        return
+      }
+      
+      updatingBooking.value = true
+      try {
+        // Delete old cart items (skip if already completed/not found)
+        console.log('🗑️ Deleting old cart items:', editItem.value.originalItems.map(i => i.id))
+        for (const item of editItem.value.originalItems) {
+          try {
+            await cartService.removeFromCart(item.id)
+            console.log('✅ Deleted cart item:', item.id)
+          } catch (deleteError) {
+            // Cart item might already be completed or not found - that's ok, continue
+            console.log('⚠️ Cart item already processed or not found:', item.id)
+          }
+        }
+        
+        // Small delay to ensure backend processes deletions
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
+        // Format booking date to ensure it's in Y-m-d format
+        let bookingDate = editItem.value.booking_date
+        if (bookingDate instanceof Date) {
+          bookingDate = bookingDate.toISOString().split('T')[0]
+        } else if (typeof bookingDate === 'string') {
+          // Extract date part if it's a datetime string
+          bookingDate = bookingDate.split(' ')[0]
+        }
+        
+        // Add new cart items for each selected slot
+        console.log('📋 All selected slots before mapping:', JSON.parse(JSON.stringify(editSelectedSlots.value)))
+        
+        const cartItems = editSelectedSlots.value.map((slot, index) => {
+          console.log(`📍 Processing slot ${index}:`, JSON.parse(JSON.stringify(slot)))
+          console.log(`   - slot.price:`, slot.price)
+          console.log(`   - typeof slot.price:`, typeof slot.price)
+          
+          let price = parseFloat(slot.price)
+          
+          // If price is negative or invalid, recalculate from court
+          if (isNaN(price) || price < 0) {
+            console.warn('⚠️ Invalid price detected, recalculating from court...')
+            const court = courts.value.find(c => c.id === editItem.value.court_id)
+            if (court) {
+              const start = new Date(`2000-01-01 ${slot.start}`)
+              const end = new Date(`2000-01-01 ${slot.end}`)
+              const hours = (end - start) / (1000 * 60 * 60)
+              price = parseFloat((court.price_per_hour * hours).toFixed(2))
+              console.log('💰 Recalculated price:', price, 'from', court.price_per_hour, 'x', hours)
+            } else {
+              console.error('❌ Court not found for price calculation')
+              throw new Error(`Cannot calculate price for slot ${slot.start}-${slot.end}`)
+            }
+          }
+          
+          // Final validation
+          if (isNaN(price) || price < 0) {
+            console.error('❌ Price still invalid after recalculation:', price)
+            throw new Error(`Invalid price for slot ${slot.start}-${slot.end}`)
+          }
+          
+          return {
+            court_id: editItem.value.court_id,
+            booking_date: bookingDate,
+            start_time: slot.start,
+            end_time: slot.end,
+            price: price
+          }
+        })
+        
+        console.log('💾 Saving cart items:', cartItems)
+        console.log('💾 Selected slots:', editSelectedSlots.value)
+        
+        await cartService.addToCart(cartItems)
+        
+        // Close dialog first
+        closeCartEditDialog()
+        
+        // Refresh data
+        await fetchBookings()
+        window.dispatchEvent(new CustomEvent('cart-updated'))
+        
+        // Show success message after dialog is closed
+        await showAlert({
+          icon: 'success',
+          title: 'Success!',
+          text: `Booking updated successfully with ${editSelectedSlots.value.length} time slot(s)`,
+          timer: 2000,
+          showConfirmButton: false
+        })
+      } catch (error) {
+        console.error('Error updating booking:', error)
+        console.error('Validation errors:', error.response?.data?.errors)
+        
+        // Build detailed error message
+        let errorMessage = error.response?.data?.message || 'Failed to update booking'
+        if (error.response?.data?.errors) {
+          const errors = error.response.data.errors
+          const errorDetails = Object.keys(errors).map(key => 
+            `${key}: ${errors[key].join(', ')}`
+          ).join('\n')
+          errorMessage += '\n\n' + errorDetails
+        }
+        
+        showAlert({
+          icon: 'error',
+          title: 'Update Failed',
+          text: errorMessage
+        })
+      } finally {
+        updatingBooking.value = false
+      }
+    }
+    
+    // Watch for court and date changes (but not during initial load)
+    watch(() => editItem.value.court_id, () => {
+      if (isInitializingEdit.value) {
+        console.log('👀 Court changed during init, skipping fetch...')
+        return
+      }
+      if (editItem.value.court_id && editItem.value.booking_date) {
+        console.log('👀 Court changed, fetching slots...')
+        editSelectedSlots.value = [] // Clear selections when court changes
+        fetchEditAvailableSlots()
+      }
+    })
+    
+    watch(() => editItem.value.booking_date, () => {
+      if (isInitializingEdit.value) {
+        console.log('👀 Date changed during init, skipping fetch...')
+        return
+      }
+      if (editItem.value.court_id && editItem.value.booking_date) {
+        console.log('👀 Date changed, fetching slots...')
+        editSelectedSlots.value = [] // Clear selections when date changes
+        fetchEditAvailableSlots()
+      }
+    })
 
     const loadCourts = async () => {
       try {
@@ -2125,6 +3889,25 @@ export default {
       editingBooking.value = null
     }
 
+    // QR Code functions
+    const showQrCode = (booking) => {
+      selectedBooking.value = booking
+      qrCodeDialog.value = true
+    }
+
+    const closeQrCodeDialog = () => {
+      qrCodeDialog.value = false
+      selectedBooking.value = null
+    }
+
+    const openQrScanner = () => {
+      qrScannerDialog.value = true
+    }
+
+    const closeQrScannerDialog = () => {
+      qrScannerDialog.value = false
+    }
+
     const checkAuth = async (retryCount = 0) => {
       try {
         const token = localStorage.getItem('token')
@@ -2196,6 +3979,9 @@ export default {
       console.log('Bookings - Attempting to fetch bookings...')
       await fetchBookings()
       
+      // Load courts for edit dialog
+      await loadCourts()
+      
       authLoading.value = false
       
       // Listen for custom events to refresh bookings
@@ -2245,6 +4031,15 @@ export default {
         show: true,
         message,
         color: messageColor
+      }
+    }
+
+    const handleImageError = (event) => {
+      // Hide the broken image and show fallback icon
+      event.target.style.display = 'none'
+      const fallback = event.target.nextElementSibling
+      if (fallback) {
+        fallback.style.display = 'inline'
       }
     }
 
@@ -2314,11 +4109,19 @@ export default {
 
     return {
       bookings,
-      searchQuery,
+      transactions,
+      flattenedBookings,
+      expandedTransactions,
+      toggleTransactionDetails,
+      filteredTransactions,
       statusFilter,
       dateFilter,
       statusOptions,
       filteredBookings,
+      groupedByDay,
+      expandedCartItems,
+      toggleCartItems,
+      formatDayLabel,
       loading,
       error,
       cancelling,
@@ -2329,10 +4132,21 @@ export default {
       tokenStatus,
       headers,
       itemProps,
+      isBookingExpired,
       formatDate,
       formatTime,
+      formatTimeSlot,
+      calculateTotalDuration,
+      formatDateTime,
       getDuration,
+      getTransactionDateGroups,
+      getGroupedTimeDisplay,
+      calculateCartItemDuration,
+      expanded,
       getStatusColor,
+      getStatusIcon,
+      getSportIcon,
+      getSportColor,
       formatRecurrenceType,
       generateBookings,
       editRecurringSchedule,
@@ -2340,9 +4154,14 @@ export default {
       deleteRecurringSchedule,
       cancelBooking,
       openBookingDialog,
+      closeNewBookingDialog,
+      onBookingCreated,
+      newBookingDialog,
       viewBooking,
+      downloadQrCode,
       viewDialog,
       selectedBooking,
+      qrCanvas,
       recurringViewDialog,
       selectedRecurringSchedule,
       editBooking,
@@ -2370,8 +4189,31 @@ export default {
       updateBooking,
       closeEditDialog,
       closeGlobalEditDialog,
+      // New edit dialog functions
+      editItem,
+      editSelectedSlots,
+      editAvailableSlots,
+      loadingSlotsEdit,
+      updatingBooking,
+      fetchEditAvailableSlots,
+      isEditSlotSelected,
+      isOwnBookedSlot,
+      canSelectEditSlot,
+      selectEditTimeSlot,
+      calculateEditPrice,
+      saveEditBooking,
+      closeCartEditDialog,
+      showQrCode,
+      closeQrCodeDialog,
+      openQrScanner,
+      closeQrScannerDialog,
+      qrCodeDialog,
+      qrScannerDialog,
       snackbar,
       showSnackbar,
+      handleImageError,
+      openCart,
+      removeFromCart,
       // Payment methods
       onPaymentMethodChange,
       onProofOfPaymentChange,
@@ -2603,15 +4445,6 @@ export default {
   flex-wrap: wrap;
 }
 
-.search-section {
-  flex: 1;
-  min-width: 250px;
-}
-
-.search-field {
-  border-radius: 8px !important;
-}
-
 .filters-section {
   display: flex;
   gap: 12px;
@@ -2627,6 +4460,356 @@ export default {
   border-radius: 8px !important;
   font-weight: 600 !important;
   text-transform: none !important;
+}
+
+/* Card-based Bookings Layout */
+.bookings-cards-container {
+  padding: 24px;
+  min-height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-spinner {
+  margin: 100px auto;
+}
+
+.no-bookings {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+/* Bookings Grid Container */
+.bookings-grid-container {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 12px;
+}
+
+/* Compact Grid Layout - No Grouping */
+.bookings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* Mobile First - Single Column */
+@media (max-width: 767px) {
+  .bookings-grid-container {
+    padding: 8px;
+  }
+  
+  .bookings-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* Tablet - 2 Columns */
+@media (min-width: 768px) {
+  .bookings-grid-container {
+    padding: 16px;
+  }
+  
+  .bookings-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+/* Desktop - 3 Columns */
+@media (min-width: 1024px) {
+  .bookings-grid-container {
+    padding: 20px;
+  }
+  
+  .bookings-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Large Desktop - 4 Columns */
+@media (min-width: 1440px) {
+  .bookings-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.booking-card-compact {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px !important;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: white !important;
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.booking-card-compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.pending-card {
+  border-left: 4px solid #f59e0b !important;
+}
+
+.approved-card {
+  border-left: 4px solid #10b981 !important;
+}
+
+.rejected-card {
+  border-left: 4px solid #ef4444 !important;
+}
+
+.status-banner-compact {
+  padding: 6px 12px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.status-banner v-icon,
+.status-banner span {
+  position: relative;
+  z-index: 1;
+}
+
+.approved-banner {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.pending-banner {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.rejected-banner {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.expired-banner {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* Booking Date Header */
+.booking-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 3px solid #3b82f6;
+}
+
+.booking-date-text {
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e40af;
+  letter-spacing: 0.3px;
+}
+
+.booking-court-info-compact {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.court-name-compact {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.time-slots-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.time-slot-display {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.booking-details-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #374151;
+}
+
+.detail-row-compact {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.detail-row-compact:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left-color: #3b82f6;
+}
+
+.detail-icon-compact {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.time-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.user-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.price-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.payment-icon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.approval-icon {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.detail-content-compact {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-label-compact {
+  font-size: 10px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.detail-value-compact {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.price-value-compact {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.rejection-notice-compact {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-radius: 8px;
+  border-left: 4px solid #ef4444;
+  margin-top: 16px;
+}
+
+.rejection-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #991b1b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.rejection-text-compact {
+  font-size: 11px;
+  color: #7f1d1d;
+  line-height: 1.4;
+}
+
+.cart-items-compact {
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.cart-item-row-compact {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cart-item-row-compact:last-child {
+  border-bottom: none;
+}
+
+.booking-actions-compact {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .excel-header {
@@ -2867,6 +5050,72 @@ export default {
   font-size: 12px;
 }
 
+/* Creator Styles */
+.excel-creator {
+  padding: 8px 0;
+}
+
+.excel-creator-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.excel-creator-icon {
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f9ff;
+  border-radius: 6px;
+  color: #0369a1;
+}
+
+.excel-creator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.excel-creator-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 13px;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.excel-creator-email {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Court Image Styles */
+.court-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+.court-icon {
+  font-size: 20px;
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border: 2px solid #e5e7eb;
+}
+
 .excel-datetime {
   display: flex;
   flex-direction: column;
@@ -2945,6 +5194,34 @@ export default {
 }
 
 /* Booking Details Dialog Styles */
+.booking-details-dialog {
+  background: #ffffff !important;
+}
+
+.booking-details-dialog .v-card-text {
+  background: #ffffff !important;
+  color: #374151 !important;
+}
+
+.booking-details-dialog .v-card-text * {
+  color: inherit;
+}
+
+.booking-details-dialog .v-card-text p,
+.booking-details-dialog .v-card-text div,
+.booking-details-dialog .v-card-text span {
+  color: #374151 !important;
+}
+
+.dialog-title {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  color: #ffffff !important;
+}
+
+.dialog-title .v-icon {
+  color: #ffffff !important;
+}
+
 .detail-section {
   margin-bottom: 24px;
 }
@@ -2952,7 +5229,7 @@ export default {
 .detail-label {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1f2937 !important;
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 2px solid #e5e7eb;
@@ -2960,13 +5237,31 @@ export default {
 
 .detail-content {
   padding-left: 8px;
+  color: #374151 !important;
 }
 
 .detail-item {
   margin-bottom: 8px;
   font-size: 14px;
-  color: #374151;
+  color: #374151 !important;
   display: flex;
+  align-items: center;
+}
+
+.detail-item strong {
+  color: #1f2937 !important;
+  font-weight: 600;
+}
+
+.time-slots-detail-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.time-slots-detail-list .v-chip {
+  display: inline-flex;
   align-items: center;
 }
 
@@ -2978,6 +5273,32 @@ export default {
   margin: 0;
   font-style: italic;
   color: #6b7280;
+}
+
+.qr-code-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+.qr-code-display {
+  max-width: 250px;
+  height: auto;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  background: white !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+}
+
+.text-caption {
+  color: #6b7280 !important;
+}
+
+.text-body-2 {
+  color: #374151 !important;
 }
 
 .price-amount {
@@ -3002,6 +5323,18 @@ export default {
   font-size: 12px;
   color: #6b7280;
   font-weight: normal;
+}
+
+/* Payment Tooltip */
+.payment-tooltip {
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.payment-tooltip strong {
+  color: #4ade80;
 }
 
 /* Current Booking Info Styles */
@@ -3043,6 +5376,105 @@ export default {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* Main Container */
+  .bookings-container {
+    padding: 8px !important;
+  }
+  
+  /* Toolbar */
+  .bookings-toolbar {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  
+  .toolbar-section {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  
+  .filters-section {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .filter-field {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  
+  /* Action Buttons */
+  .action-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+  
+  .action-buttons .v-btn {
+    width: 100%;
+  }
+  
+  /* Booking Cards */
+  .booking-card-compact {
+    border-radius: 8px !important;
+  }
+  
+  .booking-card-compact .pa-3 {
+    padding: 12px !important;
+  }
+  
+  /* Court Name */
+  .court-name-compact {
+    font-size: 14px !important;
+  }
+  
+  /* Detail Rows */
+  .detail-row-compact {
+    font-size: 12px !important;
+  }
+  
+  .detail-icon-compact {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  .detail-icon-compact .v-icon {
+    font-size: 14px !important;
+  }
+  
+  .detail-label-compact {
+    font-size: 10px !important;
+  }
+  
+  .detail-value-compact {
+    font-size: 13px !important;
+  }
+  
+  /* Actions */
+  .booking-actions-compact {
+    gap: 4px !important;
+  }
+  
+  .booking-actions-compact .v-btn {
+    min-width: 28px !important;
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  /* Status Banners */
+  .status-banner-compact {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+  
+  /* Court Images */
+  .booking-court-info-compact {
+    gap: 8px;
+  }
+  
+  /* Excel Container */
   .excel-container {
     padding: 12px;
   }
@@ -3066,5 +5498,224 @@ export default {
   .excel-filters {
     justify-content: space-between;
   }
+  
+  /* Auth Container */
+  .auth-container {
+    padding: 24px 16px;
+  }
+  
+  .auth-icon {
+    font-size: 60px !important;
+  }
+  
+  .auth-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .auth-subtitle {
+    font-size: 0.95rem !important;
+  }
+  
+  /* Booking Details Dialog */
+  .booking-details-dialog .v-card {
+    margin: 8px;
+  }
+  
+  .booking-details-dialog .v-card-title {
+    font-size: 1.1rem !important;
+    padding: 12px !important;
+  }
+  
+  .booking-details-dialog .v-card-text {
+    padding: 12px !important;
+  }
+  
+  .detail-section {
+    margin-bottom: 16px !important;
+  }
+  
+  .detail-label {
+    font-size: 14px !important;
+  }
+  
+  .detail-item {
+    font-size: 13px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* Time Slots Detail List */
+  .time-slots-detail-list .v-chip {
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+  }
+  
+  /* QR Code */
+  .qr-code-wrapper canvas {
+    width: 200px !important;
+    height: 200px !important;
+  }
+  
+  /* No Bookings */
+  .no-bookings {
+    padding: 40px 16px !important;
+  }
+  
+  .no-bookings .v-icon {
+    font-size: 60px !important;
+  }
+  
+  .no-bookings h3 {
+    font-size: 1.2rem !important;
+  }
+  
+  .no-bookings p {
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Very Small Mobile Devices */
+@media (max-width: 480px) {
+  .bookings-toolbar {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .booking-card-compact .pa-3 {
+    padding: 8px !important;
+  }
+  
+  .court-name-compact {
+    font-size: 13px !important;
+  }
+  
+  .detail-value-compact {
+    font-size: 12px !important;
+  }
+  
+  .status-banner-compact {
+    font-size: 8px;
+    padding: 3px 6px;
+  }
+  
+  .booking-actions-compact .v-btn {
+    min-width: 24px !important;
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  .booking-actions-compact .v-icon {
+    font-size: 14px !important;
+  }
+}
+
+/* Edit Dialog Styles - Time Slots */
+.time-slots-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.time-slot-chip {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  height: auto !important;
+  padding: 12px 16px !important;
+  border-radius: 10px !important;
+  font-weight: 500;
+}
+
+.time-slot-chip:not([disabled]):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.time-slot-chip[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.time-slot-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.time-text {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.price-text {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* Scrollbar styling */
+.time-slots-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.time-slots-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+
+.time-slots-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.time-slots-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+  
+  .time-slot-chip {
+    padding: 10px 12px !important;
+  }
+  
+  .time-text {
+    font-size: 12px;
+  }
+  
+  .price-text {
+    font-size: 11px;
+  }
+}
+
+/* SweetAlert z-index fix for dialogs */
+:deep(.swal2-container) {
+  z-index: 99999 !important;
+}
+
+:deep(.swal2-popup) {
+  z-index: 99999 !important;
+}
+
+:deep(.swal2-container-high-z) {
+  z-index: 99999 !important;
+}
+
+:deep(.swal2-backdrop-show) {
+  z-index: 99998 !important;
 }
 </style>

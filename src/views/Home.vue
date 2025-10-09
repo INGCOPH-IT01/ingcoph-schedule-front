@@ -12,7 +12,7 @@
             <div class="hero-content">
               <div class="hero-badge">
                 <v-icon color="white" size="24" class="mr-2">mdi-trophy</v-icon>
-                Professional Badminton Courts
+                Professional Multi-Sport Courts
               </div>
               <h1 class="hero-title">
                 <span class="title-gradient">Champion</span> Your Game
@@ -20,7 +20,7 @@
                 <span class="title-accent">Book & Play</span> Today
             </h1>
               <p class="hero-subtitle">
-                Experience world-class badminton facilities with our premium court booking system. 
+                Experience world-class multi-sport facilities with our premium court booking system. 
                 From casual games to competitive training, we've got you covered.
               </p>
               <div class="hero-stats">
@@ -76,7 +76,7 @@
               <span class="title-gradient">Champion</span> Features
             </h2>
             <p class="section-subtitle">
-              Experience the ultimate badminton court booking system designed for champions
+              Experience the ultimate multi-sport court booking system designed for champions
             </p>
         </v-col>
       </v-row>
@@ -112,10 +112,10 @@
               Our Facility
             </div>
             <h2 class="section-title">
-              <span class="title-gradient">Premium</span> Badminton Court
+              <span class="title-gradient">Premium</span> Multi-Sport Courts
             </h2>
             <p class="section-subtitle">
-              Professional-grade facility designed for champions and enthusiasts alike
+              Professional-grade facilities designed for champions and enthusiasts alike
             </p>
         </v-col>
       </v-row>
@@ -147,7 +147,7 @@
                         </div>
                       <h3 class="court-name">Champion Court</h3>
                       <p class="court-description">
-                        Professional-grade badminton facility with premium wooden flooring and championship-level equipment
+                        Professional-grade multi-sport facility with premium flooring and championship-level equipment
                       </p>
                         </div>
                       </v-col>
@@ -214,7 +214,7 @@ export default {
       {
         icon: 'mdi-racquetball',
         title: 'Professional Courts',
-        description: 'World-class badminton facilities with premium wooden flooring and championship-level equipment',
+        description: 'World-class multi-sport facilities with premium flooring and championship-level equipment',
         highlight: 'Tournament Ready',
         color: 'primary'
       },

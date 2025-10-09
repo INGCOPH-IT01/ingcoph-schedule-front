@@ -23,7 +23,7 @@
               <v-text-field
                 v-model="form.title"
                 label="Schedule Title"
-                placeholder="e.g., Weekly Badminton Practice"
+                placeholder="e.g., Weekly Sports Practice"
                 variant="outlined"
                 prepend-inner-icon="mdi-format-title"
                 :rules="[v => !!v || 'Title is required']"

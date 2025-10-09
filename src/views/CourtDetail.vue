@@ -127,7 +127,7 @@
                 <v-card class="mt-4">
                   <v-carousel>
                     <v-carousel-item v-for="image in court.images" :key="image.id">
-                      <img :src="`https://bschedule.m4d8q2.com/storage/${image.image_url}`" class="w-100 h-100" style="object-fit: cover; border-radius: 8px;" />
+                      <img :src="`${image.image_url}`" class="w-100 h-100" style="object-fit: cover; border-radius: 8px;" />
                     </v-carousel-item>
                   </v-carousel>
                 </v-card>

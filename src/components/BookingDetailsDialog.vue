@@ -97,6 +97,26 @@
           </v-col>
         </v-row>
 
+        <!-- Court Images Gallery -->
+        <v-row v-if="booking.court?.images && booking.court.images.length > 0" class="mt-4">
+          <v-col cols="12">
+            <div class="info-section">
+              <h3 class="section-title">
+                <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
+                Court Images
+              </h3>
+              <div class="info-card">
+                <CourtImageGallery 
+                  :images="booking.court.images"
+                  :court-name="booking.court.name"
+                  size="large"
+                  @image-error="handleImageError"
+                />
+              </div>
+            </div>
+          </v-col>
+        </v-row>
+
         <!-- Payment Information -->
         <v-row v-if="booking.payment_method || booking.proof_of_payment" class="mt-4">
           <v-col cols="12">
@@ -268,9 +288,13 @@
 
 <script>
 import { computed } from 'vue'
+import CourtImageGallery from './CourtImageGallery.vue'
 
 export default {
   name: 'BookingDetailsDialog',
+  components: {
+    CourtImageGallery
+  },
   props: {
     isOpen: {
       type: Boolean,
@@ -290,6 +314,15 @@ export default {
         currency: 'PHP',
         minimumFractionDigits: 2
       }).format(price)
+    }
+
+    const handleImageError = (event) => {
+      // Hide the broken image and show fallback icon
+      event.target.style.display = 'none'
+      const fallback = event.target.nextElementSibling
+      if (fallback) {
+        fallback.style.display = 'inline'
+      }
     }
 
     const formatDate = (dateString) => {
@@ -449,6 +482,7 @@ export default {
       formatFrequencyDays,
       getStatusColor,
       getStatusIcon,
+      handleImageError,
       getPaymentStatusColor,
       getPaymentStatusText,
       getPaymentStatusIcon,

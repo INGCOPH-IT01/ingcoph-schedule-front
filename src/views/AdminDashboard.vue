@@ -17,7 +17,7 @@
           <span class="title-gradient">Champion</span> Dashboard
         </h1>
         <p class="header-subtitle">
-          Manage badminton court bookings and oversee the entire system with professional precision
+          Manage multi-sport court bookings and oversee the entire system with professional precision
         </p>
       </div>
     </div>
@@ -191,20 +191,20 @@
         
         <div class="action-card action-card-4">
           <div class="action-icon">
-            <v-icon color="secondary" size="48">mdi-export</v-icon>
+            <v-icon color="warning" size="48">mdi-qrcode-scan</v-icon>
           </div>
           <div class="action-content">
-            <h3 class="action-title">Export Data</h3>
-            <p class="action-description">Export booking data and reports</p>
+            <h3 class="action-title">QR Scanner</h3>
+            <p class="action-description">Scan player QR codes for court check-in</p>
             <v-btn
               class="action-btn"
-              color="secondary"
+              color="warning"
               size="large"
-              @click="exportBookings"
-              prepend-icon="mdi-export"
+              @click="openQrScanner"
+              prepend-icon="mdi-qrcode-scan"
               elevation="4"
             >
-              Export Data
+              Open Scanner
             </v-btn>
           </div>
           <div class="action-glow"></div>
@@ -218,7 +218,7 @@
         <v-card>
           <v-card-title class="text-h5 pa-6 pb-4">
             <v-icon class="mr-2" color="warning">mdi-clock-alert</v-icon>
-            Pending Bookings
+            Pending Transactions
             <v-spacer></v-spacer>
             <v-btn
               color="primary"
@@ -237,7 +237,7 @@
             :items="pendingBookings"
             :loading="loading"
             class="elevation-0"
-            no-data-text="No pending bookings found"
+            no-data-text="No pending transactions found"
           >
             <template v-slot:[`item.user_name`]="{ item }">
               <div class="d-flex align-center">
@@ -252,16 +252,32 @@
             </template>
 
             <template v-slot:[`item.court_name`]="{ item }">
-              <div>
-                <div class="font-weight-medium">{{ item.court.name }}</div>
-                <div class="text-caption text-grey">{{ item.court.sport.name }}</div>
+              <div class="d-flex align-center">
+                <CourtImageGallery 
+                  :images="item.cart_items?.[0]?.court?.images || []"
+                  :court-name="item.court_name"
+                  size="small"
+                  @image-error="handleImageError"
+                />
+                <div class="ml-3">
+                  <div class="font-weight-medium">{{ item.court_name }}</div>
+                  <div class="text-caption text-grey">
+                    {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
+                  </div>
+                </div>
               </div>
             </template>
 
-            <template v-slot:[`item.start_time`]="{ item }">
+            <template v-slot:[`item.items_count`]="{ item }">
+              <v-chip color="info" size="small">
+                {{ item.items_count }} slot{{ item.items_count > 1 ? 's' : '' }}
+              </v-chip>
+            </template>
+
+            <template v-slot:[`item.created_at`]="{ item }">
               <div>
-                <div class="font-weight-medium">{{ formatDate(item.start_time) }}</div>
-                <div class="text-caption text-grey">{{ formatTime(item.start_time) }} - {{ formatTime(item.end_time) }}</div>
+                <div class="font-weight-medium">{{ formatDate(item.created_at) }}</div>
+                <div class="text-caption text-grey">{{ formatTime(item.created_at) }}</div>
               </div>
             </template>
 
@@ -406,8 +422,102 @@
             </v-col>
           </v-row>
 
-          <!-- Booking Details -->
-          <v-row class="mb-4">
+          <!-- Court Images Gallery -->
+          <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0" class="mb-4">
+            <v-col cols="12">
+              <h4 class="text-h6 mb-3">
+                <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
+                Court Images
+              </h4>
+              <v-card variant="outlined" class="pa-4">
+                <CourtImageGallery 
+                  :images="selectedBooking.court.images"
+                  :court-name="selectedBooking.court.name"
+                  size="large"
+                  @image-error="handleImageError"
+                />
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Transaction Details (for cart transactions) -->
+          <v-row v-if="selectedBooking.isTransaction" class="mb-4">
+            <v-col cols="12">
+              <h4 class="text-h6 mb-3">
+                <v-icon class="mr-2" color="warning">mdi-receipt-text</v-icon>
+                Transaction Details
+              </h4>
+              <v-card variant="outlined" class="pa-4">
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <div class="text-body-2 mb-2">
+                      <strong>Transaction ID:</strong> #{{ selectedBooking.id }}
+                    </div>
+                    <div class="text-body-2 mb-2">
+                      <strong>Created:</strong> {{ formatDate(selectedBooking.created_at) }} at {{ formatTime(selectedBooking.created_at) }}
+                    </div>
+                    <div class="text-body-2 mb-2">
+                      <strong>Items Count:</strong> {{ selectedBooking.items_count }} slot{{ selectedBooking.items_count > 1 ? 's' : '' }}
+                    </div>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <div class="text-body-2 mb-2">
+                      <strong>Approval Status:</strong>
+                      <v-chip 
+                        :color="selectedBooking.approval_status === 'approved' ? 'success' : selectedBooking.approval_status === 'rejected' ? 'error' : 'warning'"
+                        variant="tonal"
+                        size="small"
+                        class="ml-2"
+                      >
+                        {{ selectedBooking.approval_status ? selectedBooking.approval_status.charAt(0).toUpperCase() + selectedBooking.approval_status.slice(1) : 'Pending' }}
+                      </v-chip>
+                    </div>
+                    <div class="text-body-2 mb-2">
+                      <strong>Total Price:</strong> 
+                      <span class="text-h6 text-success">{{ formatPrice(selectedBooking.total_price ?? 0) }}</span>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Cart Items in Transaction -->
+          <v-row v-if="selectedBooking.isTransaction && selectedBooking.cart_items" class="mb-4">
+            <v-col cols="12">
+              <h4 class="text-h6 mb-3">
+                <v-icon class="mr-2" color="info">mdi-cart</v-icon>
+                Cart Items ({{ selectedBooking.cart_items.length }})
+              </h4>
+              <v-card variant="outlined" class="pa-4">
+                <v-list>
+                  <v-list-item
+                    v-for="item in selectedBooking.cart_items"
+                    :key="item.id"
+                    class="mb-2"
+                  >
+                    <template v-slot:prepend>
+                      <v-avatar :color="getSportColor(item.court?.sport?.name)" size="40">
+                        <v-icon color="white">{{ getSportIcon(item.court?.sport?.name) }}</v-icon>
+                      </v-avatar>
+                    </template>
+                    <v-list-item-title class="font-weight-bold">
+                      {{ item.court?.name || 'Unknown Court' }}
+                    </v-list-item-title>
+                    <v-list-item-subtitle>
+                      {{ item.court?.sport?.name || 'Unknown Sport' }} • 
+                      {{ formatDate(item.booking_date) }} • 
+                      {{ item.start_time }} - {{ item.end_time }} • 
+                      <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </v-card>
+            </v-col>
+          </v-row>
+
+          <!-- Booking Details (for regular bookings) -->
+          <v-row v-if="!selectedBooking.isTransaction" class="mb-4">
             <v-col cols="12">
               <h4 class="text-h6 mb-3">
                 <v-icon class="mr-2" color="warning">mdi-calendar-clock</v-icon>
@@ -672,15 +782,27 @@
     >
       {{ snackbar.message }}
     </v-snackbar>
+    <!-- QR Code Scanner Dialog -->
+    <QrCodeScanner
+      v-if="qrScannerDialog"
+      @close="closeQrScannerDialog"
+    />
   </div>
 </template>
 
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { bookingService } from '../services/bookingService'
+import { cartService } from '../services/cartService'
 import { formatPrice } from '../utils/formatters'
+import QrCodeScanner from '../components/QrCodeScanner.vue'
+import CourtImageGallery from '../components/CourtImageGallery.vue'
 export default {
   name: 'AdminDashboard',
+  components: {
+    QrCodeScanner,
+    CourtImageGallery
+  },
   setup() {
     const stats = ref({})
     const pendingBookings = ref([])
@@ -701,12 +823,14 @@ export default {
       message: '',
       color: 'success'
     })
+    const qrScannerDialog = ref(false)
 
     const headers = [
+      { title: 'Transaction ID', key: 'id', sortable: true },
       { title: 'User', key: 'user_name', sortable: false },
-      { title: 'Court', key: 'court_name', sortable: false },
-      { title: 'Date & Time', key: 'start_time', sortable: true },
-      { title: 'Duration', key: 'duration', sortable: false },
+      { title: 'Courts', key: 'court_name', sortable: false },
+      { title: 'Items', key: 'items_count', sortable: false },
+      { title: 'Created At', key: 'created_at', sortable: true },
       { title: 'Total Price', key: 'total_price', sortable: true },
       { title: 'Payment Status', key: 'payment_status', sortable: false },
       { title: 'Notes', key: 'notes', sortable: false },
@@ -726,18 +850,24 @@ export default {
     const loadPendingBookings = async () => {
       try {
         loading.value = true
-        const response = await bookingService.getPendingBookings()
-        pendingBookings.value = response.data.map(booking => ({
-          ...booking,
+        // Fetch pending cart transactions instead of bookings
+        const transactions = await cartService.getPendingTransactions()
+        pendingBookings.value = transactions.map(transaction => ({
+          ...transaction,
           approving: false,
-          user_name: booking.user?.name || 'N/A',
-          court_name: booking.court?.name || 'N/A',
-          total_price: parseFloat(booking.total_price) || 0,
-          payment_status: getBookingPaymentStatus(booking)
+          user_name: transaction.user?.name || 'N/A',
+          // Get first court name from cart items
+          court_name: transaction.cart_items?.[0]?.court?.name || 'Multiple Courts',
+          total_price: parseFloat(transaction.total_price) || 0,
+          payment_status: transaction.payment_status,
+          // Add transaction-specific fields
+          isTransaction: true,
+          transaction_id: transaction.id,
+          items_count: transaction.cart_items?.length || 0
         }))
       } catch (error) {
-        console.error('Failed to load pending bookings:', error)
-        showSnackbar('Failed to load pending bookings', 'error')
+        console.error('Failed to load pending transactions:', error)
+        showSnackbar('Failed to load pending transactions', 'error')
       } finally {
         loading.value = false
       }
@@ -745,25 +875,26 @@ export default {
 
     const approveBooking = async (bookingId) => {
       try {
-        const booking = pendingBookings.value.find(b => b.id === bookingId)
-        if (booking) booking.approving = true
+        const transaction = pendingBookings.value.find(b => b.id === bookingId)
+        if (transaction) transaction.approving = true
 
         // Validate payment requirements before approval
-        const hasPaymentMethod = booking.payment_method && booking.payment_method.trim() !== ''
-        const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment.trim() !== ''
+        const hasPaymentMethod = transaction.payment_method && transaction.payment_method.trim() !== ''
+        const hasProofOfPayment = transaction.proof_of_payment && transaction.proof_of_payment.trim() !== ''
         
         if (!hasPaymentMethod) {
-          showSnackbar('Cannot approve booking: Payment method is missing. Please ensure the user has selected GCash as payment method.', 'error')
+          showSnackbar('Cannot approve transaction: Payment method is missing. Please ensure the user has selected GCash as payment method.', 'error')
           return
         }
         
         if (!hasProofOfPayment) {
-          showSnackbar('Cannot approve booking: Proof of payment is missing. Please ensure the user has uploaded a screenshot of their GCash payment confirmation.', 'error')
+          showSnackbar('Cannot approve transaction: Proof of payment is missing. Please ensure the user has uploaded a screenshot of their GCash payment confirmation.', 'error')
           return
         }
 
-        await bookingService.approveBooking(bookingId)
-        showSnackbar('Booking approved successfully', 'success')
+        // Approve cart transaction instead of booking
+        await cartService.approveTransaction(bookingId)
+        showSnackbar('Transaction approved successfully', 'success')
         
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
@@ -788,8 +919,9 @@ export default {
     const confirmReject = async () => {
       try {
         rejecting.value = true
-        await bookingService.rejectBooking(selectedBookingId.value, rejectReason.value)
-        showSnackbar('Booking rejected successfully', 'success')
+        // Reject cart transaction instead of booking
+        await cartService.rejectTransaction(selectedBookingId.value, rejectReason.value)
+        showSnackbar('Transaction rejected successfully', 'success')
         rejectDialog.value = false
         
         // Dispatch event to refresh other components
@@ -798,8 +930,8 @@ export default {
         await loadPendingBookings()
         await loadStats()
       } catch (error) {
-        console.error('Failed to reject booking:', error)
-        showSnackbar('Failed to reject booking', 'error')
+        console.error('Failed to reject transaction:', error)
+        showSnackbar('Failed to reject transaction', 'error')
       } finally {
         rejecting.value = false
       }
@@ -941,7 +1073,7 @@ export default {
     const viewProofOfPayment = (proofUrl) => {
       if (proofUrl) {
         // Open proof of payment in dialog
-        selectedImageUrl.value = `https://bschedule.m4d8q2.com/storage/${proofUrl}`
+        selectedImageUrl.value = `http://192.168.10.57:8010/storage/${proofUrl}`
         imageDialog.value = true
       }
     }
@@ -1010,6 +1142,49 @@ export default {
       }
     }
 
+    // QR Scanner functions
+    const openQrScanner = () => {
+      qrScannerDialog.value = true
+    }
+
+    const closeQrScannerDialog = () => {
+      qrScannerDialog.value = false
+    }
+
+    const handleImageError = (event) => {
+      // Hide the broken image and show fallback icon
+      event.target.style.display = 'none'
+      const fallback = event.target.nextElementSibling
+      if (fallback) {
+        fallback.style.display = 'inline'
+      }
+    }
+
+    // Sport helper functions
+    const getSportColor = (sportName) => {
+      const colors = {
+        'Basketball': 'orange',
+        'Badminton': 'blue',
+        'Tennis': 'green',
+        'Volleyball': 'purple',
+        'Table Tennis': 'red',
+        'Futsal': 'teal'
+      }
+      return colors[sportName] || 'grey'
+    }
+
+    const getSportIcon = (sportName) => {
+      const icons = {
+        'Basketball': 'mdi-basketball',
+        'Badminton': 'mdi-badminton',
+        'Tennis': 'mdi-tennis',
+        'Volleyball': 'mdi-volleyball',
+        'Table Tennis': 'mdi-table-tennis',
+        'Futsal': 'mdi-soccer'
+      }
+      return icons[sportName] || 'mdi-trophy'
+    }
+
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
       loadStats()
@@ -1043,6 +1218,11 @@ export default {
       detailsDialog,
       selectedBooking,
       snackbar,
+      showSnackbar,
+      openQrScanner,
+      closeQrScannerDialog,
+      qrScannerDialog,
+      handleImageError,
       headers,
       loadStats,
       loadPendingBookings,
@@ -1058,6 +1238,9 @@ export default {
       getPaymentStatusColor,
       getPaymentStatusText,
       getPaymentStatusIcon,
+      // Sport helper functions
+      getSportColor,
+      getSportIcon,
       // Booking details functions
       viewBookingDetails,
       viewProofOfPayment,
@@ -1444,5 +1627,15 @@ export default {
   .action-card {
     padding: 20px;
   }
+}
+
+/* Court Image Styles */
+.court-image-admin {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+  margin-right: 12px;
 }
 </style>

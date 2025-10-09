@@ -15,25 +15,43 @@
           <span class="title-gradient">{{ isEditMode ? 'Edit' : 'Book' }}</span> Your Court
         </h2>
         <p class="dialog-subtitle">
-          {{ isEditMode ? 'Update your court reservation details' : 'Reserve your badminton court with professional precision' }}
+          {{ isEditMode ? 'Update your court reservation details' : 'Reserve your court with professional precision' }}
         </p>
       </div>
       
       <v-divider class="dialog-divider"></v-divider>
       
       <v-card-text class="pa-6">
-        <!-- Court Information (Auto-assigned) -->
+        <!-- Court Selection -->
         <v-row class="mb-4">
           <v-col cols="12">
-            <v-text-field
-              v-model="courtDisplay"
-              label="Court"
+            <v-select
+              v-model="form.court_id"
+              :items="courts"
+              item-title="name"
+              item-value="id"
+              label="Select Court"
               variant="outlined"
-              readonly
               prepend-inner-icon="mdi-stadium"
-              hint="Automatically assigned to active court"
-              persistent-hint
-            ></v-text-field>
+              :rules="[v => !!v || 'Court is required']"
+              required
+              @update:model-value="onCourtChange"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item v-bind="props">
+                  <template v-slot:prepend>
+                    <CourtImageGallery 
+                      :images="item.raw.images || []"
+                      :court-name="item.raw.name"
+                      size="small"
+                      @image-error="handleImageError"
+                    />
+                  </template>
+                  <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
+                  <v-list-item-subtitle>{{ item.raw.sport.name }} - {{ formatPrice(item.raw.price_per_hour) }}/hour</v-list-item-subtitle>
+                </v-list-item>
+              </template>
+            </v-select>
           </v-col>
         </v-row>
 
@@ -60,7 +78,10 @@
         <!-- Selected Court Info -->
         <v-card v-if="selectedCourt" variant="outlined" class="mb-4">
           <v-card-text class="pa-4">
-            <h3 class="text-h6 mb-3">Court Details</h3>
+            <h3 class="text-h6 mb-3">
+              <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
+              Court Details
+            </h3>
             <v-row>
               <v-col cols="12" md="6">
                 <div class="text-body-2 mb-2">
@@ -88,6 +109,23 @@
                     </v-chip>
                   </div>
                 </div>
+              </v-col>
+            </v-row>
+            
+            <!-- Court Images Gallery -->
+            <v-row v-if="selectedCourt.images && selectedCourt.images.length > 0">
+              <v-col cols="12">
+                <v-divider class="my-4"></v-divider>
+                <h4 class="text-h6 mb-3">
+                  <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
+                  Court Images
+                </h4>
+                <CourtImageGallery 
+                  :images="selectedCourt.images"
+                  :court-name="selectedCourt.name"
+                  size="large"
+                  @image-error="handleImageError"
+                />
               </v-col>
             </v-row>
           </v-card-text>
@@ -340,7 +378,7 @@
                 class="mb-4"
                 density="compact"
               >
-                <v-icon class="mr-2">{{ getPaymentStatusIcon() }}</v-icon>
+              
                 {{ getPaymentStatusMessage() }}
               </v-alert>
               
@@ -417,7 +455,7 @@
                           <!-- Image Preview -->
                           <div class="proof-preview-container">
                             <img 
-                              :src="`https://bschedule.m4d8q2.com/storage/${editBooking.proof_of_payment}`" 
+                              :src="`http://192.168.10.57:8010/storage/${editBooking.proof_of_payment}`" 
                               :alt="'Proof of payment for booking #' + editBooking.id"
                               class="proof-preview-image"
                               @click="openImageDialog(editBooking.proof_of_payment)"
@@ -536,11 +574,15 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
 import { courtService } from '../services/courtService'
+import CourtImageGallery from './CourtImageGallery.vue'
 import Swal from 'sweetalert2'
 import { formatPrice, formatNumber } from '../utils/formatters'
 
 export default {
   name: 'GlobalBookingDialog',
+  components: {
+    CourtImageGallery
+  },
   props: {
     isOpen: {
       type: Boolean,
@@ -559,7 +601,7 @@ export default {
     const originalStartTime = ref(null)
     const slotsLoaded = ref(false)
     const isSelectingDate = ref(false)
-    const courtDisplay = ref('Badminton Court')
+    const courts = ref([])
     
     const frequencyType = ref('once')
     const isPopulatingForm = ref(false)
@@ -573,6 +615,7 @@ export default {
     
     
     const form = ref({
+      court_id: null,
       date: '',
       start_time: '',
       duration: 1,
@@ -619,28 +662,42 @@ export default {
     
     const selectedCourt = ref(null)
     
-    const loadActiveCourt = async () => {
+    const loadCourts = async () => {
       try {
-        const courts = await courtService.getCourts()
-        selectedCourt.value = courts.find(court => court.is_active) || {
-          id: 1,
-          name: 'Badminton Court',
-          sport: { name: 'Badminton' },
-          location: 'Main Facility',
-          price_per_hour: 25,
-          amenities: ['Air Conditioning', 'Lighting', 'Sound System']
+        const courtsData = await courtService.getCourts()
+        courts.value = courtsData.filter(court => court.is_active)
+        
+        // Set default court if none selected and not in edit mode
+        if (!isEditMode.value && courts.value.length > 0 && !form.value.court_id) {
+          form.value.court_id = courts.value[0].id
+          selectedCourt.value = courts.value[0]
         }
       } catch (err) {
-        console.error('Failed to load active court:', err)
-        // Fallback court data
-        selectedCourt.value = {
-          id: 1,
-          name: 'Badminton Court',
-          sport: { name: 'Badminton' },
-          location: 'Main Facility',
-          price_per_hour: 25,
-          amenities: ['Air Conditioning', 'Lighting', 'Sound System']
+        console.error('Failed to load courts:', err)
+        courts.value = []
+      }
+    }
+
+    const onCourtChange = async () => {
+      if (form.value.court_id) {
+        selectedCourt.value = courts.value.find(c => c.id === form.value.court_id)
+        // Clear time slots when court changes
+        form.value.start_time = ''
+        availableSlots.value = []
+        
+        // Reload available slots if date is selected
+        if (form.value.date) {
+          await loadAvailableSlots()
         }
+      }
+    }
+
+    const handleImageError = (event) => {
+      // Hide the broken image and show fallback icon
+      event.target.style.display = 'none'
+      const fallback = event.target.nextElementSibling
+      if (fallback) {
+        fallback.style.display = 'inline'
       }
     }
     
@@ -976,9 +1033,9 @@ export default {
       form.value.gcash_amount = formatPrice(totalPrice.value)
       form.value.proof_of_payment = null
       
-      // Set court display
+      // Set court selection
       if (booking.court) {
-        courtDisplay.value = booking.court.name
+        form.value.court_id = booking.court.id
         selectedCourt.value = booking.court
       }
       
@@ -1032,6 +1089,7 @@ export default {
     const resetForm = () => {
       frequencyType.value = 'once'
       form.value = {
+        court_id: null,
         date: '',
         start_time: '',
         duration: 1,
@@ -1053,22 +1111,15 @@ export default {
     }
 
     const loadAvailableSlots = async () => {
-      if (!form.value.date) {
+      if (!form.value.date || !form.value.court_id) {
         availableSlots.value = []
         return
       }
       
-      // Ensure court is loaded before loading slots
-      if (!selectedCourt.value) {
-        await loadActiveCourt()
-      }
-      
       try {
         slotsLoaded.value = false
-        // Use the active court ID
-        const activeCourtId = selectedCourt.value?.id || 1
         const slots = await courtService.getAvailableSlots(
-          activeCourtId,
+          form.value.court_id,
           form.value.date,
           form.value.duration || 1
         )
@@ -1133,8 +1184,8 @@ export default {
 
       try {
         // Validate required fields
-        if (!form.value.date || !form.value.start_time) {
-          throw new Error('Date and start time are required')
+        if (!form.value.court_id || !form.value.date || !form.value.start_time) {
+          throw new Error('Court, date and start time are required')
         }
 
 
@@ -1181,6 +1232,7 @@ export default {
         const endDateTime = `${year}-${month}-${day} ${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`
         
         const bookingData = {
+          court_id: form.value.court_id,
           start_time: startDateTime,
           end_time: endDateTime,
           total_price: totalPrice.value,
@@ -1423,7 +1475,7 @@ export default {
     }
 
     const openImageDialog = (imageUrl) => {
-      selectedImageUrl.value = `https://bschedule.m4d8q2.com/storage/${imageUrl}`
+      selectedImageUrl.value = `http://192.168.10.57:8010/storage/${imageUrl}`
       imageDialog.value = true
     }
 
@@ -1451,7 +1503,7 @@ export default {
         
         console.log('FormData created, making request to:', `/api/bookings/${bookingId}/upload-proof`)
         
-        const response = await fetch(`https://bschedule.m4d8q2.com/api/bookings/${bookingId}/upload-proof`, {
+        const response = await fetch(`http://192.168.10.57:8010/api/bookings/${bookingId}/upload-proof`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -1645,15 +1697,11 @@ export default {
     }, { immediate: true })
     
     onMounted(() => {
-      loadActiveCourt()
-      // If we have editBooking on mount, populate the form
-      // if (propseditBooking) {
-      //   populateFormForEdit()
-      // }
+      loadCourts()
     })
     
     return {
-      courtDisplay,
+      courts,
       availableSlots,
       loading,
       error,
@@ -1672,8 +1720,10 @@ export default {
       getPriceBreakdown,
       getBookingInfoText,
       onFrequencyChange,
+      onCourtChange,
       onDateChange,
       handleSubmit,
+      handleImageError,
       closeModal,
       handleCancel,
       showSnackbar,
@@ -1942,5 +1992,14 @@ export default {
 .text-error {
   color: #f44336 !important;
   font-weight: 500;
+}
+
+/* Court Image Styles */
+.court-select-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
 }
 </style>

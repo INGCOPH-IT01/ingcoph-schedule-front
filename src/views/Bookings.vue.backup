@@ -1,92 +1,118 @@
 <template>
-  <div class="excel-container">
-    <!-- Badminton Background -->
-    <div class="badminton-background">
-      <div class="badminton-overlay"></div>
+  <div class="bookings-container">
+    <!-- Modern Sports Background -->
+    <div class="sports-background">
+      <div class="sports-overlay"></div>
+      <div class="sports-pattern"></div>
     </div>
     
-    <!-- Excel-like Header -->
-    <div class="excel-header">
-      <div class="excel-title-section">
-        <h1 class="excel-title">My Bookings</h1>
-        <p class="excel-subtitle">Manage your court reservations and recurring schedules</p>
-      </div>
-      <div class="excel-actions">
-        <v-btn
-          color="primary"
-          size="large"
-          prepend-icon="mdi-calendar-plus"
-          @click="openBookingDialog"
-          class="excel-add-btn"
-        >
-          New Booking
-        </v-btn>
+    <!-- Enhanced Header -->
+    <div class="bookings-header">
+      <div class="header-content">
+        <div class="header-badge">
+          <v-icon color="white" size="20" class="mr-2">mdi-receipt-text-check</v-icon>
+          Transaction Management
+        </div>
+        <h1 class="header-title">
+          <span class="title-gradient">My</span> Transactions
+        </h1>
+        <p class="header-subtitle">
+          Track your booking transactions and approval status
+        </p>
+        <div class="header-actions">
+          <v-btn
+            class="header-btn-primary"
+            size="x-large"
+            prepend-icon="mdi-calendar-plus"
+            @click="openBookingDialog"
+            elevation="8"
+          >
+            New Booking
+          </v-btn>
+        </div>
       </div>
     </div>
 
 
     <!-- Authentication Loading -->
-    <div v-if="authLoading" class="excel-auth-required">
-      <div class="excel-auth-card">
-        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-        <h2 class="excel-auth-title mt-4">Checking Authentication...</h2>
-        <p class="excel-auth-text">Please wait while we verify your login status.</p>
+    <div v-if="authLoading" class="auth-section">
+      <div class="auth-card">
+        <div class="auth-icon">
+          <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+        </div>
+        <h2 class="auth-title">Checking Authentication...</h2>
+        <p class="auth-text">Please wait while we verify your login status.</p>
       </div>
     </div>
 
     <!-- Authentication Check -->
-    <div v-else-if="!isAuthenticated" class="excel-auth-required">
-      <div class="excel-auth-card">
-        <div class="excel-auth-icon">🔑</div>
-        <h2 class="excel-auth-title">Authentication Required</h2>
-        <p class="excel-auth-text">Please login to view your bookings.</p>
+    <div v-else-if="!isAuthenticated" class="auth-section">
+      <div class="auth-card">
+        <div class="auth-icon">
+          <v-icon color="primary" size="64">mdi-shield-lock</v-icon>
+        </div>
+        <h2 class="auth-title">Authentication Required</h2>
+        <p class="auth-text">Please login to view your bookings and manage your reservations.</p>
         <v-btn
-          color="primary"
+          class="auth-btn"
           size="large"
           :to="{ name: 'Login' }"
-          class="excel-auth-btn"
+          prepend-icon="mdi-login"
+          elevation="4"
         >
-          Login
+          Login to Continue
         </v-btn>
       </div>
     </div>
 
     <!-- Main Content -->
     <div v-if="isAuthenticated">
-          <!-- Excel-like Toolbar -->
-          <div class="excel-toolbar">
-            <div class="excel-search">
-              <v-text-field
-                v-model="searchQuery"
-                placeholder="Search bookings..."
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-                density="compact"
-                hide-details
-                class="excel-search-field"
-              ></v-text-field>
-            </div>
-            <div class="excel-filters">
-              <v-select
-                v-model="statusFilter"
-                :items="statusOptions"
-                item-title="title"
-                item-value="value"
-                placeholder="All Status"
-                variant="outlined"
-                density="compact"
-                hide-details
-                class="excel-filter-select"
-              ></v-select>
-              <v-btn
-                color="grey"
-                variant="outlined"
-                size="small"
-                prepend-icon="mdi-filter"
-                class="excel-filter-btn"
-              >
-                Filter
-              </v-btn>
+          <!-- Enhanced Toolbar -->
+          <div class="bookings-toolbar">
+            <div class="toolbar-section">
+              <div class="search-section">
+                <v-text-field
+                  v-model="searchQuery"
+                  placeholder="Search bookings..."
+                  prepend-inner-icon="mdi-magnify"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="search-field"
+                ></v-text-field>
+              </div>
+              <div class="filters-section">
+                <v-text-field
+                  v-model="dateFilter"
+                  type="date"
+                  placeholder="Filter by date"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="filter-field"
+                  prepend-inner-icon="mdi-calendar"
+                  clearable
+                ></v-text-field>
+                <v-select
+                  v-model="statusFilter"
+                  :items="statusOptions"
+                  item-title="title"
+                  item-value="value"
+                  placeholder="All Status"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  class="filter-field"
+                ></v-select>
+                <v-btn
+                  class="filter-btn"
+                  variant="outlined"
+                  size="small"
+                  prepend-icon="mdi-filter"
+                  @click="clearFilters"
+                >
+                  Clear Filters
+                </v-btn>
               <v-btn
                 color="primary"
                 variant="outlined"
@@ -110,8 +136,281 @@
             </div>
           </div>
 
-          <!-- Excel-like Data Table -->
-          <div class="excel-table-container">
+          <!-- Cart Transactions List -->
+          <div class="bookings-cards-container">
+            <v-progress-circular
+              v-if="loading"
+              indeterminate
+              color="primary"
+              size="64"
+              class="loading-spinner"
+            ></v-progress-circular>
+
+            <div v-else-if="transactions.length === 0" class="no-bookings">
+              <v-icon size="80" color="grey-lighten-1">mdi-receipt-text-remove</v-icon>
+              <h3 class="mt-4">No transactions found</h3>
+              <p class="text-grey">Your booking transactions will appear here after checkout</p>
+              <v-btn color="primary" class="mt-4" @click="openBookingDialog">
+                <v-icon start>mdi-plus</v-icon>
+                Create New Booking
+              </v-btn>
+            </div>
+
+            <div v-else class="transactions-list">
+              <!-- Transaction Cards -->
+              <v-card
+                v-for="transaction in filteredTransactions"
+                :key="transaction.id"
+                class="transaction-card mb-4"
+                :class="{ 
+                  'pending-card': transaction.approval_status === 'pending',
+                  'approved-card': transaction.approval_status === 'approved',
+                  'rejected-card': transaction.approval_status === 'rejected'
+                }"
+                elevation="3"
+              >
+                <!-- Status Banner -->
+                <div v-if="transaction.approval_status === 'pending'" class="status-banner pending-banner">
+                  <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+                  PENDING APPROVAL
+                </div>
+                <div v-else-if="transaction.approval_status === 'approved'" class="status-banner approved-banner">
+                  <v-icon size="small" class="mr-1">mdi-check-circle</v-icon>
+                  APPROVED
+                </div>
+                <div v-else-if="transaction.approval_status === 'rejected'" class="status-banner rejected-banner">
+                  <v-icon size="small" class="mr-1">mdi-close-circle</v-icon>
+                  REJECTED
+                </div>
+
+                <v-card-text class="pa-5">
+                  <v-row>
+                    <!-- Transaction Header -->
+                    <v-col cols="12">
+                      <div class="transaction-header">
+                        <div class="d-flex align-center justify-space-between mb-4">
+                          <div>
+                            <h3 class="transaction-title">
+                              <v-icon color="primary" class="mr-2">mdi-receipt-text</v-icon>
+                              Transaction #{{ transaction.id }}
+                            </h3>
+                            <p class="text-caption text-grey">
+                              Created: {{ formatDateTime(transaction.created_at) }}
+                            </p>
+                          </div>
+                          <v-chip 
+                            :color="transaction.payment_status === 'paid' ? 'success' : 'warning'" 
+                            size="large"
+                            variant="flat"
+                            class="text-white font-weight-bold"
+                          >
+                            <v-icon start>mdi-credit-card-check</v-icon>
+                            {{ transaction.payment_status === 'paid' ? 'PAID' : 'UNPAID' }}
+                          </v-chip>
+                        </div>
+                      </div>
+                    </v-col>
+
+                    <!-- Transaction Details -->
+                    <v-col cols="12" md="6">
+                      <div class="transaction-details">
+                            <!-- Time -->
+                            <div class="detail-row-modern">
+                              <div class="detail-icon-wrapper time-icon">
+                                <v-icon color="white" size="20">mdi-clock-outline</v-icon>
+                              </div>
+                              <div class="detail-content">
+                                <div class="detail-label">Time</div>
+                                <div class="detail-value">
+                                  {{ formatTime(booking.start_time) }} - {{ formatTime(booking.end_time) }}
+                                  <v-chip size="x-small" color="blue-grey" variant="flat" class="ml-2 text-white">
+                                    {{ getDuration(booking.start_time, booking.end_time) }}h
+                                  </v-chip>
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Booked By -->
+                            <div class="detail-row-modern">
+                              <div class="detail-icon-wrapper user-icon">
+                                <v-icon color="white" size="20">mdi-account</v-icon>
+                              </div>
+                              <div class="detail-content">
+                                <div class="detail-label">Booked by</div>
+                                <div class="detail-value">{{ booking.user?.name || 'Unknown' }}</div>
+                              </div>
+                            </div>
+
+                            <!-- Price -->
+                            <div class="detail-row-modern">
+                              <div class="detail-icon-wrapper price-icon">
+                                <v-icon color="white" size="20">mdi-cash</v-icon>
+                              </div>
+                              <div class="detail-content">
+                                <div class="detail-label">{{ booking.dateSpecificPrice ? 'Price for this Date' : 'Total Price' }}</div>
+                                <div class="detail-value price-value">
+                                  ₱{{ booking.dateSpecificPrice ? parseFloat(booking.dateSpecificPrice).toFixed(2) : parseFloat(booking.total_price).toFixed(2) }}
+                                </div>
+                                <div v-if="booking.dateSpecificPrice && booking.total_price !== booking.dateSpecificPrice" class="text-caption text-grey mt-1">
+                                  Transaction Total: ₱{{ parseFloat(booking.total_price).toFixed(2) }}
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Payment Status -->
+                            <div class="detail-row-modern">
+                              <div class="detail-icon-wrapper payment-icon">
+                                <v-icon color="white" size="20">mdi-credit-card-check</v-icon>
+                              </div>
+                              <div class="detail-content">
+                                <div class="detail-label">Payment Status</div>
+                                <div class="detail-value">
+                                  <v-chip 
+                                    :color="booking.payment_status === 'paid' ? 'success' : 'warning'" 
+                                    size="small"
+                                    variant="flat"
+                                    class="text-white"
+                                  >
+                                    {{ booking.payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
+                                  </v-chip>
+                                  <span v-if="booking.payment_method === 'gcash'" class="ml-2 text-caption">
+                                    via GCash
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <!-- Approval Info -->
+                            <div v-if="booking.approved_by" class="detail-row-modern">
+                              <div class="detail-icon-wrapper approval-icon">
+                                <v-icon color="white" size="20">mdi-account-check</v-icon>
+                              </div>
+                              <div class="detail-content">
+                                <div class="detail-label">{{ booking.status === 'approved' ? 'Approved By' : 'Reviewed By' }}</div>
+                                <div class="detail-value">{{ booking.approved_by.name }}</div>
+                              </div>
+                            </div>
+
+                            <!-- Rejection Reason -->
+                            <div v-if="booking.status === 'rejected' && booking.rejection_reason" class="rejection-notice">
+                              <v-icon color="error" size="20" class="mr-2">mdi-alert-circle</v-icon>
+                              <div>
+                                <div class="rejection-label">Rejection Reason:</div>
+                                <div class="rejection-text">{{ booking.rejection_reason }}</div>
+                              </div>
+                            </div>
+
+                            <!-- Cart Items for this Date -->
+                            <div v-if="booking.dateSpecificItems && booking.dateSpecificItems.length > 0" class="detail-row">
+                              <v-icon color="info" size="20" class="mr-2">mdi-calendar-clock</v-icon>
+                              <strong>Bookings for this Date:</strong>
+                              <v-chip size="small" color="info" variant="tonal" class="ml-2">
+                                {{ booking.dateSpecificItems.length }} slot{{ booking.dateSpecificItems.length > 1 ? 's' : '' }}
+                              </v-chip>
+                              <v-btn
+                                size="x-small"
+                                variant="text"
+                                color="info"
+                                @click="toggleCartItems(booking.id)"
+                                class="ml-2"
+                              >
+                                {{ expandedCartItems.includes(booking.id) ? 'Hide' : 'Show' }} Details
+                              </v-btn>
+                            </div>
+
+                            <!-- Expanded Cart Items for this Date -->
+                            <v-expand-transition>
+                              <div v-if="expandedCartItems.includes(booking.id) && booking.dateSpecificItems" class="cart-items-details mt-3">
+                                <v-card variant="tonal" color="blue-lighten-5">
+                                  <v-card-text class="pa-3">
+                                    <div class="text-subtitle-2 mb-2 text-primary">Bookings for this Date:</div>
+                                    <div v-for="item in booking.dateSpecificItems" :key="item.id" class="cart-item-row">
+                                      <v-icon size="small" :color="getSportColor(item.court?.sport?.name)" class="mr-2">
+                                        {{ getSportIcon(item.court?.sport?.name) }}
+                                      </v-icon>
+                                      <span class="text-caption">
+                                        {{ item.court?.name }} • 
+                                        {{ item.start_time }} - {{ item.end_time }} • 
+                                        <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>
+                                      </span>
+                                    </div>
+                                  </v-card-text>
+                                </v-card>
+                              </div>
+                            </v-expand-transition>
+                          </div>
+                        </v-col>
+
+                        <!-- Status and Actions -->
+                        <v-col cols="12" md="3">
+                          <div class="booking-status-actions">
+                            <!-- Payment Status -->
+                            <v-tooltip location="top">
+                              <template v-slot:activator="{ props }">
+                                <v-chip
+                                  v-bind="props"
+                                  :color="getPaymentStatusColor(booking)"
+                                  :prepend-icon="getPaymentStatusIcon(booking)"
+                                  size="small"
+                                  class="mb-2"
+                                  block
+                                >
+                                  {{ getPaymentStatusText(booking) }}
+                                </v-chip>
+                              </template>
+                              <div v-if="booking.payment_method === 'gcash' && booking.gcash_reference">
+                                <strong>GCash Reference:</strong> {{ booking.gcash_reference }}<br>
+                                <strong>Paid at:</strong> {{ formatDate(booking.paid_at) }}
+                              </div>
+                            </v-tooltip>
+
+                            <!-- Booking Status -->
+                            <v-chip
+                              :color="getStatusColor(booking.status)"
+                              :prepend-icon="getStatusIcon(booking.status)"
+                              size="small"
+                              class="mb-3"
+                              block
+                            >
+                              {{ booking.status }}
+                            </v-chip>
+
+                            <!-- Actions -->
+                            <div class="booking-actions">
+                              <!-- Transaction Actions -->
+                              <v-btn
+                                v-if="booking.status === 'approved'"
+                                icon="mdi-eye"
+                                size="small"
+                                variant="tonal"
+                                color="primary"
+                                @click="viewBooking(booking)"
+                                class="mb-2"
+                                title="View Details"
+                              ></v-btn>
+                              <v-btn
+                                v-if="booking.status === 'rejected'"
+                                icon="mdi-information"
+                                size="small"
+                                variant="tonal"
+                                color="error"
+                                @click="viewBooking(booking)"
+                                class="mb-2"
+                                title="View Rejection Reason"
+                              ></v-btn>
+                            </div>
+                          </div>
+                        </v-col>
+                      </v-row>
+                    </v-card-text>
+                  </v-card>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Old Data Table (Hidden) -->
+          <div v-if="false" class="excel-table-container">
             <v-data-table
               :headers="headers"
               :items="filteredBookings"
@@ -121,12 +420,21 @@
               no-data-text="No bookings found"
               loading-text="Loading bookings..."
               :item-props="itemProps"
+              show-expand
+              :expanded="expanded"
             >
               <template v-slot:item="{ item }">
                 <tr class="excel-table-row">
                   <td class="excel-cell">
                     <div class="excel-cell-content">
-                      <div class="excel-cell-icon">🏟️</div>
+                      <div class="excel-cell-icon">
+                        <CourtImageGallery 
+                          :images="item.court?.images || []"
+                          :court-name="item.court?.name || 'Unknown Court'"
+                          size="small"
+                          @image-error="handleImageError"
+                        />
+                      </div>
                       <div class="excel-cell-text">
                         <div class="excel-cell-title">{{ item.court?.name || 'Unknown Court' }}</div>
                         <div class="excel-cell-subtitle">{{ item.court?.sport?.name || 'Unknown Sport' }}</div>
@@ -201,12 +509,23 @@
               </div>
             </td>
             <td class="excel-cell">
+              <div class="excel-creator">
+                <div class="excel-creator-content">
+                  <div class="excel-creator-icon">👤</div>
+                  <div class="excel-creator-text">
+                    <div class="excel-creator-name">{{ item.user?.name || 'Unknown User' }}</div>
+                    <div class="excel-creator-email">{{ item.user?.email || '' }}</div>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td class="excel-cell">
               <div v-if="item.status === 'recurring_schedule'" class="excel-price">
                 <span class="excel-price-amount">{{ getRecurringPriceText(item.recurring_schedule_data) }}</span>
               </div>
               <div v-else-if="item.frequency_type" class="excel-price">
                 <div class="excel-frequency-price">
-                  <span class="excel-price-amount">₱{{ (parseFloat(item.total_price) || 0).toFixed(2) }}</span>
+                  <span class="excel-price-amount">{{ formatPriceTemplate(item.total_price) }}</span>
                   <div class="text-caption text-medium-emphasis">
                     Total for {{ item.frequency_duration_months }} month(s)
                   </div>
@@ -214,6 +533,52 @@
               </div>
               <div v-else class="excel-price">
                 <span class="excel-price-amount">₱{{ (parseFloat(item.total_price) || 0).toFixed(2) }}</span>
+              </div>
+            </td>
+            <td class="excel-cell">
+              <div class="excel-payment-status">
+                <v-tooltip
+                  v-if="item.payment_method === 'gcash' && item.gcash_reference"
+                  location="top"
+                >
+                  <template v-slot:activator="{ props }">
+                <v-chip
+                      v-bind="props"
+                      :color="getPaymentStatusColor(item)"
+                      variant="tonal"
+                      size="small"
+                      class="excel-payment-chip"
+                    >
+                      <v-icon 
+                        :icon="getPaymentStatusIcon(item)" 
+                        size="x-small" 
+                        class="mr-1"
+                      ></v-icon>
+                      {{ getPaymentStatusText(item) }}
+                    </v-chip>
+                  </template>
+                  <div class="payment-tooltip">
+                    <div><strong>GCash Reference:</strong></div>
+                    <div>{{ item.gcash_reference }}</div>
+                    <div v-if="item.paid_at" class="text-caption mt-1">
+                      Paid: {{ formatDate(item.paid_at) }}
+                    </div>
+                  </div>
+                </v-tooltip>
+                <v-chip
+                  v-else
+                  :color="getPaymentStatusColor(item)"
+                  variant="tonal"
+                  size="small"
+                  class="excel-payment-chip"
+                >
+                  <v-icon 
+                    :icon="getPaymentStatusIcon(item)" 
+                    size="x-small" 
+                    class="mr-1"
+                  ></v-icon>
+                  {{ getPaymentStatusText(item) }}
+                </v-chip>
               </div>
             </td>
             <td class="excel-cell">
@@ -294,7 +659,86 @@
                   class="excel-action-btn"
                   @click="viewBooking(item)"
                 ></v-btn>
+                <v-btn
+                  v-if="item.status === 'approved'"
+                  icon="mdi-qrcode"
+                  size="small"
+                  variant="text"
+                  color="success"
+                  class="excel-action-btn"
+                  @click="showQrCode(item)"
+                  title="Show QR Code"
+                ></v-btn>
               </div>
+            </td>
+            <td class="excel-cell">
+              <v-chip
+                v-if="item.cart_transaction?.cart_items && item.cart_transaction.cart_items.length > 0"
+                color="info"
+                variant="tonal"
+                size="small"
+              >
+                <v-icon start size="small">mdi-cart</v-icon>
+                {{ item.cart_transaction.cart_items.length }} item{{ item.cart_transaction.cart_items.length > 1 ? 's' : '' }}
+              </v-chip>
+              <span v-else class="text-grey">—</span>
+            </td>
+          </tr>
+              </template>
+
+              <!-- Expanded Row Template -->
+              <template v-slot:expanded-row="{ columns, item }">
+                <tr>
+                  <td :colspan="columns.length" class="pa-0">
+                    <v-card flat class="ma-2">
+                      <v-card-title class="text-subtitle-1 bg-grey-lighten-4">
+                        <v-icon class="mr-2" color="info">mdi-cart-outline</v-icon>
+                        Cart Items Details ({{ item.cart_transaction?.cart_items?.length || 0 }} items)
+                      </v-card-title>
+                      <v-card-text v-if="item.cart_transaction?.cart_items && item.cart_transaction.cart_items.length > 0" class="pa-4">
+                        <v-table density="compact">
+                          <thead>
+                            <tr>
+                              <th>Court</th>
+                              <th>Date</th>
+                              <th>Start Time</th>
+                              <th>End Time</th>
+                              <th>Duration</th>
+                              <th>Price</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="cartItem in item.cart_transaction.cart_items" :key="cartItem.id">
+                              <td>
+                                <div class="d-flex align-center">
+                                  <v-icon class="mr-2" size="small" :color="getSportColor(cartItem.court?.sport?.name)">
+                                    {{ getSportIcon(cartItem.court?.sport?.name) }}
+                                  </v-icon>
+                                  {{ cartItem.court?.name || 'N/A' }}
+                                </div>
+                              </td>
+                              <td>{{ formatDate(cartItem.booking_date) }}</td>
+                              <td>{{ cartItem.start_time }}</td>
+                              <td>{{ cartItem.end_time }}</td>
+                              <td>{{ calculateCartItemDuration(cartItem.start_time, cartItem.end_time) }}</td>
+                              <td>
+                                <strong class="text-success">₱{{ parseFloat(cartItem.price).toFixed(2) }}</strong>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </v-table>
+                        <v-divider class="my-3"></v-divider>
+                        <div class="d-flex justify-end">
+                          <div class="text-subtitle-2">
+                            Total Cart Items: <strong class="text-info">{{ item.cart_transaction.cart_items.length }}</strong>
+                          </div>
+                        </div>
+                      </v-card-text>
+                      <v-card-text v-else class="text-center text-grey pa-4">
+                        <v-icon size="48" color="grey-lighten-1">mdi-cart-off</v-icon>
+                        <div class="mt-2">No cart items associated with this booking</div>
+                      </v-card-text>
+                    </v-card>
             </td>
           </tr>
               </template>
@@ -322,6 +766,9 @@
                   <div class="detail-item">
                     <strong>Sport:</strong> {{ selectedBooking.court?.sport?.name || 'Unknown' }}
                   </div>
+                  <div class="detail-item">
+                    <strong>Price:</strong> ₱{{ (parseFloat(selectedBooking.court?.price_per_hour) || 0).toFixed(2) }}/hour
+                  </div>
                 </div>
               </div>
             </v-col>
@@ -330,6 +777,9 @@
               <div class="detail-section">
                 <h4 class="detail-label">Booking Information</h4>
                 <div class="detail-content">
+                  <div class="detail-item">
+                    <strong>User:</strong> {{ selectedBooking.user?.name || 'Unknown' }}
+                  </div>
                   <div class="detail-item">
                     <strong>Status:</strong> 
                     <v-chip
@@ -344,6 +794,26 @@
                   <div class="detail-item">
                     <strong>Booking ID:</strong> #{{ selectedBooking.id }}
                   </div>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+          
+          <!-- Court Images Gallery -->
+          <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0">
+            <v-col cols="12">
+              <div class="detail-section">
+                <h4 class="detail-label">
+                  <v-icon class="mr-2">mdi-image-multiple</v-icon>
+                  Court Images
+                </h4>
+                <div class="detail-content">
+                  <CourtImageGallery 
+                    :images="selectedBooking.court.images"
+                    :court-name="selectedBooking.court.name"
+                    size="large"
+                    @image-error="handleImageError"
+                  />
                 </div>
               </div>
             </v-col>
@@ -559,7 +1029,7 @@
                           <strong>Duration:</strong> {{ selectedBooking.frequency_duration_months || 1 }} month{{ (selectedBooking.frequency_duration_months || 1) > 1 ? 's' : '' }}
                         </div>
                         <div class="mb-3">
-                          <strong>Total Price:</strong> ₱{{ (parseFloat(selectedBooking.total_price) || 0).toFixed(2) }}
+                          <strong>Total Price:</strong> {{ formatPriceTemplate(selectedBooking.total_price) }}
                         </div>
                       </v-col>
                       <v-col cols="12" md="6">
@@ -596,7 +1066,6 @@
                           variant="tonal"
                           class="mb-0"
                         >
-                          <v-icon class="mr-2">mdi-information</v-icon>
                           {{ getFrequencyDetailsText(selectedBooking) }}
                         </v-alert>
                       </v-col>
@@ -621,8 +1090,8 @@
       </v-card>
     </v-dialog>
 
-    <!-- Edit Booking Dialog -->
-    <v-dialog v-model="editDialog" max-width="500px">
+    <!-- Edit Booking Dialog - DEPRECATED: Now using GlobalBookingDialog -->
+    <v-dialog :model-value="false" max-width="500px" style="display: none;">
       <v-card>
         <v-card-title class="text-h5">
           <v-icon class="mr-2">mdi-pencil</v-icon>
@@ -630,8 +1099,8 @@
         </v-card-title>
         
         <v-card-text v-if="editingBooking">
-          <!-- Show form if editForm.value exists, otherwise show loading -->
-          <div v-if="editingBooking && editForm.value">
+          <!-- Show form if editForm exists, otherwise show loading -->
+          <div v-if="editingBooking && editForm">
             <!-- Current Booking Data Display -->
           <div class="current-booking-info pa-4 mb-4" style="background-color: #f3e5f5; border: 1px solid #9c27b0; border-radius: 4px;">
               <h4 class="mb-3">
@@ -723,7 +1192,7 @@
                     </v-chip>
                   </div>
                   <div class="detail-item mb-2">
-                    <strong>Total Price:</strong> ₱{{ (parseFloat(editingBooking.total_price) || 0).toFixed(2) }}
+                    <strong>Total Price:</strong> {{ formatPriceTemplate(editingBooking.total_price) }}
                   </div>
                 </v-col>
               </v-row>
@@ -795,7 +1264,7 @@
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="editForm.value.court_id"
+                  v-model="editForm.court_id"
                   :items="courts"
                   item-title="name"
                   item-value="id"
@@ -819,7 +1288,7 @@
               
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="editForm.value.date"
+                  v-model="editForm.date"
                   label="Date"
                   type="date"
                   variant="outlined"
@@ -833,7 +1302,7 @@
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="editForm.value.start_time"
+                  v-model="editForm.start_time"
                   :items="availableSlots"
                   item-title="formatted_time"
                   item-value="start_time"
@@ -841,13 +1310,13 @@
                   variant="outlined"
                   :rules="[v => !!v || 'Time slot is required']"
                   required
-                  :disabled="!editForm.value?.court_id || !editForm.value?.date"
+                  :disabled="!editForm?.court_id || !editForm?.date"
                 ></v-select>
               </v-col>
               
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="editForm.value.duration"
+                  v-model="editForm.duration"
                   :items="durationOptions"
                   label="Duration (hours)"
                   variant="outlined"
@@ -862,7 +1331,7 @@
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="editForm.value.status"
+                  v-model="editForm.status"
                   :items="editStatusOptions"
                   item-title="title"
                   item-value="value"
@@ -874,7 +1343,7 @@
               
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="editForm.value.frequency_type"
+                  v-model="editForm.frequency_type"
                   :items="editFrequencyOptions"
                   item-title="title"
                   item-value="value"
@@ -885,7 +1354,7 @@
               </v-col>
             </v-row>
             <!-- Payment Method Section -->
-            <v-row v-if="editForm.value && editForm.value.status === 'pending'">
+            <v-row v-if="editForm && editForm.status === 'pending'">
               <v-col cols="12">
                 <v-card variant="outlined" class="pa-4">
                   <h5 class="mb-3">
@@ -896,7 +1365,7 @@
                   <v-row>
                     <v-col cols="12" md="6">
                         <v-select
-                          v-model="editForm.value.payment_method"
+                          v-model="editForm.payment_method"
                           :items="paymentMethodOptions"
                           item-title="title"
                           item-value="value"
@@ -907,20 +1376,20 @@
                       ></v-select>
                     </v-col>
                     
-                    <v-col cols="12" md="6" v-if="editForm.value?.payment_method === 'gcash'">
+                    <v-col cols="12" md="6" v-if="editForm?.payment_method === 'gcash'">
                       <v-text-field
-                        v-model="editForm.value.gcash_amount"
+                        v-model="editForm.gcash_amount"
                         label="Amount to Pay"
                         variant="outlined"
                         prepend-inner-icon="mdi-currency-php"
                         readonly
-                        :value="'₱' + (parseFloat(editingBooking?.total_price) || 0).toFixed(2)"
+                        :value="formatPriceTemplate(editingBooking?.total_price)"
                       ></v-text-field>
                     </v-col>
                   </v-row>
 
                   <!-- GCash QR Code Display -->
-                  <v-row v-if="editForm.value?.payment_method === 'gcash'">
+                  <v-row v-if="editForm?.payment_method === 'gcash'">
                     <v-col cols="12">
                       <v-card variant="tonal" color="success" class="pa-4">
                         <div class="text-center">
@@ -937,7 +1406,7 @@
                             />
                           </div>
                           <p class="text-body-2 mb-2">
-                            <strong>Amount:</strong> ₱{{ (parseFloat(editingBooking?.total_price) || 0).toFixed(2) }}
+                            <strong>Amount:</strong> {{ formatPriceTemplate(editingBooking?.total_price) }}
                           </p>
                           <p class="text-caption">
                             Scan this QR code with your GCash app to complete payment
@@ -948,10 +1417,10 @@
                   </v-row>
 
                   <!-- Proof of Payment Upload -->
-                  <v-row v-if="editForm.value?.payment_method === 'gcash'">
+                  <v-row v-if="editForm?.payment_method === 'gcash'">
                     <v-col cols="12">
                       <v-file-input
-                        v-model="editForm.value.proof_of_payment"
+                        v-model="editForm.proof_of_payment"
                         label="Upload Proof of Payment"
                         variant="outlined"
                         prepend-inner-icon="mdi-camera"
@@ -994,7 +1463,7 @@
             </v-row>
 
             <!-- Frequency-specific fields -->
-            <v-row v-if="editForm.value?.frequency_type !== 'once'">
+            <v-row v-if="editForm?.frequency_type !== 'once'">
               <v-col cols="12">
                 <v-card variant="outlined" class="pa-4">
                   <h5 class="mb-3">
@@ -1003,9 +1472,9 @@
                   </h5>
                   
                   <v-row>
-                    <v-col cols="12" md="6" v-if="editForm.value && ['weekly', 'monthly', 'yearly'].includes(editForm.value.frequency_type)">
+                    <v-col cols="12" md="6" v-if="editForm && ['weekly', 'monthly', 'yearly'].includes(editForm.frequency_type)">
                       <v-select
-                        v-model="editForm.value.frequency_days"
+                        v-model="editForm.frequency_days"
                         :items="editDayOptions"
                         item-title="title"
                         item-value="value"
@@ -1019,7 +1488,7 @@
                     
                     <v-col cols="12" md="6">
                       <v-text-field
-                        v-model="editForm.value.frequency_duration_months"
+                        v-model="editForm.frequency_duration_months"
                         label="Duration (months)"
                         type="number"
                         variant="outlined"
@@ -1036,9 +1505,9 @@
                     class="mt-3"
                   >
                     <v-icon class="mr-2">mdi-information</v-icon>
-                    This booking will repeat {{ editForm.value?.frequency_type }} for {{ editForm.value?.frequency_duration_months }} month(s)
-                    <span v-if="editForm.value?.frequency_days && editForm.value.frequency_days.length > 0">
-                      on {{ editForm.value.frequency_days.join(', ') }}
+                    This booking will repeat {{ editForm?.frequency_type }} for {{ editForm?.frequency_duration_months }} month(s)
+                    <span v-if="editForm?.frequency_days && editForm.frequency_days.length > 0">
+                      on {{ editForm.frequency_days.join(', ') }}
                     </span>
                   </v-alert>
                 </v-card>
@@ -1048,7 +1517,7 @@
             <v-row>
               <v-col cols="12">
                 <v-textarea
-                  v-model="editForm.value.notes"
+                  v-model="editForm.notes"
                   label="Notes (optional)"
                   variant="outlined"
                   rows="3"
@@ -1072,22 +1541,22 @@
                         <strong>Court:</strong> {{ selectedCourt.name }}
                       </div>
                       <div class="text-body-2 mb-2">
-                        <strong>Price per Hour:</strong> ₱{{ selectedCourt.price_per_hour }}
+                        <strong>Price per Hour:</strong> {{ formatPriceTemplate(selectedCourt.price_per_hour) }}
                       </div>
                       <div class="text-body-2 mb-2">
-                        <strong>Duration:</strong> {{ editForm.value?.duration }} hour{{ editForm.value?.duration > 1 ? 's' : '' }}
+                        <strong>Duration:</strong> {{ editForm?.duration }} hour{{ editForm?.duration > 1 ? 's' : '' }}
                       </div>
                     </v-col>
                     <v-col cols="12" md="6">
                       <div class="text-body-2 mb-2">
-                        <strong>Frequency:</strong> {{ formatFrequencyType(editForm.value?.frequency_type) }}
+                        <strong>Frequency:</strong> {{ formatFrequencyType(editForm?.frequency_type) }}
                       </div>
-                      <div class="text-body-2 mb-2" v-if="editForm.value?.frequency_type !== 'once'">
-                        <strong>Duration:</strong> {{ editForm.value?.frequency_duration_months }} month{{ editForm.value?.frequency_duration_months > 1 ? 's' : '' }}
+                      <div class="text-body-2 mb-2" v-if="editForm?.frequency_type !== 'once'">
+                        <strong>Duration:</strong> {{ editForm?.frequency_duration_months }} month{{ editForm?.frequency_duration_months > 1 ? 's' : '' }}
                       </div>
                       <div class="text-body-2 mb-2">
                         <strong>Total Price:</strong> 
-                        <span class="text-h6 text-success">₱{{ totalPrice.toFixed(2) }}</span>
+                        <span class="text-h6 text-success">{{ formatPriceTemplate(totalPrice) }}</span>
                       </div>
                     </v-col>
                   </v-row>
@@ -1117,7 +1586,7 @@
                     <v-icon class="mr-2">mdi-gift</v-icon>
                     <strong>Free Booking</strong>
                     <span class="free-booking-text">
-                      This is a company-owned badminton court system - all bookings are free!
+                      This is a company-owned multi-sport court system - all bookings are free!
                     </span>
                   </div>
                 </v-alert>
@@ -1133,17 +1602,9 @@
               {{ editError }}
             </v-alert>
           </v-form>
-          </div>
+        
           
-          <!-- Loading state when editForm.value doesn't exist -->
-          <div v-else-if="!editForm.value">
-            <div class="text-center pa-8">
-              <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-              <div class="text-h6 mt-4">Loading booking details...</div>
-              <div class="text-caption mt-2">editForm.value is not ready yet</div>
-              <v-btn @click="forcePopulateForm" color="primary" class="mt-4">Force Populate Form</v-btn>
-            </div>
-          </div>
+          <!-- Loading state when editForm doesn't exist -->
         </v-card-text>
         
         <v-card-actions>
@@ -1225,6 +1686,35 @@
       :booking="selectedRecurringSchedule"
       @update:is-open="recurringViewDialog = $event"
     />
+
+    <!-- New Booking Dialog with Improved Flow -->
+    <NewBookingDialog
+      :is-open="newBookingDialog"
+      @close="closeNewBookingDialog"
+      @booking-created="onBookingCreated"
+    />
+
+    <!-- Global Booking Dialog for Editing -->
+    <GlobalBookingDialog
+      :is-open="globalEditDialog"
+      :editBooking="editingBooking"
+      @close="closeGlobalEditDialog"
+      @show-snackbar="showSnackbar"
+    />
+
+    <!-- QR Code Display Dialog -->
+    <QrCodeDisplay
+      v-if="qrCodeDialog"
+      :booking="selectedBooking"
+      @close="closeQrCodeDialog"
+    />
+
+    <!-- QR Code Scanner Dialog -->
+    <QrCodeScanner
+      v-if="qrScannerDialog"
+      @close="closeQrScannerDialog"
+    />
+    </div>
   </div>
 </template>
 
@@ -1234,21 +1724,37 @@ import { useRoute } from 'vue-router'
 import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
+import GlobalBookingDialog from '../components/GlobalBookingDialog.vue'
+import NewBookingDialog from '../components/NewBookingDialog.vue'
+import QrCodeDisplay from '../components/QrCodeDisplay.vue'
+import QrCodeScanner from '../components/QrCodeScanner.vue'
+import CourtImageGallery from '../components/CourtImageGallery.vue'
+import Swal from 'sweetalert2'
+import { formatPrice, formatNumber } from '../utils/formatters'
 
 export default {
   name: 'Bookings',
   components: {
-    RecurringScheduleViewDialog
+    RecurringScheduleViewDialog,
+    GlobalBookingDialog,
+    NewBookingDialog,
+    QrCodeDisplay,
+    QrCodeScanner,
+    CourtImageGallery
   },
   setup() {
     const route = useRoute()
     const bookings = ref([])
+    const transactions = ref([])
+    const expandedTransactions = ref([])
     const searchQuery = ref('')
     const statusFilter = ref('')
+    const dateFilter = ref('')
     const loading = ref(true)
     const error = ref(null)
     const cancelling = ref(null)
     const updating = ref(null)
+    const newBookingDialog = ref(false)
 
     const user = ref(null)
     const authLoading = ref(true)
@@ -1263,6 +1769,7 @@ export default {
     
     // View booking dialog
     const viewDialog = ref(false)
+    const expanded = ref([])
     
     // Recurring schedule view dialog
     const recurringViewDialog = ref(false)
@@ -1271,7 +1778,10 @@ export default {
     
     // Edit booking dialog
     const editDialog = ref(false)
+    const globalEditDialog = ref(false)
     const editingBooking = ref(null)
+    const qrCodeDialog = ref(false)
+    const qrScannerDialog = ref(false)
     const editForm = ref({
       court_id: '',
       date: '',
@@ -1339,11 +1849,9 @@ export default {
 
     const statusOptions = [
       { title: 'All Status', value: '' },
-      { title: 'Pending', value: 'pending' },
+      { title: 'Pending Approval', value: 'pending' },
       { title: 'Approved', value: 'approved' },
-      { title: 'Rejected', value: 'rejected' },
-      { title: 'Cancelled', value: 'cancelled' },
-      { title: 'Completed', value: 'completed' }
+      { title: 'Rejected', value: 'rejected' }
     ]
 
 
@@ -1356,12 +1864,16 @@ export default {
     })
 
     const headers = [
-      { title: 'Court', key: 'court_name', sortable: true, width: '25%' },
-      { title: 'Date & Time', key: 'start_time', sortable: true, width: '25%' },
-      { title: 'Duration', key: 'duration', sortable: false, width: '15%' },
-      { title: 'Total Price', key: 'total_price', sortable: true, width: '15%' },
-      { title: 'Status', key: 'status', sortable: true, width: '10%' },
-      { title: 'Actions', key: 'actions', sortable: false, width: '10%' }
+      { title: '', key: 'data-table-expand', width: '3%' },
+      { title: 'Court & Sport', key: 'court_name', sortable: true, width: '18%' },
+      { title: 'Date & Time', key: 'start_time', sortable: true, width: '16%' },
+      { title: 'Duration', key: 'duration', sortable: false, width: '10%' },
+      { title: 'Booked By', key: 'user_name', sortable: true, width: '13%' },
+      { title: 'Price', key: 'total_price', sortable: true, width: '9%' },
+      { title: 'Payment', key: 'payment_status', sortable: true, width: '11%' },
+      { title: 'Status', key: 'status', sortable: true, width: '8%' },
+      { title: 'Cart Items', key: 'cart_items_count', sortable: true, width: '7%' },
+      { title: 'Actions', key: 'actions', sortable: false, width: '5%' }
     ]
 
     const recurringHeaders = [
@@ -1373,8 +1885,43 @@ export default {
       { title: 'Actions', key: 'actions', sortable: false, width: '15%' }
     ]
 
+    const filteredTransactions = computed(() => {
+      let filtered = transactions.value
+
+      // Filter by status
+      if (statusFilter.value) {
+        filtered = filtered.filter(t => t.approval_status === statusFilter.value)
+      }
+
+      // Filter by search query
+      if (searchQuery.value) {
+        const query = searchQuery.value.toLowerCase()
+        filtered = filtered.filter(t =>
+          t.user?.name?.toLowerCase().includes(query) ||
+          t.user?.email?.toLowerCase().includes(query) ||
+          t.approval_status?.toLowerCase().includes(query) ||
+          t.payment_status?.toLowerCase().includes(query) ||
+          t.cart_items?.some(item => 
+            item.court?.name?.toLowerCase().includes(query) ||
+            item.court?.sport?.name?.toLowerCase().includes(query)
+          )
+        )
+      }
+
+      return filtered
+    })
+
     const filteredBookings = computed(() => {
       let filtered = bookings.value
+
+      // Filter by date
+      if (dateFilter.value) {
+        const filterDate = new Date(dateFilter.value)
+        filtered = filtered.filter(booking => {
+          const bookingDate = new Date(booking.start_time)
+          return bookingDate.toDateString() === filterDate.toDateString()
+        })
+      }
 
       // Filter by status
       if (statusFilter.value) {
@@ -1387,12 +1934,146 @@ export default {
         filtered = filtered.filter(booking =>
           booking.court?.name?.toLowerCase().includes(query) ||
           booking.court?.sport?.name?.toLowerCase().includes(query) ||
-          booking.status?.toLowerCase().includes(query)
+          booking.status?.toLowerCase().includes(query) ||
+          booking.user?.name?.toLowerCase().includes(query) ||
+          booking.user?.email?.toLowerCase().includes(query)
         )
       }
 
       return filtered
     })
+
+    const toggleTransactionDetails = (transactionId) => {
+      const index = expandedTransactions.value.indexOf(transactionId)
+      if (index > -1) {
+        expandedTransactions.value.splice(index, 1)
+      } else {
+        expandedTransactions.value.push(transactionId)
+      }
+    }
+
+    // Group transactions by booking/schedule date
+    const groupedByDay = computed(() => {
+      const groups = {}
+      
+      filteredBookings.value.forEach(booking => {
+        // For transactions, we need to group by the actual booking dates from cart items
+        if (booking.isTransaction && booking.cart_transaction?.cart_items) {
+          // A transaction can have multiple dates, so we need to create entries for each date
+          const dateGroups = {}
+          
+          booking.cart_transaction.cart_items.forEach(item => {
+            let itemDate = item.booking_date
+            if (typeof itemDate === 'string' && itemDate.includes('T')) {
+              itemDate = itemDate.split('T')[0]
+            }
+            
+            if (!dateGroups[itemDate]) {
+              dateGroups[itemDate] = {
+                items: [],
+                price: 0
+              }
+            }
+            dateGroups[itemDate].items.push(item)
+            dateGroups[itemDate].price += parseFloat(item.price || 0)
+          })
+          
+          // Create a booking entry for each date
+          Object.entries(dateGroups).forEach(([dateStr, dateData]) => {
+            const groupDate = new Date(dateStr)
+            
+            if (isNaN(groupDate.getTime())) {
+              console.warn('Invalid date:', dateStr)
+              return
+            }
+            
+            const dateKey = groupDate.toISOString().split('T')[0]
+            
+            if (!groups[dateKey]) {
+              groups[dateKey] = {
+                date: dateKey,
+                dayLabel: formatDayLabel(groupDate),
+                bookings: [],
+                totalPrice: 0,
+                transactionCount: 0
+              }
+            }
+            
+            // Add the transaction with date-specific info
+            groups[dateKey].bookings.push({
+              ...booking,
+              dateSpecificItems: dateData.items,
+              dateSpecificPrice: dateData.price
+            })
+            groups[dateKey].totalPrice += dateData.price
+            groups[dateKey].transactionCount++
+          })
+        } else if (booking.start_time) {
+          // Regular booking - group by start_time
+          const groupDate = new Date(booking.start_time)
+          
+          if (isNaN(groupDate.getTime())) {
+            console.warn('Invalid date for booking:', booking)
+            return
+          }
+          
+          const dateKey = groupDate.toISOString().split('T')[0]
+          
+          if (!groups[dateKey]) {
+            groups[dateKey] = {
+              date: dateKey,
+              dayLabel: formatDayLabel(groupDate),
+              bookings: [],
+              totalPrice: 0,
+              transactionCount: 0
+            }
+          }
+          
+          groups[dateKey].bookings.push(booking)
+          groups[dateKey].totalPrice += parseFloat(booking.total_price || 0)
+        } else {
+          console.warn('Booking missing date:', booking)
+        }
+      })
+      
+      // Convert to array and sort by date (newest first)
+      return Object.values(groups)
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .map(group => ({
+          ...group,
+          totalPrice: group.totalPrice.toFixed(2)
+        }))
+    })
+
+    const formatDayLabel = (date) => {
+      const today = new Date()
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const yesterday = new Date(today)
+      yesterday.setDate(yesterday.getDate() - 1)
+      
+      if (date.toDateString() === today.toDateString()) {
+        return 'Today, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      } else if (date.toDateString() === tomorrow.toDateString()) {
+        return 'Tomorrow, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      } else {
+        return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+      }
+    }
+
+    // Expanded cart items
+    const expandedCartItems = ref([])
+    
+    const toggleCartItems = (bookingId) => {
+      const index = expandedCartItems.value.indexOf(bookingId)
+      if (index > -1) {
+        expandedCartItems.value.splice(index, 1)
+      } else {
+        expandedCartItems.value.push(bookingId)
+      }
+    }
 
 
     const itemProps = (item) => ({
@@ -1403,17 +2084,83 @@ export default {
       try {
         loading.value = true
         
-        const data = await courtService.getBookings()
+        // Fetch cart transactions
+        console.log('🛒 Fetching cart transactions...')
         
-        // Process data to ensure total_price is a number
-        bookings.value = (data || []).map(booking => ({
-          ...booking,
-          total_price: parseFloat(booking.total_price) || 0
-        }))
+        try {
+          const cartResponse = await fetch('http://192.168.10.57:8010/api/cart-transactions', {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Accept': 'application/json'
+            }
+          })
+          
+          if (cartResponse.ok) {
+            const transactionsData = await cartResponse.json()
+            console.log('✅ Cart transactions received:', transactionsData.length)
+            console.log('📋 Transactions data:', transactionsData)
+            
+            // Store transactions directly
+            transactions.value = transactionsData
+            
+            // Also convert transactions to booking format for backward compatibility
+            const transactionBookings = transactionsData.map(transaction => {
+              // Get earliest start time and latest end time from cart items
+              let earliestStart = null
+              let latestEnd = null
+              let bookingDate = null
+              
+              transaction.cart_items.forEach(item => {
+                const itemDate = typeof item.booking_date === 'string' && item.booking_date.includes('T') 
+                  ? item.booking_date.split('T')[0] 
+                  : item.booking_date
+                
+                if (!bookingDate) bookingDate = itemDate
+                
+                const startTime = `${itemDate} ${item.start_time}`
+                const endTime = `${itemDate} ${item.end_time}`
+                
+                if (!earliestStart || startTime < earliestStart) earliestStart = startTime
+                if (!latestEnd || endTime > latestEnd) latestEnd = endTime
+              })
+              
+              return {
+                id: `transaction_${transaction.id}`,
+                transaction_id: transaction.id,
+                isTransaction: true,
+                user: transaction.user,
+                court: transaction.cart_items[0]?.court || {},
+                start_time: earliestStart,
+                end_time: latestEnd,
+                total_price: parseFloat(transaction.total_price),
+                status: transaction.approval_status, // pending, approved, rejected
+                payment_method: transaction.payment_method,
+                payment_status: transaction.payment_status,
+                gcash_reference: transaction.gcash_reference,
+                proof_of_payment: transaction.proof_of_payment,
+                approval_status: transaction.approval_status,
+                approved_by: transaction.approver,
+                approved_at: transaction.approved_at,
+                rejection_reason: transaction.rejection_reason,
+                cart_transaction: transaction,
+                created_at: transaction.created_at
+              }
+            })
+            
+            // Set bookings to cart transactions
+            bookings.value = transactionBookings
+            console.log('📦 Displaying', bookings.value.length, 'cart transactions')
+            console.log('🗓️ Sample transaction:', transactionBookings[0])
+          } else {
+            console.error('❌ Failed to fetch cart items')
+            bookings.value = []
+          }
+        } catch (cartErr) {
+          console.error('❌ Error fetching cart items:', cartErr)
+          bookings.value = []
+        }
       } catch (err) {
-        console.error('Bookings - Error fetching bookings:', err)
-        console.error('Bookings - Error response:', err.response?.data)
-        console.error('Bookings - Error status:', err.response?.status)
+        console.error('❌ Bookings - Error:', err)
         error.value = err.message
         bookings.value = []
       } finally {
@@ -1429,6 +2176,18 @@ export default {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return 'N/A'
+      const date = new Date(dateTime)
+      return date.toLocaleString('en-US', { 
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
     const getDuration = (startTime, endTime) => {
       const start = new Date(startTime)
       const end = new Date(endTime)
@@ -1436,8 +2195,28 @@ export default {
       return Math.round(diffInHours)
     }
 
+    const calculateCartItemDuration = (startTime, endTime) => {
+      try {
+        const [startHour, startMin] = startTime.split(':').map(Number)
+        const [endHour, endMin] = endTime.split(':').map(Number)
+        const startMinutes = startHour * 60 + startMin
+        const endMinutes = endHour * 60 + endMin
+        const durationMinutes = endMinutes - startMinutes
+        const hours = Math.floor(durationMinutes / 60)
+        const minutes = durationMinutes % 60
+        
+        if (minutes === 0) {
+          return `${hours} hour${hours !== 1 ? 's' : ''}`
+        }
+        return `${hours}h ${minutes}m`
+      } catch (error) {
+        return 'N/A'
+      }
+    }
+
     const getStatusColor = (status) => {
       const colors = {
+        in_cart: 'purple',
         pending: 'warning',
         approved: 'success',
         rejected: 'error',
@@ -1445,6 +2224,47 @@ export default {
         completed: 'info'
       }
       return colors[status] || 'grey'
+    }
+
+    const getStatusIcon = (status) => {
+      const icons = {
+        pending: 'mdi-clock-alert',
+        approved: 'mdi-check-circle',
+        rejected: 'mdi-close-circle'
+      }
+      return icons[status] || 'mdi-help-circle'
+    }
+
+    const getSportIcon = (sportName) => {
+      if (!sportName) return 'mdi-help-circle'
+      const name = sportName.toLowerCase()
+      const icons = {
+        basketball: 'mdi-basketball',
+        badminton: 'mdi-badminton',
+        tennis: 'mdi-tennis',
+        volleyball: 'mdi-volleyball',
+        football: 'mdi-soccer',
+        soccer: 'mdi-soccer',
+        tableTennis: 'mdi-table-tennis',
+        'table tennis': 'mdi-table-tennis'
+      }
+      return icons[name] || 'mdi-run'
+    }
+
+    const getSportColor = (sportName) => {
+      if (!sportName) return 'grey'
+      const name = sportName.toLowerCase()
+      const colors = {
+        basketball: 'orange',
+        badminton: 'green',
+        tennis: 'yellow-darken-2',
+        volleyball: 'blue',
+        football: 'black',
+        soccer: 'black',
+        tableTennis: 'red',
+        'table tennis': 'red'
+      }
+      return colors[name] || 'primary'
     }
 
     const formatRecurrenceType = (type) => {
@@ -1605,6 +2425,103 @@ export default {
       return colors[type] || 'grey'
     }
 
+    // Payment status functions
+    const getPaymentStatus = (booking) => {
+      if (!booking) return 'unknown'
+      
+      const hasPaymentMethod = booking.payment_method && booking.payment_method !== ''
+      const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment !== ''
+      
+      if (hasPaymentMethod && hasProofOfPayment) {
+        return 'complete'
+      } else if (hasPaymentMethod && !hasProofOfPayment) {
+        return 'missing_proof'
+      } else if (!hasPaymentMethod && hasProofOfPayment) {
+        return 'missing_method'
+      } else {
+        return 'incomplete'
+      }
+    }
+
+    const getPaymentStatusColor = (booking) => {
+      // Check for new payment fields
+      if (booking.payment_status === 'paid') {
+        return 'success'
+      }
+      
+      if (booking.payment_status === 'unpaid') {
+        return 'warning'
+      }
+
+      // Legacy payment status check
+      const status = getPaymentStatus(booking)
+      const colors = {
+        complete: 'success',
+        missing_proof: 'warning',
+        missing_method: 'warning',
+        incomplete: 'error',
+        unknown: 'grey'
+      }
+      return colors[status] || 'grey'
+    }
+
+    const getPaymentStatusText = (booking) => {
+      // Check for new payment fields
+      if (booking.payment_status === 'paid') {
+        if (booking.payment_method === 'gcash') {
+          return 'GCash Paid'
+        }
+        return 'Paid'
+      }
+      
+      if (booking.payment_status === 'unpaid') {
+        return 'Pending Payment'
+      }
+
+      // Legacy payment status check
+      const status = getPaymentStatus(booking)
+      const texts = {
+        complete: 'Complete',
+        missing_proof: 'Missing Proof',
+        missing_method: 'Missing Method',
+        incomplete: 'Incomplete',
+        unknown: 'Pending'
+      }
+      return texts[status] || 'Pending'
+    }
+
+    const getPaymentStatusIcon = (booking) => {
+      // Check for new payment fields
+      if (booking.payment_status === 'paid') {
+        if (booking.payment_method === 'gcash') {
+          return 'mdi-cellphone-check'
+        }
+        return 'mdi-check-circle'
+      }
+      
+      if (booking.payment_status === 'unpaid') {
+        return 'mdi-clock-outline'
+      }
+
+      // Legacy payment status check
+      const status = getPaymentStatus(booking)
+      const icons = {
+        complete: 'mdi-check-circle',
+        missing_proof: 'mdi-alert-circle',
+        missing_method: 'mdi-alert-circle',
+        incomplete: 'mdi-close-circle',
+        unknown: 'mdi-help-circle'
+      }
+      return icons[status] || 'mdi-help-circle'
+    }
+
+    // Clear all filters function
+    const clearFilters = () => {
+      searchQuery.value = ''
+      statusFilter.value = ''
+      dateFilter.value = ''
+    }
+
     const getFrequencyDetailsText = (item) => {
       if (!item.frequency_type) return ''
       
@@ -1630,6 +2547,15 @@ export default {
       }
       
       return `${details} for ${duration} month${duration > 1 ? 's' : ''}`
+    }
+
+    // Wrapper functions for template use
+    const formatPriceTemplate = (price) => {
+      return formatPrice(price)
+    }
+
+    const formatNumberTemplate = (number) => {
+      return formatNumber(number)
     }
 
     // Recurring schedule functions
@@ -1667,8 +2593,77 @@ export default {
       }
     }
 
+    // Open cart dialog
+    const openCart = () => {
+      // Dispatch a custom event to open the cart dialog in App.vue
+      window.dispatchEvent(new CustomEvent('open-cart'))
+    }
+
+    // Remove from cart
+    const removeFromCart = async (booking) => {
+      const result = await Swal.fire({
+        title: 'Remove from Cart?',
+        text: 'Are you sure you want to remove this item from your cart?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, remove it',
+        cancelButtonText: 'Cancel'
+      })
+
+      if (result.isConfirmed) {
+        try {
+          // Remove all cart items associated with this booking
+          if (booking.cart_transaction?.cart_items) {
+            for (const item of booking.cart_transaction.cart_items) {
+              await fetch(`http://192.168.10.57:8010/api/cart/${item.id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                  'Accept': 'application/json'
+                }
+              })
+            }
+          }
+
+          await Swal.fire({
+            icon: 'success',
+            title: 'Removed!',
+            text: 'Item has been removed from your cart.',
+            timer: 2000,
+            showConfirmButton: false
+          })
+
+          // Refresh the cart
+          fetchBookings()
+          
+          // Update cart count
+          window.dispatchEvent(new CustomEvent('cart-updated'))
+        } catch (error) {
+          console.error('Error removing from cart:', error)
+          await Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to remove item from cart. Please try again.'
+          })
+        }
+      }
+    }
+
     const cancelBooking = async (bookingId) => {
-      if (!confirm('Are you sure you want to cancel this booking?')) return
+      const result = await Swal.fire({
+        title: 'Cancel Booking?',
+        text: 'Are you sure you want to cancel this booking? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, cancel booking',
+        cancelButtonText: 'No, keep booking'
+      })
+
+      if (!result.isConfirmed) return
       
       try {
         cancelling.value = bookingId
@@ -1678,16 +2673,40 @@ export default {
         window.dispatchEvent(new CustomEvent('booking-cancelled'))
         
         await fetchBookings() // Refresh the list
+        
+        // Show success message
+        Swal.fire({
+          icon: 'success',
+          title: 'Booking Cancelled!',
+          text: 'Your booking has been cancelled successfully.',
+          confirmButtonColor: '#1976d2',
+          timer: 3000,
+          timerProgressBar: true
+        })
       } catch (err) {
-        alert('Failed to cancel booking: ' + err.message)
+        Swal.fire({
+          icon: 'error',
+          title: 'Cancellation Failed',
+          text: 'Failed to cancel booking: ' + err.message,
+          confirmButtonColor: '#d33'
+        })
       } finally {
         cancelling.value = null
       }
     }
 
     const openBookingDialog = () => {
-      // Emit event to parent (App.vue) to open the global booking dialog
-      window.dispatchEvent(new CustomEvent('open-booking-dialog'))
+      // Open the new booking dialog with improved flow
+      newBookingDialog.value = true
+    }
+
+    const closeNewBookingDialog = () => {
+      newBookingDialog.value = false
+    }
+
+    const onBookingCreated = () => {
+      // Refresh bookings list
+      fetchData()
     }
 
     const viewBooking = (booking) => {
@@ -1707,151 +2726,35 @@ export default {
       
       if (editingBooking.value) {
         // Simple form population
-        editForm.value.court_id = editingBooking.value.court_id || 1
-        editForm.value.date = new Date(editingBooking.value.start_time).toISOString().split('T')[0]
-        editForm.value.start_time = new Date(editingBooking.value.start_time).toISOString()
-        editForm.value.duration = 1
-        editForm.value.notes = editingBooking.value.notes || ''
-        editForm.value.status = editingBooking.value.status || 'pending'
-        editForm.value.frequency_type = editingBooking.value.frequency_type || 'once'
-        editForm.value.frequency_days = editingBooking.value.frequency_days || []
-        editForm.value.frequency_times = editingBooking.value.frequency_times || []
-        editForm.value.frequency_duration_months = editingBooking.value.frequency_duration_months || 1
-        editForm.value.frequency_end_date = editingBooking.value.frequency_end_date || ''
-        editForm.value.payment_method = editingBooking.value.payment_method || ''
-        editForm.value.gcash_amount = ''
-        editForm.value.proof_of_payment = null
+        editForm.court_id = editingBooking.value.court_id || 1
+        editForm.date = new Date(editingBooking.value.start_time).toISOString().split('T')[0]
+        editForm.start_time = new Date(editingBooking.value.start_time).toISOString()
+        editForm.duration = 1
+        editForm.notes = editingBooking.value.notes || ''
+        editForm.status = editingBooking.value.status || 'pending'
+        editForm.frequency_type = editingBooking.value.frequency_type || 'once'
+        editForm.frequency_days = editingBooking.value.frequency_days || []
+        editForm.frequency_times = editingBooking.value.frequency_times || []
+        editForm.frequency_duration_months = editingBooking.value.frequency_duration_months || 1
+        editForm.frequency_end_date = editingBooking.value.frequency_end_date || ''
+        editForm.payment_method = editingBooking.value.payment_method || ''
+        editForm.gcash_amount = ''
+        editForm.proof_of_payment = null
         
-        console.log('Form force populated:', editForm.value)
+        console.log('Form force populated:', editForm)
       }
     }
 
 
     const editBooking = async (booking) => {
       try {
-        console.log('Edit booking clicked for:', booking)
-        console.log('Setting editingBooking...')
-        editingBooking.value = booking
-        console.log('editingBooking set:', editingBooking.value)
-        
-        // Load courts if not already loaded
-        if (courts.value.length === 0) {
-          console.log('Loading courts...')
-          await loadCourts()
-        }
-        
-        // Set selected court
-        selectedCourt.value = courts.value.find(c => c.id === booking.court_id)
-        console.log('Selected court:', selectedCourt.value)
-      
-        // Set form data with all current values
-        const bookingDate = new Date(booking.start_time).toISOString().split('T')[0]
-        const bookingDuration = getDuration(booking.start_time, booking.end_time)
-        const bookingStartTime = new Date(booking.start_time).toISOString()
-        
-        // Parse frequency_days if it's a string (from database JSON)
-        let parsedFrequencyDays = []
-        if (booking.frequency_days) {
-          if (typeof booking.frequency_days === 'string') {
-            try {
-              parsedFrequencyDays = JSON.parse(booking.frequency_days)
-            } catch (e) {
-              console.warn('Failed to parse frequency_days:', booking.frequency_days)
-              parsedFrequencyDays = []
-            }
-          } else if (Array.isArray(booking.frequency_days)) {
-            parsedFrequencyDays = booking.frequency_days
-          }
-        }
-
-        // Parse frequency_times if it's a string (from database JSON)
-        let parsedFrequencyTimes = []
-        if (booking.frequency_times) {
-          if (typeof booking.frequency_times === 'string') {
-            try {
-              parsedFrequencyTimes = JSON.parse(booking.frequency_times)
-            } catch (e) {
-              console.warn('Failed to parse frequency_times:', booking.frequency_times)
-              parsedFrequencyTimes = []
-            }
-          } else if (Array.isArray(booking.frequency_times)) {
-            parsedFrequencyTimes = booking.frequency_times
-          }
-        }
-
-        // Update form properties individually to maintain reactivity
-        console.log('Starting form population...')
-        editForm.value.court_id = booking.court_id
-        console.log('Set court_id:', editForm.value.court_id)
-        editForm.value.date = bookingDate
-        console.log('Set date:', editForm.value.date)
-        editForm.value.start_time = bookingStartTime
-        console.log('Set start_time:', editForm.value.start_time)
-        editForm.value.duration = bookingDuration
-        console.log('Set duration:', editForm.value.duration)
-        editForm.value.notes = booking.notes || ''
-        editForm.value.status = booking.status || 'pending'
-        editForm.value.frequency_type = booking.frequency_type || 'once'
-        editForm.value.frequency_days = parsedFrequencyDays
-        editForm.value.frequency_times = parsedFrequencyTimes
-        editForm.value.frequency_duration_months = booking.frequency_duration_months || 1
-        editForm.value.frequency_end_date = booking.frequency_end_date || ''
-        editForm.value.payment_method = booking.payment_method || ''
-        editForm.value.gcash_amount = booking.payment_method === 'gcash' ? `₱${(parseFloat(booking.total_price) || 0).toFixed(2)}` : ''
-        editForm.value.proof_of_payment = null
-        console.log('Form population completed')
-        
-        
-        // Set selected court
-        selectedCourt.value = courts.value.find(court => court.id === booking.court_id)
-        
-        // Load available slots for the current date
-        if (editForm.value.court_id && editForm.value.date) {
-          await loadAvailableSlots()
-          
-          // Verify that the current time slot is still available
-          const currentStartTime = new Date(booking.start_time).toISOString()
-          const matchingSlot = availableSlots.value.find(slot => slot.start_time === currentStartTime)
-          
-          if (!matchingSlot && availableSlots.value.length > 0) {
-            // If current slot is not available, select the first available slot
-            editForm.value.start_time = availableSlots.value[0].start_time
-            console.warn('Original time slot no longer available, selected alternative')
-          }
-        }
-        
-        // Calculate initial price after all form data is set
-        calculatePrice()
-        
-        // Debug: Log the populated form data
-        console.log('Original booking data:', booking)
-        console.log('Edit form populated:', editForm.value)
-        console.log('editForm.value exists:', !!editForm.value)
-        console.log('editingBooking exists:', !!editingBooking.value)
-        console.log('Condition check - editingBooking && editForm.value:', !!(editingBooking.value && editForm.value))
-        console.log('Available slots:', availableSlots.value)
-        console.log('Parsed frequency_days:', parsedFrequencyDays)
-        console.log('Parsed frequency_times:', parsedFrequencyTimes)
-        
-        console.log('Opening edit dialog...')
-        editDialog.value = true
-        console.log('Edit dialog opened:', editDialog.value)
-        
-        // Force a timeout to ensure form is populated
-        setTimeout(() => {
-          console.log('After timeout - editForm.value:', editForm.value)
-          console.log('After timeout - editingBooking.value:', editingBooking.value)
-        }, 1000)
-        
+        // Convert Proxy to plain object to avoid reactivity issues
+        const plainBooking = JSON.parse(JSON.stringify(booking))
+        editingBooking.value = plainBooking
+        globalEditDialog.value = true
       } catch (error) {
         console.error('Error in editBooking:', error)
-        console.error('Error details:', error.message, error.stack)
-        console.error('Error occurred at:', error.stack?.split('\n')[0])
-        try {
-          showSnackbar('Failed to open edit dialog', 'error')
-        } catch (snackbarError) {
-          console.error('Failed to show snackbar:', snackbarError)
-        }
+        showSnackbar('Failed to open edit dialog', 'error')
       }
     }
 
@@ -1864,13 +2767,13 @@ export default {
     }
 
     const loadAvailableSlots = async () => {
-      if (!editForm.value.court_id || !editForm.value.date) return
+      if (!editForm.court_id || !editForm.date) return
       
       try {
         const slots = await courtService.getAvailableSlots(
-          editForm.value.court_id, 
-          editForm.value.date,
-          editForm.value.duration || 1
+          editForm.court_id, 
+          editForm.date,
+          editForm.duration || 1
         )
         
         // If we're editing a booking, add the current booking's time slot to available slots
@@ -1899,54 +2802,54 @@ export default {
     }
 
     const onCourtChange = async () => {
-      selectedCourt.value = courts.value.find(c => c.id === editForm.value.court_id)
-      editForm.value.start_time = ''
+      selectedCourt.value = courts.value.find(c => c.id === editForm.court_id)
+      editForm.start_time = ''
       availableSlots.value = []
       totalPrice.value = 0
       
-      if (editForm.value.date) {
+      if (editForm.date) {
         await loadAvailableSlots()
       }
     }
 
     const onDateChange = async () => {
-      editForm.value.start_time = ''
+      editForm.start_time = ''
       availableSlots.value = []
       totalPrice.value = 0
       
-      if (editForm.value.court_id) {
+      if (editForm.court_id) {
         await loadAvailableSlots()
       }
     }
 
     const calculatePrice = () => {
-      if (!selectedCourt.value || !editForm.value.duration) {
+      if (!selectedCourt.value || !editForm.duration) {
         totalPrice.value = 0
         return
       }
 
-      const basePrice = selectedCourt.value.price_per_hour * editForm.value.duration
+      const basePrice = selectedCourt.value.price_per_hour * editForm.duration
       
-      if (editForm.value.frequency_type === 'once') {
+      if (editForm.frequency_type === 'once') {
         totalPrice.value = basePrice
-      } else if (editForm.value.frequency_type === 'daily') {
-        totalPrice.value = basePrice * editForm.value.frequency_duration_months * 30
-      } else if (editForm.value.frequency_type === 'weekly') {
-        const sessionsPerWeek = editForm.value.frequency_days ? editForm.value.frequency_days.length : 1
-        totalPrice.value = basePrice * sessionsPerWeek * editForm.value.frequency_duration_months * 4
-      } else if (editForm.value.frequency_type === 'monthly') {
-        const sessionsPerMonth = editForm.value.frequency_days ? editForm.value.frequency_days.length : 1
-        totalPrice.value = basePrice * sessionsPerMonth * editForm.value.frequency_duration_months
-      } else if (editForm.value.frequency_type === 'yearly') {
-        const sessionsPerYear = editForm.value.frequency_days ? editForm.value.frequency_days.length : 1
-        totalPrice.value = basePrice * sessionsPerYear * editForm.value.frequency_duration_months
+      } else if (editForm.frequency_type === 'daily') {
+        totalPrice.value = basePrice * editForm.frequency_duration_months * 30
+      } else if (editForm.frequency_type === 'weekly') {
+        const sessionsPerWeek = editForm.frequency_days ? editForm.frequency_days.length : 1
+        totalPrice.value = basePrice * sessionsPerWeek * editForm.frequency_duration_months * 4
+      } else if (editForm.frequency_type === 'monthly') {
+        const sessionsPerMonth = editForm.frequency_days ? editForm.frequency_days.length : 1
+        totalPrice.value = basePrice * sessionsPerMonth * editForm.frequency_duration_months
+      } else if (editForm.frequency_type === 'yearly') {
+        const sessionsPerYear = editForm.frequency_days ? editForm.frequency_days.length : 1
+        totalPrice.value = basePrice * sessionsPerYear * editForm.frequency_duration_months
       } else {
         totalPrice.value = basePrice
       }
     }
 
     const getEditBookingInfoText = () => {
-      if (editForm.value.frequency_type === 'once') {
+      if (editForm.frequency_type === 'once') {
         return `Your booking will be updated for admin approval. Total cost: ₱${totalPrice.value.toFixed(2)}`
       } else {
         return `This frequency booking will be updated for admin approval. You'll be billed once for the entire period: ₱${totalPrice.value.toFixed(2)}`
@@ -1954,25 +2857,25 @@ export default {
     }
 
     // Watch for changes in form fields to recalculate price
-    watch(() => editForm.value.start_time, () => {
-      if (editForm.value.start_time) {
+    watch(() => editForm.start_time, () => {
+      if (editForm.start_time) {
         calculatePrice()
       }
     })
 
-    watch(() => editForm.value.duration, () => {
+    watch(() => editForm.duration, () => {
       calculatePrice()
     })
 
-    watch(() => editForm.value.frequency_type, () => {
+    watch(() => editForm.frequency_type, () => {
       calculatePrice()
     })
 
-    watch(() => editForm.value.frequency_days, () => {
+    watch(() => editForm.frequency_days, () => {
       calculatePrice()
     }, { deep: true })
 
-    watch(() => editForm.value.frequency_duration_months, () => {
+    watch(() => editForm.frequency_duration_months, () => {
       calculatePrice()
     })
 
@@ -1982,12 +2885,12 @@ export default {
         editError.value = ''
         
         
-        if (!editForm.value.court_id || !editForm.value.date || !editForm.value.start_time) {
+        if (!editForm.court_id || !editForm.date || !editForm.start_time) {
           editError.value = 'Please fill in all required fields'
           console.error('Validation failed:', {
-            court_id: editForm.value.court_id,
-            date: editForm.value.date,
-            start_time: editForm.value.start_time
+            court_id: editForm.court_id,
+            date: editForm.date,
+            start_time: editForm.start_time
           })
           return
         }
@@ -1998,31 +2901,31 @@ export default {
         }
         
         // Calculate end time
-        const startDateTime = new Date(editForm.value.start_time)
-        const endDateTime = new Date(startDateTime.getTime() + (editForm.value.duration * 60 * 60 * 1000))
+        const startDateTime = new Date(editForm.start_time)
+        const endDateTime = new Date(startDateTime.getTime() + (editForm.duration * 60 * 60 * 1000))
         
         const updateData = {
-          court_id: parseInt(editForm.value.court_id),
+          court_id: parseInt(editForm.court_id),
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           total_price: parseFloat(totalPrice.value.toFixed(2)),
-          status: editForm.value.status,
-          notes: editForm.value.notes || '',
-          frequency_type: editForm.value.frequency_type,
-          frequency_days: editForm.value.frequency_days,
-          frequency_times: editForm.value.frequency_times,
-          frequency_duration_months: editForm.value.frequency_duration_months,
-          frequency_end_date: editForm.value.frequency_end_date || null,
-          payment_method: editForm.value.payment_method || null
+          status: editForm.status,
+          notes: editForm.notes || '',
+          frequency_type: editForm.frequency_type,
+          frequency_days: editForm.frequency_days,
+          frequency_times: editForm.frequency_times,
+          frequency_duration_months: editForm.frequency_duration_months,
+          frequency_end_date: editForm.frequency_end_date || null,
+          payment_method: editForm.payment_method || null
         }
         
         // Update booking
         await courtService.updateBooking(editingBooking.value.id, updateData)
         
         // Handle proof of payment upload if provided
-        if (editForm.value.proof_of_payment && editForm.value.proof_of_payment.length > 0) {
+        if (editForm.proof_of_payment && editForm.proof_of_payment.length > 0) {
           try {
-            await uploadProofOfPayment(editingBooking.value.id, editForm.value.proof_of_payment[0])
+            await uploadProofOfPayment(editingBooking.value.id, editForm.proof_of_payment[0])
             showSnackbar('Proof of payment uploaded successfully!', 'success')
           } catch (error) {
             console.error('Failed to upload proof of payment:', error)
@@ -2061,24 +2964,48 @@ export default {
       editDialog.value = false
       editingBooking.value = null
       // Reset form properties individually to maintain reactivity
-      editForm.value.court_id = ''
-      editForm.value.date = ''
-      editForm.value.start_time = ''
-      editForm.value.duration = 1
-      editForm.value.notes = ''
-      editForm.value.status = 'pending'
-      editForm.value.frequency_type = 'once'
-      editForm.value.frequency_days = []
-      editForm.value.frequency_times = []
-      editForm.value.frequency_duration_months = 1
-      editForm.value.frequency_end_date = ''
-      editForm.value.payment_method = ''
-      editForm.value.gcash_amount = ''
-      editForm.value.proof_of_payment = null
+      editForm.court_id = ''
+      editForm.date = ''
+      editForm.start_time = ''
+      editForm.duration = 1
+      editForm.notes = ''
+      editForm.status = 'pending'
+      editForm.frequency_type = 'once'
+      editForm.frequency_days = []
+      editForm.frequency_times = []
+      editForm.frequency_duration_months = 1
+      editForm.frequency_end_date = ''
+      editForm.payment_method = ''
+      editForm.gcash_amount = ''
+      editForm.proof_of_payment = null
       editError.value = ''
       availableSlots.value = []
       selectedCourt.value = null
       totalPrice.value = 0
+    }
+
+    const closeGlobalEditDialog = () => {
+      globalEditDialog.value = false
+      editingBooking.value = null
+    }
+
+    // QR Code functions
+    const showQrCode = (booking) => {
+      selectedBooking.value = booking
+      qrCodeDialog.value = true
+    }
+
+    const closeQrCodeDialog = () => {
+      qrCodeDialog.value = false
+      selectedBooking.value = null
+    }
+
+    const openQrScanner = () => {
+      qrScannerDialog.value = true
+    }
+
+    const closeQrScannerDialog = () => {
+      qrScannerDialog.value = false
     }
 
     const checkAuth = async (retryCount = 0) => {
@@ -2183,21 +3110,43 @@ export default {
 
 
 
-    const showSnackbar = (message, color = 'success') => {
+    const showSnackbar = (data, color = 'success') => {
+      // Handle both object format from GlobalBookingDialog and direct parameters
+      let message, messageColor
+      
+      if (typeof data === 'object' && data.message) {
+        // Object format: { message, type }
+        message = data.message
+        messageColor = data.type === 'error' ? 'error' : 'success'
+      } else {
+        // Direct parameter format
+        message = data
+        messageColor = color
+      }
+      
       snackbar.value = {
         show: true,
         message,
-        color
+        color: messageColor
+      }
+    }
+
+    const handleImageError = (event) => {
+      // Hide the broken image and show fallback icon
+      event.target.style.display = 'none'
+      const fallback = event.target.nextElementSibling
+      if (fallback) {
+        fallback.style.display = 'inline'
       }
     }
 
     // Payment-related methods
     const onPaymentMethodChange = (method) => {
       if (method === 'gcash') {
-        editForm.value.gcash_amount = `₱${(parseFloat(editingBooking.value?.total_price) || 0).toFixed(2)}`
+        editForm.gcash_amount = `₱${(parseFloat(editingBooking.value?.total_price) || 0).toFixed(2)}`
       } else {
-        editForm.value.gcash_amount = ''
-        editForm.value.proof_of_payment = null
+        editForm.gcash_amount = ''
+        editForm.proof_of_payment = null
       }
     }
 
@@ -2206,14 +3155,14 @@ export default {
         const file = files[0]
         if (file.size > 5000000) { // 5MB limit
           showSnackbar('File size should be less than 5 MB', 'error')
-          editForm.value.proof_of_payment = null
+          editForm.proof_of_payment = null
           return
         }
         
         // Validate file type
         if (!file.type.startsWith('image/')) {
           showSnackbar('Please upload an image file', 'error')
-          editForm.value.proof_of_payment = null
+          editForm.proof_of_payment = null
           return
         }
         
@@ -2232,7 +3181,7 @@ export default {
       try {
         const formData = new FormData()
         formData.append('proof_of_payment', file)
-        formData.append('payment_method', editForm.value.payment_method)
+        formData.append('payment_method', editForm.payment_method)
         
         const response = await fetch(`/api/bookings/${bookingId}/upload-proof`, {
           method: 'POST',
@@ -2257,10 +3206,19 @@ export default {
 
     return {
       bookings,
+      transactions,
+      expandedTransactions,
+      toggleTransactionDetails,
+      filteredTransactions,
       searchQuery,
       statusFilter,
+      dateFilter,
       statusOptions,
       filteredBookings,
+      groupedByDay,
+      expandedCartItems,
+      toggleCartItems,
+      formatDayLabel,
       loading,
       error,
       cancelling,
@@ -2273,8 +3231,14 @@ export default {
       itemProps,
       formatDate,
       formatTime,
+      formatDateTime,
       getDuration,
+      calculateCartItemDuration,
+      expanded,
       getStatusColor,
+      getStatusIcon,
+      getSportIcon,
+      getSportColor,
       formatRecurrenceType,
       generateBookings,
       editRecurringSchedule,
@@ -2282,6 +3246,9 @@ export default {
       deleteRecurringSchedule,
       cancelBooking,
       openBookingDialog,
+      closeNewBookingDialog,
+      onBookingCreated,
+      newBookingDialog,
       viewBooking,
       viewDialog,
       selectedBooking,
@@ -2290,8 +3257,8 @@ export default {
       editBooking,
       testEditDialog,
       forcePopulateForm,
-      isEditFormReady,
       editDialog,
+      globalEditDialog,
       editingBooking,
       editForm,
       editLoading,
@@ -2311,8 +3278,18 @@ export default {
       getEditBookingInfoText,
       updateBooking,
       closeEditDialog,
+      closeGlobalEditDialog,
+      showQrCode,
+      closeQrCodeDialog,
+      openQrScanner,
+      closeQrScannerDialog,
+      qrCodeDialog,
+      qrScannerDialog,
       snackbar,
       showSnackbar,
+      handleImageError,
+      openCart,
+      removeFromCart,
       // Payment methods
       onPaymentMethodChange,
       onProofOfPaymentChange,
@@ -2332,41 +3309,569 @@ export default {
       // Frequency booking functions
       formatFrequencyType,
       getFrequencyColor,
-      getFrequencyDetailsText
+      getFrequencyDetailsText,
+      formatPrice,
+      formatNumber,
+      formatPriceTemplate,
+      formatNumberTemplate,
+      // Payment status functions
+      getPaymentStatus,
+      getPaymentStatusColor,
+      getPaymentStatusText,
+      getPaymentStatusIcon,
+      // Filter functions
+      clearFilters
     }
   }
 }
 </script>
 
 <style scoped>
-.excel-container {
-  background: #f8f9fa;
+/* Modern Sports Bookings Theme */
+.bookings-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   min-height: 100vh;
-  padding: 20px;
+  padding: 32px;
   position: relative;
+  z-index: 1;
 }
 
-.badminton-background {
+/* Enhanced Background */
+.sports-background {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: url('https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
-  z-index: -2;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  z-index: -3;
 }
 
-.badminton-overlay {
+.sports-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(240, 249, 255, 0.85);
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+  z-index: -2;
+}
+
+.sports-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 20px 20px;
   z-index: -1;
+}
+
+/* Bookings Header */
+.bookings-header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding: 48px 0;
+  position: relative;
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 8px 20px;
+  margin-bottom: 24px;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.header-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 24px;
+  color: white;
+}
+
+.title-gradient {
+  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-subtitle {
+  font-size: clamp(1.1rem, 2vw, 1.3rem);
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 600px;
+  margin: 0 auto 32px;
+  line-height: 1.6;
+}
+
+.header-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.header-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  padding: 16px 32px !important;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.header-btn-primary:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Authentication Section */
+.auth-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 48px 0;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 48px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 500px;
+  width: 100%;
+}
+
+.auth-icon {
+  margin-bottom: 24px;
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.auth-text {
+  color: #64748b;
+  line-height: 1.6;
+  margin-bottom: 32px;
+  font-size: 1.1rem;
+}
+
+.auth-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: white !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  padding: 16px 32px !important;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.auth-btn:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Toolbar Section */
+.bookings-toolbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-section {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-section {
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-field {
+  border-radius: 8px !important;
+}
+
+.filters-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  border-radius: 8px !important;
+}
+
+.filter-btn {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+}
+
+/* Card-based Bookings Layout */
+.bookings-cards-container {
+  padding: 24px;
+  min-height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-spinner {
+  margin: 100px auto;
+}
+
+.no-bookings {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.bookings-by-day {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.day-group {
+  margin-bottom: 32px;
+}
+
+.day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 16px 16px 0 0;
+  color: white;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.day-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.day-header-left {
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+
+.day-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.day-subtitle {
+  font-size: 14px;
+  margin: 4px 0 0 0;
+  opacity: 0.95;
+  color: white;
+  font-weight: 500;
+}
+
+.day-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1;
+}
+
+.day-bookings {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+  background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.booking-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px !important;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: white !important;
+  position: relative;
+}
+
+.booking-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.pending-card {
+  border-left: 4px solid #f59e0b !important;
+}
+
+.approved-card {
+  border-left: 4px solid #10b981 !important;
+}
+
+.rejected-card {
+  border-left: 4px solid #ef4444 !important;
+}
+
+.status-banner {
+  padding: 10px 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.status-banner v-icon,
+.status-banner span {
+  position: relative;
+  z-index: 1;
+}
+
+.approved-banner {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.pending-banner {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.rejected-banner {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.booking-court-info {
+  text-align: center;
+}
+
+.court-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.sport-name {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.booking-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #374151;
+}
+
+.detail-row-modern {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border-left: 4px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.detail-row-modern:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left-color: #3b82f6;
+}
+
+.detail-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.time-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.user-icon {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.price-icon {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.payment-icon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.approval-icon {
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.detail-content {
+  flex: 1;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.price-value {
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.rejection-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-radius: 12px;
+  border-left: 4px solid #ef4444;
+  margin-top: 16px;
+}
+
+.rejection-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #991b1b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.rejection-text {
+  font-size: 14px;
+  color: #7f1d1d;
+  line-height: 1.5;
+}
+
+.cart-items-details {
+  margin-top: 12px;
+}
+
+.cart-item-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cart-item-row:last-child {
+  border-bottom: none;
+}
+
+.booking-status-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.booking-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .excel-header {
@@ -2607,6 +4112,72 @@ export default {
   font-size: 12px;
 }
 
+/* Creator Styles */
+.excel-creator {
+  padding: 8px 0;
+}
+
+.excel-creator-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.excel-creator-icon {
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f9ff;
+  border-radius: 6px;
+  color: #0369a1;
+}
+
+.excel-creator-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.excel-creator-name {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 13px;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.excel-creator-email {
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Court Image Styles */
+.court-image {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+}
+
+.court-icon {
+  font-size: 20px;
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  background: #f3f4f6;
+  border-radius: 6px;
+  border: 2px solid #e5e7eb;
+}
+
 .excel-datetime {
   display: flex;
   flex-direction: column;
@@ -2742,6 +4313,18 @@ export default {
   font-size: 12px;
   color: #6b7280;
   font-weight: normal;
+}
+
+/* Payment Tooltip */
+.payment-tooltip {
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.9);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.payment-tooltip strong {
+  color: #4ade80;
 }
 
 /* Current Booking Info Styles */
