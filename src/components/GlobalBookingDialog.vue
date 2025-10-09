@@ -455,7 +455,7 @@
                           <!-- Image Preview -->
                           <div class="proof-preview-container">
                             <img 
-                              :src="`http://192.168.10.57:8010/storage/${editBooking.proof_of_payment}`" 
+                              :src="`https://bschedule.m4d8q2.com/storage/${editBooking.proof_of_payment}`" 
                               :alt="'Proof of payment for booking #' + editBooking.id"
                               class="proof-preview-image"
                               @click="openImageDialog(editBooking.proof_of_payment)"
@@ -1475,7 +1475,7 @@ export default {
     }
 
     const openImageDialog = (imageUrl) => {
-      selectedImageUrl.value = `http://192.168.10.57:8010/storage/${imageUrl}`
+      selectedImageUrl.value = `https://bschedule.m4d8q2.com/storage/${imageUrl}`
       imageDialog.value = true
     }
 
@@ -1503,7 +1503,7 @@ export default {
         
         console.log('FormData created, making request to:', `/api/bookings/${bookingId}/upload-proof`)
         
-        const response = await fetch(`http://192.168.10.57:8010/api/bookings/${bookingId}/upload-proof`, {
+        const response = await fetch(`https://bschedule.m4d8q2.com/api/bookings/${bookingId}/upload-proof`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`

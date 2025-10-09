@@ -2282,7 +2282,7 @@ export default {
         try {
           // Add cache-busting parameter to ensure fresh data
           const timestamp = new Date().getTime()
-          const cartResponse = await fetch(`http://192.168.10.57:8010/api/cart-transactions?_=${timestamp}`, {
+          const cartResponse = await fetch(`https://bschedule.m4d8q2.com/api/cart-transactions?_=${timestamp}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Accept': 'application/json',
@@ -2975,7 +2975,7 @@ export default {
           // Remove all cart items associated with this booking
           if (booking.cart_transaction?.cart_items) {
             for (const item of booking.cart_transaction.cart_items) {
-              await fetch(`http://192.168.10.57:8010/api/cart/${item.id}`, {
+              await fetch(`https://bschedule.m4d8q2.com/api/cart/${item.id}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -3031,7 +3031,7 @@ export default {
         cancelling.value = transactionId
         
         // Delete cart transaction (which will cascade delete cart items)
-        const response = await fetch(`http://192.168.10.57:8010/api/cart-transactions/${transactionId}`, {
+        const response = await fetch(`https://bschedule.m4d8q2.com/api/cart-transactions/${transactionId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -3348,7 +3348,7 @@ export default {
       }
       
       loadingSlotsEdit.value = true
-      const url = `http://192.168.10.57:8010/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`
+      const url = `https://bschedule.m4d8q2.com/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`
       console.log('📡 Fetching available slots from:', url)
       
       try {

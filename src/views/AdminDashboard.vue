@@ -1073,7 +1073,7 @@ export default {
     const viewProofOfPayment = (proofUrl) => {
       if (proofUrl) {
         // Open proof of payment in dialog
-        selectedImageUrl.value = `http://192.168.10.57:8010/storage/${proofUrl}`
+        selectedImageUrl.value = `https://bschedule.m4d8q2.com/storage/${proofUrl}`
         imageDialog.value = true
       }
     }

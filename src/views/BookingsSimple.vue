@@ -287,7 +287,7 @@ export default {
     const fetchTransactions = async () => {
       try {
         loading.value = true
-        const response = await fetch('http://192.168.10.57:8010/api/cart-transactions', {
+        const response = await fetch('https://bschedule.m4d8q2.com/api/cart-transactions', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Accept': 'application/json'

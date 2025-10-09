@@ -2088,7 +2088,7 @@ export default {
         console.log('🛒 Fetching cart transactions...')
         
         try {
-          const cartResponse = await fetch('http://192.168.10.57:8010/api/cart-transactions', {
+          const cartResponse = await fetch('https://bschedule.m4d8q2.com/api/cart-transactions', {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Accept': 'application/json'
@@ -2617,7 +2617,7 @@ export default {
           // Remove all cart items associated with this booking
           if (booking.cart_transaction?.cart_items) {
             for (const item of booking.cart_transaction.cart_items) {
-              await fetch(`http://192.168.10.57:8010/api/cart/${item.id}`, {
+              await fetch(`https://bschedule.m4d8q2.com/api/cart/${item.id}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('token')}`,

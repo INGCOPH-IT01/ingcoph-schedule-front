@@ -925,7 +925,7 @@ export default {
     // Edit functions
     const fetchCourts = async () => {
       try {
-        const response = await fetch('http://192.168.10.57:8010/api/courts', {
+        const response = await fetch('https://bschedule.m4d8q2.com/api/courts', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Accept': 'application/json'
@@ -960,7 +960,7 @@ export default {
       loadingSlots.value = true
       try {
         const response = await fetch(
-          `http://192.168.10.57:8010/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`,
+          `https://bschedule.m4d8q2.com/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`,
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
