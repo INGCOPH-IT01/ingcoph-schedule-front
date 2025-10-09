@@ -5,9 +5,11 @@ import Register from '../views/Register.vue'
 import Sports from '../views/Sports.vue'
 import Courts from '../views/Courts.vue'
 import Bookings from '../views/Bookings.vue'
-import CourtDetail from '../views/CourtDetail.vue'
+import CourtDetails from '../views/CourtDetails.vue'
 import AdminDashboard from '../views/AdminDashboard.vue'
 import StaffDashboard from '../views/StaffDashboard.vue'
+import UserManagement from '../views/UserManagement.vue'
+import UserProfile from '../views/UserProfile.vue'
 import { authService } from '../services/authService'
 
 const routes = [
@@ -38,14 +40,31 @@ const routes = [
   },
   {
     path: '/courts/:id',
-    name: 'CourtDetail',
-    component: CourtDetail,
+    name: 'CourtDetails',
+    component: CourtDetails,
     props: true
   },
   {
     path: '/bookings',
     name: 'Bookings',
     component: Bookings
+  },
+  {
+    path: '/profile',
+    name: 'UserProfile',
+    component: UserProfile,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAuthenticated = localStorage.getItem('token')
+        if (isAuthenticated) {
+          next()
+        } else {
+          next('/login')
+        }
+      } catch (error) {
+        next('/login')
+      }
+    }
   },
   {
     path: '/admin',
@@ -72,6 +91,23 @@ const routes = [
       try {
         const user = await authService.getCurrentUser()
         if (user && (user.role === 'staff' || user.role === 'admin')) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'UserManagement',
+    component: UserManagement,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAdmin = await authService.isAdmin()
+        if (isAdmin) {
           next()
         } else {
           next('/')

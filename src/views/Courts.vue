@@ -48,6 +48,22 @@
           ></v-text-field>
         </div>
         <div class="filters-section">
+          <!-- View Toggle (Admin Only) -->
+          <v-btn-toggle
+            v-if="isAdmin"
+            v-model="viewMode"
+            mandatory
+            density="compact"
+            class="mr-2"
+          >
+            <v-btn value="grid" size="small">
+              <v-icon>mdi-view-grid</v-icon>
+            </v-btn>
+            <v-btn value="table" size="small">
+              <v-icon>mdi-table</v-icon>
+            </v-btn>
+          </v-btn-toggle>
+          
           <v-btn
             class="filter-btn"
             variant="outlined"
@@ -60,8 +76,146 @@
       </div>
     </div>
 
-    <!-- Excel-like Data Table -->
-    <div class="excel-table-container">
+    <!-- Grid View -->
+    <div v-if="viewMode === 'grid'" class="courts-grid-container">
+      <v-container fluid>
+        <v-row>
+          <v-col
+            v-for="court in filteredCourts"
+            :key="court.id"
+            cols="12"
+            sm="6"
+            md="4"
+            lg="3"
+          >
+            <v-card 
+              class="court-card" 
+              elevation="2" 
+              hover
+              @click="navigateToCourtDetails(court.id)"
+              style="cursor: pointer;"
+            >
+              <!-- Court Images -->
+              <div class="court-images-wrapper">
+                <v-carousel
+                  v-if="court.images && court.images.length > 0"
+                  height="200"
+                  hide-delimiters
+                  show-arrows="hover"
+                  cycle
+                  interval="3000"
+                >
+                  <v-carousel-item
+                    v-for="(image, index) in court.images"
+                    :key="index"
+                    :src="image.image_url"
+                    cover
+                  ></v-carousel-item>
+                </v-carousel>
+                <div v-else class="court-no-image">
+                  <v-icon size="64" color="grey-lighten-1">mdi-stadium</v-icon>
+                </div>
+                
+                <!-- Sport Badge -->
+                <v-chip
+                  class="court-sport-badge"
+                  :color="getSportColor(court.sport?.name)"
+                  size="small"
+                  label
+                >
+                  <v-icon start size="small">{{ getSportIcon(court.sport?.name) }}</v-icon>
+                  {{ court.sport?.name }}
+                </v-chip>
+                
+                <!-- Status Badge -->
+                <v-chip
+                  class="court-status-badge"
+                  :color="court.is_active ? 'success' : 'error'"
+                  size="x-small"
+                  label
+                >
+                  {{ court.is_active ? 'Active' : 'Inactive' }}
+                </v-chip>
+              </div>
+
+              <!-- Court Info -->
+              <v-card-title class="court-card-title">
+                {{ court.name }}
+              </v-card-title>
+
+              <v-card-text class="court-card-content">
+                <div class="court-info-row">
+                  <v-icon size="small" color="primary">mdi-map-marker</v-icon>
+                  <span class="court-info-text">{{ court.location || 'No location' }}</span>
+                </div>
+                
+                <div class="court-info-row">
+                  <v-icon size="small" color="success">mdi-cash</v-icon>
+                  <span class="court-info-price">₱{{ court.price_per_hour }}/hr</span>
+                </div>
+                
+                <div v-if="court.amenities && typeof court.amenities === 'string'" class="court-amenities">
+                  <v-chip
+                    v-for="(amenity, index) in court.amenities.split(',').slice(0, 3)"
+                    :key="index"
+                    size="x-small"
+                    variant="outlined"
+                    class="mr-1 mb-1"
+                  >
+                    {{ amenity.trim() }}
+                  </v-chip>
+                  <v-chip
+                    v-if="court.amenities.split(',').length > 3"
+                    size="x-small"
+                    variant="text"
+                    class="mb-1"
+                  >
+                    +{{ court.amenities.split(',').length - 3 }} more
+                  </v-chip>
+                </div>
+              </v-card-text>
+
+              <!-- Actions -->
+              <v-card-actions v-if="isAdmin" class="court-card-actions">
+                <v-btn
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  @click.stop="editCourt(court)"
+                >
+                  <v-icon start size="small">mdi-pencil</v-icon>
+                  Edit
+                </v-btn>
+                <v-spacer></v-spacer>
+                <v-btn
+                  size="small"
+                  variant="text"
+                  :color="court.is_active ? 'error' : 'success'"
+                  @click.stop="toggleCourtStatus(court)"
+                >
+                  <v-icon start size="small">
+                    {{ court.is_active ? 'mdi-cancel' : 'mdi-check-circle' }}
+                  </v-icon>
+                  {{ court.is_active ? 'Deactivate' : 'Activate' }}
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
+        
+        <!-- No Courts Message -->
+        <v-row v-if="filteredCourts.length === 0 && !loading">
+          <v-col cols="12" class="text-center py-12">
+            <v-icon size="64" color="grey-lighten-1">mdi-stadium-variant</v-icon>
+            <p class="text-h6 text-grey-darken-1 mt-4">No courts found</p>
+            <p class="text-grey">Try adjusting your search criteria</p>
+          </v-col>
+        </v-row>
+      </v-container>
+    </div>
+
+    <!-- Table View -->
+    <div v-else class="excel-table-container">
       <v-data-table
         :headers="headers"
         :items="filteredCourts"
@@ -187,7 +341,7 @@
 
 <script>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
 import CourtDialog from '../components/CourtDialog.vue'
@@ -199,6 +353,7 @@ export default {
   },
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const courts = ref([])
     const searchQuery = ref('')
     const loading = ref(true)
@@ -206,6 +361,7 @@ export default {
     const dialogOpen = ref(false)
     const selectedCourt = ref(null)
     const isAdmin = ref(false)
+    const viewMode = ref('grid') // Default to grid view
 
     const headers = [
       { title: 'Court Name', key: 'name', sortable: true, width: '25%' },
@@ -286,6 +442,48 @@ export default {
       }
     }
 
+    const getSportColor = (sportName) => {
+      const colors = {
+        'Basketball': 'orange',
+        'Tennis': 'green',
+        'Badminton': 'blue',
+        'Volleyball': 'red',
+        'Football': 'teal',
+        'Soccer': 'purple'
+      }
+      return colors[sportName] || 'grey'
+    }
+
+    const getSportIcon = (sportName) => {
+      const icons = {
+        'Basketball': 'mdi-basketball',
+        'Tennis': 'mdi-tennis',
+        'Badminton': 'mdi-badminton',
+        'Volleyball': 'mdi-volleyball',
+        'Football': 'mdi-football',
+        'Soccer': 'mdi-soccer'
+      }
+      return icons[sportName] || 'mdi-stadium'
+    }
+
+    const editCourt = (court) => {
+      openEditDialog(court)
+    }
+
+    const toggleCourtStatus = async (court) => {
+      try {
+        const newStatus = !court.is_active
+        await courtService.updateCourt(court.id, { is_active: newStatus })
+        court.is_active = newStatus
+      } catch (err) {
+        alert('Failed to update court status: ' + err.message)
+      }
+    }
+
+    const navigateToCourtDetails = (courtId) => {
+      router.push(`/courts/${courtId}`)
+    }
+
     onMounted(async () => {
       await checkAdminStatus()
       fetchData()
@@ -307,13 +505,19 @@ export default {
       dialogOpen,
       selectedCourt,
       isAdmin,
+      viewMode,
       headers,
       itemProps,
       openAddDialog,
       openEditDialog,
       closeDialog,
       handleCourtSaved,
-      deleteCourt
+      deleteCourt,
+      getSportColor,
+      getSportIcon,
+      editCourt,
+      toggleCourtStatus,
+      navigateToCourtDetails
     }
   }
 }
@@ -695,6 +899,136 @@ export default {
 .excel-status-chip {
   font-weight: 500;
   font-size: 12px;
+}
+
+/* Grid View Styles */
+.courts-grid-container {
+  background: transparent;
+  padding: 24px;
+}
+
+.court-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.court-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+.court-images-wrapper {
+  position: relative;
+  background: #f1f5f9;
+}
+
+.court-no-image {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.court-sport-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.court-status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.court-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 16px 16px 8px 16px;
+}
+
+.court-card-content {
+  flex-grow: 1;
+  padding: 0 16px 16px 16px;
+}
+
+.court-info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.court-info-text {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.court-info-price {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #059669;
+}
+
+.court-amenities {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.court-card-actions {
+  border-top: 1px solid #e2e8f0;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+/* Details Dialog Styles */
+.details-no-image {
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  border-radius: 8px;
+}
+
+.details-section {
+  padding: 16px 0;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+}
+
+.detail-value {
+  font-size: 1rem;
+  color: #1e293b;
+  font-weight: 500;
 }
 
 .excel-actions {

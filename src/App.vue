@@ -59,6 +59,14 @@
           class="excel-nav-item"
         ></v-list-item>
 
+        <v-list-item
+          v-if="isAuthenticated"
+          prepend-icon="mdi-account-cog"
+          title="My Profile"
+          value="profile"
+          :to="{ name: 'UserProfile' }"
+          class="excel-nav-item"
+        ></v-list-item>
 
         <v-list-item
           v-if="isAuthenticated && isAdmin"
@@ -66,6 +74,15 @@
           title="Admin Panel"
           value="admin"
           :to="{ name: 'AdminDashboard' }"
+          class="excel-nav-item"
+        ></v-list-item>
+
+        <v-list-item
+          v-if="isAuthenticated && isAdmin"
+          prepend-icon="mdi-account-group"
+          title="User Management"
+          value="users"
+          :to="{ name: 'UserManagement' }"
           class="excel-nav-item"
         ></v-list-item>
 

@@ -45,6 +45,18 @@
                 ></v-text-field>
 
                 <v-text-field
+                  v-model="form.phone"
+                  label="Mobile Number"
+                  type="tel"
+                  :rules="phoneRules"
+                  required
+                  variant="outlined"
+                  prepend-inner-icon="mdi-phone"
+                  class="form-field mb-4"
+                  placeholder="+63 912 345 6789"
+                ></v-text-field>
+
+                <v-text-field
                   v-model="form.password"
                   label="Password"
                   :type="showPassword ? 'text' : 'password'"
@@ -69,16 +81,6 @@
                   @click:append-inner="showPasswordConfirm = !showPasswordConfirm"
                   class="form-field mb-4"
                 ></v-text-field>
-
-                <v-select
-                  v-model="form.role"
-                  :items="roleOptions"
-                  label="Account Type"
-                  variant="outlined"
-                  prepend-inner-icon="mdi-account-cog"
-                  :rules="[v => !!v || 'Please select account type']"
-                  class="form-field mb-4"
-                ></v-select>
 
                 <v-checkbox
                   v-model="form.terms"
@@ -147,20 +149,15 @@ export default {
     const form = ref({
       name: '',
       email: '',
+      phone: '',
       password: '',
       password_confirmation: '',
-      role: 'user',
       terms: false
     })
     const loading = ref(false)
     const error = ref('')
     const showPassword = ref(false)
     const showPasswordConfirm = ref(false)
-
-    const roleOptions = [
-      { title: 'Player', value: 'user' },
-      { title: 'Staff (Can scan QR codes)', value: 'staff' }
-    ]
 
     const nameRules = [
       v => !!v || 'Name is required',
@@ -170,6 +167,11 @@ export default {
     const emailRules = [
       v => !!v || 'Email is required',
       v => /.+@.+\..+/.test(v) || 'Email must be valid'
+    ]
+
+    const phoneRules = [
+      v => !!v || 'Mobile number is required',
+      v => v.length >= 10 || 'Mobile number must be at least 10 characters'
     ]
 
     const passwordRules = [
@@ -190,6 +192,7 @@ export default {
         const response = await authService.register({
           name: form.value.name,
           email: form.value.email,
+          phone: form.value.phone,
           password: form.value.password,
           password_confirmation: form.value.password_confirmation
         })
@@ -213,9 +216,9 @@ export default {
       error,
       showPassword,
       showPasswordConfirm,
-      roleOptions,
       nameRules,
       emailRules,
+      phoneRules,
       passwordRules,
       confirmPasswordRules,
       handleRegister
