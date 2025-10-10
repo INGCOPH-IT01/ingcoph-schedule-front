@@ -146,11 +146,8 @@
     <!-- Create/Edit User Dialog -->
     <v-dialog 
       v-model="dialog" 
-      max-width="600px" 
+      max-width="800px" 
       persistent
-      fullscreen
-      :scrim="false"
-      transition="dialog-bottom-transition"
       class="responsive-dialog"
     >
       <v-card class="user-dialog">

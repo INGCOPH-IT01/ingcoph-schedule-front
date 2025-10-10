@@ -2,11 +2,8 @@
   <v-dialog 
     :model-value="isOpen" 
     @update:model-value="$emit('close')" 
-    max-width="900px" 
+    max-width="1200px" 
     scrollable
-    fullscreen
-    :scrim="false"
-    transition="dialog-bottom-transition"
     class="responsive-dialog"
   >
     <v-card class="cart-dialog">

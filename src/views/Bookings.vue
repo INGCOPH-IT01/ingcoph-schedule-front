@@ -678,9 +678,6 @@
     <v-dialog 
       v-model="viewDialog" 
       max-width="600px"
-      fullscreen
-      :scrim="false"
-      transition="dialog-bottom-transition"
       class="responsive-dialog"
     >
       <v-card class="booking-details-dialog">
@@ -1709,9 +1706,6 @@
       v-model="globalEditDialog" 
       max-width="600px" 
       persistent
-      fullscreen
-      :scrim="false"
-      transition="dialog-bottom-transition"
       class="responsive-dialog"
     >
       <v-card>

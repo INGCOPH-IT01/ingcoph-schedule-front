@@ -2,11 +2,8 @@
   <v-dialog
     :model-value="isOpen"
     @update:model-value="$emit('close')"
-    max-width="1200"
+    max-width="1200px"
     persistent
-    fullscreen
-    :scrim="false"
-    transition="dialog-bottom-transition"
     class="responsive-dialog"
   >
     <v-card class="booking-dialog">
