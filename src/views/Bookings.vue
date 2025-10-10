@@ -675,7 +675,14 @@
     </div>
 
     <!-- Booking Details Dialog -->
-    <v-dialog v-model="viewDialog" max-width="600px">
+    <v-dialog 
+      v-model="viewDialog" 
+      max-width="600px"
+      fullscreen
+      :scrim="false"
+      transition="dialog-bottom-transition"
+      class="responsive-dialog"
+    >
       <v-card class="booking-details-dialog">
         <v-card-title class="text-h5 dialog-title">
           <v-icon class="mr-2">mdi-calendar-detail</v-icon>
@@ -1698,7 +1705,15 @@
     />
 
     <!-- Edit Booking Dialog (Cart-style) -->
-    <v-dialog v-model="globalEditDialog" max-width="600px" persistent>
+    <v-dialog 
+      v-model="globalEditDialog" 
+      max-width="600px" 
+      persistent
+      fullscreen
+      :scrim="false"
+      transition="dialog-bottom-transition"
+      class="responsive-dialog"
+    >
       <v-card>
         <v-card-title class="text-h5 pa-4" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white;">
           <v-icon class="mr-2" color="white">mdi-pencil</v-icon>
@@ -5746,6 +5761,44 @@ export default {
   background: #94a3b8;
 }
 
+/* Responsive Dialogs */
+@media (max-width: 1280px) {
+  .v-dialog.responsive-dialog {
+    margin: 0 !important;
+  }
+  
+  .booking-details-dialog,
+  .v-dialog.responsive-dialog .v-card {
+    max-height: 100vh;
+    height: 100vh;
+  }
+}
+
+@media (max-width: 960px) {
+  .booking-details-dialog .v-card-title,
+  .v-dialog .v-card-title {
+    font-size: 1.1rem !important;
+    padding: 16px !important;
+  }
+
+  .booking-details-dialog .v-card-text,
+  .v-dialog .v-card-text {
+    padding: 16px !important;
+  }
+
+  .booking-details-dialog .v-card-actions,
+  .v-dialog .v-card-actions {
+    padding: 16px !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .booking-details-dialog .v-card-actions .v-btn,
+  .v-dialog .v-card-actions .v-btn {
+    width: 100% !important;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .time-slots-grid {
@@ -5763,6 +5816,66 @@ export default {
   
   .price-text {
     font-size: 11px;
+  }
+
+  .booking-details-dialog .v-card-title,
+  .v-dialog .v-card-title {
+    font-size: 1rem !important;
+    padding: 12px !important;
+  }
+
+  .booking-details-dialog .v-card-title .v-icon,
+  .v-dialog .v-card-title .v-icon {
+    font-size: 20px !important;
+  }
+
+  .booking-details-dialog .v-card-text,
+  .v-dialog .v-card-text {
+    padding: 12px !important;
+  }
+
+  .time-slots-detail-list .v-chip {
+    font-size: 0.75rem !important;
+    margin: 2px !important;
+  }
+
+  .qr-canvas {
+    max-width: 200px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .booking-details-dialog .v-card-title .v-icon:first-child,
+  .v-dialog .v-card-title .v-icon:first-child {
+    display: none;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+
+  .time-slot-chip {
+    padding: 8px 10px !important;
+  }
+
+  .time-text {
+    font-size: 10px;
+  }
+
+  .price-text {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 400px) {
+  .booking-details-dialog,
+  .v-dialog .v-card {
+    border-radius: 0 !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: 1fr;
   }
 }
 

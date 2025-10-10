@@ -144,8 +144,16 @@
     </v-card>
 
     <!-- Create/Edit User Dialog -->
-    <v-dialog v-model="dialog" max-width="600px" persistent>
-      <v-card>
+    <v-dialog 
+      v-model="dialog" 
+      max-width="600px" 
+      persistent
+      fullscreen
+      :scrim="false"
+      transition="dialog-bottom-transition"
+      class="responsive-dialog"
+    >
+      <v-card class="user-dialog">
         <v-card-title class="dialog-title">
           <v-icon class="mr-2">{{ editMode ? 'mdi-account-edit' : 'mdi-account-plus' }}</v-icon>
           {{ editMode ? 'Edit User' : 'Create New User' }}
@@ -635,6 +643,17 @@ export default {
 }
 
 /* Responsive */
+@media (max-width: 1280px) {
+  .v-dialog.responsive-dialog {
+    margin: 0 !important;
+  }
+  
+  .user-dialog {
+    max-height: 100vh;
+    height: 100vh;
+  }
+}
+
 @media (max-width: 960px) {
   .page-header {
     flex-direction: column;
@@ -644,6 +663,25 @@ export default {
 
   .search-field {
     max-width: 100%;
+  }
+
+  .dialog-title {
+    font-size: 1.1rem !important;
+    padding: 16px !important;
+  }
+
+  .v-card-text {
+    padding: 16px !important;
+  }
+
+  .v-card-actions {
+    padding: 16px !important;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .v-card-actions .v-btn {
+    width: 100% !important;
   }
 }
 
@@ -658,6 +696,57 @@ export default {
 
   .stat-value {
     font-size: 1.5rem;
+  }
+
+  .page-header .v-btn {
+    width: 100%;
+  }
+
+  .stat-card .v-card-text {
+    padding: 12px !important;
+  }
+
+  .stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    margin-right: 12px;
+  }
+
+  .stat-value {
+    font-size: 1.3rem;
+  }
+
+  .dialog-title {
+    font-size: 1rem !important;
+    padding: 12px !important;
+  }
+
+  .dialog-title .v-icon {
+    font-size: 20px !important;
+  }
+
+  .v-card-text {
+    padding: 12px !important;
+  }
+
+  .v-text-field,
+  .v-select {
+    margin-bottom: 12px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .stat-card {
+    margin-bottom: 8px;
+  }
+
+  .page-header {
+    padding: 16px;
+  }
+
+  .dialog-title {
+    flex-direction: column;
+    align-items: flex-start !important;
   }
 }
 </style>

@@ -4,6 +4,10 @@
     @update:model-value="$emit('close')"
     max-width="1200"
     persistent
+    fullscreen
+    :scrim="false"
+    transition="dialog-bottom-transition"
+    class="responsive-dialog"
   >
     <v-card class="booking-dialog">
       <!-- Header -->
@@ -1641,5 +1645,154 @@ export default {
 .time-slots-list {
   display: flex;
   flex-wrap: wrap;
+}
+
+/* Responsive Design */
+@media (max-width: 1280px) {
+  .v-dialog.responsive-dialog {
+    margin: 0 !important;
+  }
+  
+  .booking-dialog {
+    max-height: 100vh;
+    height: 100vh;
+  }
+}
+
+@media (max-width: 960px) {
+  .dialog-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding: 16px !important;
+  }
+
+  .header-content {
+    margin-bottom: 8px;
+  }
+
+  .header-content h2 {
+    font-size: 1.25rem !important;
+  }
+
+  .stepper-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .step-indicator {
+    flex: 0 0 calc(50% - 4px);
+    min-width: 0;
+  }
+
+  .step-label {
+    font-size: 0.75rem !important;
+  }
+
+  .step-number {
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 0.875rem !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  .summary-item {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .v-card-text {
+    padding: 12px !important;
+  }
+
+  .dialog-header {
+    padding: 12px !important;
+  }
+
+  .header-content h2 {
+    font-size: 1.1rem !important;
+  }
+
+  .header-content .v-icon {
+    display: none;
+  }
+
+  .stepper-header {
+    gap: 4px;
+  }
+
+  .step-indicator {
+    flex: 0 0 calc(50% - 2px);
+  }
+
+  .step-label {
+    font-size: 0.7rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .step-number {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.75rem !important;
+    margin-bottom: 4px !important;
+  }
+
+  .sport-card,
+  .court-card {
+    margin-bottom: 8px;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 6px;
+  }
+
+  .time-slot-card .v-card-text {
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .booking-summary,
+  .payment-options {
+    padding: 12px !important;
+  }
+
+  .gcash-qr-code {
+    max-width: 200px !important;
+  }
+
+  .dialog-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dialog-actions .v-btn {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .step-indicator {
+    flex: 0 0 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 8px;
+  }
+
+  .step-number {
+    margin-bottom: 0 !important;
+    margin-right: 8px !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

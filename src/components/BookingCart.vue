@@ -1,6 +1,15 @@
 <template>
-  <v-dialog :model-value="isOpen" @update:model-value="$emit('close')" max-width="900px" scrollable>
-    <v-card>
+  <v-dialog 
+    :model-value="isOpen" 
+    @update:model-value="$emit('close')" 
+    max-width="900px" 
+    scrollable
+    fullscreen
+    :scrim="false"
+    transition="dialog-bottom-transition"
+    class="responsive-dialog"
+  >
+    <v-card class="cart-dialog">
       <v-card-title class="d-flex align-center justify-space-between pa-4 bg-primary">
         <div class="d-flex align-center">
           <v-icon class="mr-2" color="white">mdi-cart</v-icon>
@@ -1562,22 +1571,143 @@ export default {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1280px) {
+  .v-dialog.responsive-dialog {
+    margin: 0 !important;
+  }
+  
+  .cart-dialog {
+    max-height: 100vh;
+    height: 100vh;
+  }
+}
+
+@media (max-width: 960px) {
+  .v-card-title {
+    flex-direction: column;
+    align-items: flex-start !important;
+    padding: 16px !important;
+  }
+
+  .v-card-title > div:first-child {
+    margin-bottom: 8px;
+  }
+
+  .cart-group-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
   .time-slots-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .v-card-text {
+    padding: 12px !important;
+  }
+
+  .v-card-title {
+    padding: 12px !important;
+  }
+
+  .v-card-title .text-h5 {
+    font-size: 1.1rem !important;
+  }
+
+  .cart-item,
+  .cart-group-card {
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 6px;
   }
   
   .time-slot-chip {
-    padding: 10px 12px !important;
+    padding: 8px 10px !important;
   }
   
   .time-text {
-    font-size: 12px;
+    font-size: 11px;
   }
   
   .price-text {
-    font-size: 11px;
+    font-size: 10px;
+  }
+
+  .cart-total {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .cart-total .v-btn {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .v-card-title .text-h5 {
+    font-size: 1rem !important;
+  }
+
+  .v-card-title .v-icon:first-child {
+    display: none;
+  }
+
+  .cart-group-header h4 {
+    font-size: 0.95rem !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+
+  .time-slot-chip {
+    padding: 6px 8px !important;
+  }
+
+  .time-text {
+    font-size: 10px;
+  }
+
+  .price-text {
+    font-size: 9px;
+  }
+
+  .v-chip {
+    font-size: 0.75rem !important;
+  }
+
+  .cart-actions {
+    flex-direction: column;
+    width: 100% !important;
+  }
+
+  .cart-actions .v-btn {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .v-card-text {
+    padding: 8px !important;
+  }
+
+  .cart-item,
+  .cart-group-card {
+    padding: 8px !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: 1fr;
   }
 }
 

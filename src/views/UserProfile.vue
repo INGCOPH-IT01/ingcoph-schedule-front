@@ -505,10 +505,125 @@ export default {
 
   .page-header {
     padding: 20px;
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: center !important;
+    text-align: center;
+    width: 100%;
+  }
+
+  .header-content .v-avatar {
+    margin-right: 0 !important;
+    margin-bottom: 16px;
   }
 
   .page-title {
     font-size: 1.5rem;
+  }
+
+  .profile-card,
+  .info-card {
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    font-size: 1.1rem !important;
+    padding: 16px !important;
+  }
+
+  .v-card-text {
+    padding: 16px !important;
+  }
+
+  .v-card-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .v-card-actions .v-btn {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .profile-container {
+    padding: 8px;
+  }
+
+  .page-header {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .header-content .v-avatar {
+    width: 60px !important;
+    height: 60px !important;
+  }
+
+  .page-title {
+    font-size: 1.3rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .card-header {
+    font-size: 1rem !important;
+    padding: 12px !important;
+  }
+
+  .card-header .v-icon {
+    font-size: 20px !important;
+  }
+
+  .v-card-text {
+    padding: 12px !important;
+  }
+
+  .v-row {
+    margin: 0 !important;
+  }
+
+  .v-col {
+    padding: 4px !important;
+  }
+
+  .v-text-field,
+  .v-select {
+    margin-bottom: 12px !important;
+  }
+
+  .info-item {
+    margin-bottom: 12px;
+  }
+
+  .tip-item {
+    font-size: 0.8rem;
+    padding: 6px 0;
+  }
+}
+
+@media (max-width: 400px) {
+  .page-header {
+    padding: 12px;
+  }
+
+  .page-title {
+    font-size: 1.1rem;
+  }
+
+  .v-card-text {
+    padding: 8px !important;
+  }
+
+  .card-header {
+    padding: 10px !important;
+    font-size: 0.95rem !important;
   }
 }
 </style>
