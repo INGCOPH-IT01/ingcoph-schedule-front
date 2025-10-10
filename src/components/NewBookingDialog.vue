@@ -1170,14 +1170,38 @@ export default {
 
 <style scoped>
 .booking-dialog {
+  display: flex;
+  flex-direction: column;
   max-height: 90vh;
-  overflow-y: auto;
   background: #ffffff !important;
 }
 
+/* Fixed Header */
+.booking-dialog > .v-card-title,
+.booking-dialog > .dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Scrollable Content */
 .booking-dialog .v-card-text {
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 180px);
   background: #ffffff !important;
   color: #1f2937 !important;
+}
+
+/* Fixed Footer */
+.booking-dialog > .v-card-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: white;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
 }
 
 /* Ensure all text is dark and visible */

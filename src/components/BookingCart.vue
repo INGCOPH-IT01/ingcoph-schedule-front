@@ -1548,6 +1548,35 @@ export default {
   opacity: 0.85;
 }
 
+/* Fixed Header and Footer */
+.cart-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.cart-dialog > .v-card-title {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgb(var(--v-theme-primary));
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.cart-dialog > .v-card-text {
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 140px);
+}
+
+.cart-dialog > .v-card-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: white;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+}
+
 /* Scrollbar styling */
 .time-slots-container::-webkit-scrollbar {
   width: 8px;

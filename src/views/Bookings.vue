@@ -5268,12 +5268,38 @@ export default {
 
 /* Booking Details Dialog Styles */
 .booking-details-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
   background: #ffffff !important;
 }
 
+/* Fixed Header */
+.booking-details-dialog > .v-card-title,
+.booking-details-dialog > .dialog-title {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Scrollable Content */
 .booking-details-dialog .v-card-text {
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 140px);
   background: #ffffff !important;
   color: #374151 !important;
+}
+
+/* Fixed Footer */
+.booking-details-dialog > .v-card-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  background: white;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
 }
 
 .booking-details-dialog .v-card-text * {
