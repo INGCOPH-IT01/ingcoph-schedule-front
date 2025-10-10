@@ -58,9 +58,17 @@
                   v-if="error"
                   type="error"
                   variant="tonal"
-                  class="mb-4"
+                  class="mb-4 error-alert"
+                  closable
+                  @click:close="error = ''"
                 >
-                  {{ error }}
+                  <div class="d-flex align-center">
+                    <v-icon class="mr-2">mdi-alert-circle</v-icon>
+                    <div>
+                      <strong>Login Failed</strong>
+                      <div>{{ error }}</div>
+                    </div>
+                  </div>
                 </v-alert>
 
                 <v-btn
@@ -308,6 +316,24 @@ export default {
 .auth-btn-primary:hover {
   transform: translateY(-4px) !important;
   box-shadow: 0 12px 35px rgba(59, 130, 246, 0.6) !important;
+}
+
+/* Error Alert */
+.error-alert {
+  border-radius: 12px !important;
+  border-left: 4px solid #dc2626 !important;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Auth Footer */
