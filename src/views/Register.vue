@@ -115,6 +115,7 @@
                   :loading="loading"
                   :disabled="loading"
                   elevation="4"
+                  @click.prevent="handleRegister"
                 >
                   <v-icon class="mr-2">mdi-account-plus</v-icon>
                   Create Account
@@ -184,7 +185,13 @@ export default {
       v => v === form.value.password || 'Passwords do not match'
     ])
 
-    const handleRegister = async () => {
+    const handleRegister = async (event) => {
+      // Prevent default form submission behavior
+      if (event) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+
       try {
         loading.value = true
         error.value = ''

@@ -47,7 +47,7 @@
                 color="primary"
                 variant="elevated"
                 prepend-icon="mdi-camera"
-                @click="startCamera"
+                @click.prevent="startCamera"
                 :loading="startingCamera"
               >
                 Start Camera
@@ -57,7 +57,7 @@
                 color="error"
                 variant="elevated"
                 prepend-icon="mdi-camera-off"
-                @click="stopCamera"
+                @click.prevent="stopCamera"
               >
                 Stop Camera
               </v-btn>
@@ -66,7 +66,7 @@
                 color="secondary"
                 variant="outlined"
                 prepend-icon="mdi-camera-switch"
-                @click="switchCamera"
+                @click.prevent="switchCamera"
                 class="ml-2"
               >
                 Switch Camera
@@ -94,7 +94,7 @@
             prepend-inner-icon="mdi-qrcode"
             placeholder="Enter QR code here..."
             class="mb-4"
-            @keyup.enter="validateQrCode"
+            @keyup.enter.prevent="validateQrCode"
           ></v-text-field>
 
           <v-btn
@@ -102,7 +102,7 @@
             variant="elevated"
             size="large"
             prepend-icon="mdi-check"
-            @click="validateQrCode"
+            @click.prevent="validateQrCode"
             :loading="loading"
             :disabled="!manualQrCode.trim()"
             block
@@ -196,7 +196,7 @@
         <v-btn
           color="grey"
           variant="outlined"
-          @click="closeScanner"
+          @click.prevent="closeScanner"
         >
           Close
         </v-btn>
@@ -204,7 +204,7 @@
           v-if="result && result.success"
           color="success"
           variant="elevated"
-          @click="resetScanner"
+          @click.prevent="resetScanner"
         >
           Scan Another
         </v-btn>
@@ -334,8 +334,14 @@ export default {
       })
     }
 
-    const validateQrCode = async (qrCode = null) => {
-      const codeToValidate = qrCode || manualQrCode.value.trim()
+    const validateQrCode = async (qrCodeOrEvent = null) => {
+      // Prevent default behavior if this is an event
+      if (qrCodeOrEvent && typeof qrCodeOrEvent === 'object' && qrCodeOrEvent.preventDefault) {
+        qrCodeOrEvent.preventDefault()
+        qrCodeOrEvent = null
+      }
+
+      const codeToValidate = (typeof qrCodeOrEvent === 'string' ? qrCodeOrEvent : null) || manualQrCode.value.trim()
       if (!codeToValidate) return
 
       loading.value = true

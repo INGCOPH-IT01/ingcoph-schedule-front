@@ -71,6 +71,7 @@
                   :loading="loading"
                   :disabled="loading"
                   elevation="4"
+                  @click.prevent="handleLogin"
                 >
                   <v-icon class="mr-2">mdi-login</v-icon>
                   Sign In
@@ -122,7 +123,13 @@ export default {
       v => v.length >= 6 || 'Password must be at least 6 characters'
     ]
 
-    const handleLogin = async () => {
+    const handleLogin = async (event) => {
+      // Prevent default form submission behavior
+      if (event) {
+        event.preventDefault()
+        event.stopPropagation()
+      }
+
       try {
         loading.value = true
         error.value = ''
