@@ -1857,6 +1857,7 @@ import { useRoute } from 'vue-router'
 import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
+import { bookingService } from '../services/bookingService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
@@ -4153,23 +4154,11 @@ export default {
 
     const uploadProofOfPayment = async (bookingId, file) => {
       try {
-        const formData = new FormData()
-        formData.append('proof_of_payment', file)
-        formData.append('payment_method', editForm.payment_method)
-
-        const response = await fetch(`/api/bookings/${bookingId}/upload-proof`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to upload proof of payment')
-        }
-
-        const result = await response.json()
+        const result = await bookingService.uploadProofOfPayment(
+          bookingId,
+          file,
+          editForm.payment_method
+        )
         return result.data
       } catch (error) {
         console.error('Error uploading proof of payment:', error)

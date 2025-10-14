@@ -574,6 +574,7 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
 import { courtService } from '../services/courtService'
+import { bookingService } from '../services/bookingService'
 import CourtImageGallery from './CourtImageGallery.vue'
 import Swal from 'sweetalert2'
 import { formatPrice, formatNumber } from '../utils/formatters'
@@ -1497,30 +1498,12 @@ export default {
         console.log('file:', file)
         console.log('payment_method:', form.value.payment_method)
 
-        const formData = new FormData()
-        formData.append('proof_of_payment', file)
-        formData.append('payment_method', form.value.payment_method)
+        const result = await bookingService.uploadProofOfPayment(
+          bookingId,
+          file,
+          form.value.payment_method
+        )
 
-        console.log('FormData created, making request to:', `/api/bookings/${bookingId}/upload-proof`)
-
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${bookingId}/upload-proof`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          },
-          body: formData
-        })
-
-        console.log('Response status:', response.status)
-        console.log('Response ok:', response.ok)
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('Response error:', errorText)
-          throw new Error('Failed to upload proof of payment')
-        }
-
-        const result = await response.json()
         console.log('Upload result:', result)
         return result.data
       } catch (error) {

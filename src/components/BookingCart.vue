@@ -516,6 +516,7 @@
 <script>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { bookingService } from '../services/bookingService'
+import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
@@ -931,26 +932,8 @@ export default {
     // Edit functions
     const fetchCourts = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/courts`, {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Accept': 'application/json'
-          }
-        })
-        if (response.ok) {
-          const data = await response.json()
-          // Handle both array and object responses
-          if (Array.isArray(data)) {
-            courts.value = data
-          } else if (data.data && Array.isArray(data.data)) {
-            courts.value = data.data
-          } else {
-            console.warn('Unexpected courts response format:', data)
-            courts.value = []
-          }
-        } else {
-          courts.value = []
-        }
+        const data = await courtService.getCourts()
+        courts.value = Array.isArray(data) ? data : []
       } catch (error) {
         console.error('Error fetching courts:', error)
         courts.value = []
@@ -965,37 +948,24 @@ export default {
 
       loadingSlots.value = true
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              'Accept': 'application/json'
-            }
-          }
+        let slots = await courtService.getAvailableSlots(
+          editItem.value.court_id,
+          editItem.value.booking_date
         )
 
-        if (response.ok) {
-          const result = await response.json()
-          // Backend returns { success: true, data: [...] }
-          let slots = result.data || result.slots || []
+        // Deduplicate slots (in case API returns duplicates)
+        const uniqueSlots = []
+        const seenKeys = new Set()
 
-          // Deduplicate slots (in case API returns duplicates)
-          const uniqueSlots = []
-          const seenKeys = new Set()
+        slots.forEach(slot => {
+          const key = `${slot.start}-${slot.end}`
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key)
+            uniqueSlots.push(slot)
+          }
+        })
 
-          slots.forEach(slot => {
-            const key = `${slot.start}-${slot.end}`
-            if (!seenKeys.has(key)) {
-              seenKeys.add(key)
-              uniqueSlots.push(slot)
-            }
-          })
-
-          availableSlots.value = uniqueSlots
-        } else {
-          availableSlots.value = []
-        }
+        availableSlots.value = uniqueSlots
       } catch (error) {
         console.error('Error fetching available slots:', error)
         availableSlots.value = []
