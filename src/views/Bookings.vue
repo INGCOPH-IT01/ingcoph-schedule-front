@@ -186,15 +186,9 @@
                         </span>
                       </div>
 
-                      <!-- Court Image and Info -->
+                      <!-- Court Info -->
                       <div class="booking-court-info-compact">
-                        <CourtImageGallery
-                          :images="booking.court?.images || []"
-                          :court-name="booking.court?.name || 'Unknown Court'"
-                          size="small"
-                          @image-error="handleImageError"
-                        />
-                        <div class="mt-2">
+                        <div>
                           <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
                           <v-chip
                             :color="getSportColor(booking.court?.sport?.name)"
@@ -355,14 +349,6 @@
                 <tr class="excel-table-row">
                   <td class="excel-cell">
                     <div class="excel-cell-content">
-                      <div class="excel-cell-icon">
-                        <CourtImageGallery
-                          :images="item.court?.images || []"
-                          :court-name="item.court?.name || 'Unknown Court'"
-                          size="small"
-                          @image-error="handleImageError"
-                        />
-                      </div>
                       <div class="excel-cell-text">
                         <div class="excel-cell-title">{{ item.court?.name || 'Unknown Court' }}</div>
                         <div class="excel-cell-subtitle">{{ item.court?.sport?.name || 'Unknown Sport' }}</div>
@@ -726,26 +712,6 @@
                   <div class="detail-item">
                     <strong>Booking ID:</strong> #{{ selectedBooking.id }}
                   </div>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <!-- Court Images Gallery -->
-          <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0">
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">
-                  <v-icon class="mr-2">mdi-image-multiple</v-icon>
-                  Court Images
-                </h4>
-                <div class="detail-content">
-                  <CourtImageGallery
-                    :images="selectedBooking.court.images"
-                    :court-name="selectedBooking.court.name"
-                    size="large"
-                    @image-error="handleImageError"
-                  />
                 </div>
               </div>
             </v-col>
@@ -1863,7 +1829,6 @@ import NewBookingDialog from '../components/NewBookingDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import QRCode from 'qrcode'
-import CourtImageGallery from '../components/CourtImageGallery.vue'
 import Swal from 'sweetalert2'
 import { formatPrice, formatNumber } from '../utils/formatters'
 
@@ -1873,8 +1838,7 @@ export default {
     RecurringScheduleViewDialog,
     NewBookingDialog,
     QrCodeDisplay,
-    QrCodeScanner,
-    CourtImageGallery
+    QrCodeScanner
   },
   setup() {
     const route = useRoute()
