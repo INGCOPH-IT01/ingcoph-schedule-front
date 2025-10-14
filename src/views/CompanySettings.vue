@@ -35,6 +35,55 @@
 
           <v-card-text class="pa-6">
             <v-form ref="settingsForm" v-model="formValid" @submit.prevent="saveSettings">
+              <!-- Company Logo Upload -->
+              <div class="mb-6">
+                <label class="text-subtitle-1 font-weight-bold mb-2 d-block">
+                  <v-icon class="mr-2" color="primary">mdi-image</v-icon>
+                  Company Logo
+                </label>
+
+                <!-- Logo Preview -->
+                <div v-if="logoPreview || currentLogoUrl" class="logo-preview-container mb-3">
+                  <v-card class="logo-preview-card" elevation="2">
+                    <v-img
+                      :src="logoPreview || currentLogoUrl"
+                      max-height="200"
+                      max-width="300"
+                      contain
+                      class="ma-auto"
+                    ></v-img>
+                    <v-card-actions class="justify-center">
+                      <v-btn
+                        color="error"
+                        variant="text"
+                        size="small"
+                        @click="removeLogo"
+                        :disabled="saving"
+                      >
+                        <v-icon class="mr-1">mdi-delete</v-icon>
+                        Remove Logo
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </div>
+
+                <!-- File Input -->
+                <v-file-input
+                  v-model="logoFile"
+                  label="Upload Company Logo"
+                  placeholder="Choose an image file"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-camera"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/svg+xml,image/webp"
+                  :disabled="saving"
+                  @change="handleFileChange"
+                  @click:clear="clearLogo"
+                  class="mb-4"
+                  hint="Accepted formats: JPEG, PNG, GIF, SVG, WEBP (Max: 2MB)"
+                  persistent-hint
+                ></v-file-input>
+              </div>
+
               <v-text-field
                 v-model="companyName"
                 label="Company Name"
@@ -116,6 +165,11 @@ export default {
   setup() {
     const companyName = ref('')
     const originalCompanyName = ref('')
+    const logoFile = ref(null)
+    const logoPreview = ref(null)
+    const currentLogoUrl = ref(null)
+    const originalLogoUrl = ref(null)
+    const logoToDelete = ref(false)
     const loading = ref(false)
     const saving = ref(false)
     const formValid = ref(false)
@@ -139,6 +193,13 @@ export default {
         const settings = await companySettingService.getSettings()
         companyName.value = settings.company_name || ''
         originalCompanyName.value = settings.company_name || ''
+
+        // Load logo URL if exists
+        if (settings.company_logo_url) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          currentLogoUrl.value = `${apiUrl}${settings.company_logo_url}`
+          originalLogoUrl.value = currentLogoUrl.value
+        }
       } catch (error) {
         console.error('Failed to load settings:', error)
         errorMessage.value = 'Failed to load company settings'
@@ -148,21 +209,88 @@ export default {
       }
     }
 
+    const handleFileChange = (event) => {
+      const file = Array.isArray(logoFile.value) ? logoFile.value[0] : logoFile.value
+
+      if (file) {
+        // Validate file size (2MB max)
+        if (file.size > 2 * 1024 * 1024) {
+          errorMessage.value = 'File size must be less than 2MB'
+          logoFile.value = null
+          return
+        }
+
+        // Create preview
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          logoPreview.value = e.target.result
+        }
+        reader.readAsDataURL(file)
+        logoToDelete.value = false
+      }
+    }
+
+    const clearLogo = () => {
+      logoFile.value = null
+      logoPreview.value = null
+    }
+
+    const removeLogo = async () => {
+      if (logoPreview.value) {
+        // Just remove the preview if it's a new upload
+        clearLogo()
+      } else if (currentLogoUrl.value) {
+        // Mark current logo for deletion
+        try {
+          await companySettingService.deleteLogo()
+          currentLogoUrl.value = null
+          originalLogoUrl.value = null
+          successMessage.value = 'Logo removed successfully!'
+          showSnackbar('Logo removed successfully', 'success')
+
+          // Dispatch event to update navbar
+          window.dispatchEvent(new CustomEvent('company-settings-updated'))
+        } catch (error) {
+          console.error('Failed to delete logo:', error)
+          errorMessage.value = error.message || 'Failed to delete logo'
+          showSnackbar('Failed to delete logo', 'error')
+        }
+      }
+    }
+
     const saveSettings = async () => {
       try {
         saving.value = true
         errorMessage.value = ''
         successMessage.value = ''
 
-        await companySettingService.updateSettings({
+        const settingsData = {
           company_name: companyName.value
-        })
+        }
+
+        // Add logo file if selected
+        if (logoFile.value) {
+          const file = Array.isArray(logoFile.value) ? logoFile.value[0] : logoFile.value
+          settingsData.company_logo = file
+        }
+
+        const result = await companySettingService.updateSettings(settingsData)
 
         originalCompanyName.value = companyName.value
+
+        // Update current logo URL if a new one was uploaded
+        if (result.company_logo_url) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          currentLogoUrl.value = `${apiUrl}${result.company_logo_url}`
+          originalLogoUrl.value = currentLogoUrl.value
+          logoPreview.value = null
+          logoFile.value = null
+        }
+
         successMessage.value = 'Company settings updated successfully!'
         showSnackbar('Settings saved successfully', 'success')
 
-        // Dispatch event to update navbar title
+        // Dispatch event to update navbar title and logo
         window.dispatchEvent(new CustomEvent('company-settings-updated'))
       } catch (error) {
         console.error('Failed to save settings:', error)
@@ -175,6 +303,10 @@ export default {
 
     const resetForm = () => {
       companyName.value = originalCompanyName.value
+      currentLogoUrl.value = originalLogoUrl.value
+      logoPreview.value = null
+      logoFile.value = null
+      logoToDelete.value = false
       successMessage.value = ''
       errorMessage.value = ''
     }
@@ -193,6 +325,9 @@ export default {
 
     return {
       companyName,
+      logoFile,
+      logoPreview,
+      currentLogoUrl,
       loading,
       saving,
       formValid,
@@ -204,7 +339,10 @@ export default {
       loadSettings,
       saveSettings,
       resetForm,
-      showSnackbar
+      showSnackbar,
+      handleFileChange,
+      clearLogo,
+      removeLogo
     }
   }
 }
@@ -217,6 +355,21 @@ export default {
   position: relative;
   min-height: 100vh;
   z-index: 1;
+}
+
+/* Logo Preview Styles */
+.logo-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-preview-card {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
 /* Enhanced Background */

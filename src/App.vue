@@ -2,7 +2,12 @@
   <v-app>
     <v-app-bar class="excel-app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
-      <v-toolbar-title class="excel-app-title" @click="router.push({ name: 'Home' })" style="cursor: pointer;">{{ companyName }}</v-toolbar-title>
+      <v-toolbar-title class="excel-app-title d-flex align-center" @click="router.push({ name: 'Home' })" style="cursor: pointer;">
+        <v-avatar v-if="companyLogo" size="40" class="mr-3 company-logo-avatar">
+          <v-img :src="companyLogo" alt="Company Logo" cover></v-img>
+        </v-avatar>
+        {{ companyName }}
+      </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
         v-if="isAuthenticated"
@@ -207,6 +212,7 @@ export default {
     const cartDialogOpen = ref(false)
     const cartCount = ref(0)
     const companyName = ref('Multi-Sport Court Booking')
+    const companyLogo = ref(null)
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
     const isStaff = computed(() => user.value?.role === 'staff')
@@ -304,9 +310,17 @@ export default {
         if (settings.company_name) {
           companyName.value = settings.company_name
         }
+
+        // Load company logo if exists
+        if (settings.company_logo_url) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          companyLogo.value = `${apiUrl}${settings.company_logo_url}`
+        } else {
+          companyLogo.value = null
+        }
       } catch (error) {
         console.error('Failed to load company settings:', error)
-        // Keep default name if loading fails
+        // Keep default name and logo if loading fails
       }
     }
 
@@ -353,6 +367,7 @@ export default {
       cartDialogOpen,
       cartCount,
       companyName,
+      companyLogo,
       route,
       router,
       logout,
@@ -479,6 +494,17 @@ export default {
   font-weight: 700 !important;
   font-size: 20px !important;
   letter-spacing: -0.5px;
+}
+
+.company-logo-avatar {
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transition: all 0.3s ease;
+}
+
+.company-logo-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
 }
 
 .excel-notification-btn,
