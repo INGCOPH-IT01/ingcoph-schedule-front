@@ -33,8 +33,12 @@ export const companySettingService = {
         payload.append('_method', 'PUT')
 
         // Use POST endpoint but with _method=PUT for Laravel
-        // Note: Don't set Content-Type manually - axios will set it with the correct boundary
-        const response = await api.post('/admin/company-settings', payload)
+        // Important: Remove Content-Type header to let axios set it automatically with the boundary
+        const response = await api.post('/admin/company-settings', payload, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
         return response.data.data
       } else {
         // Use regular JSON with PUT
