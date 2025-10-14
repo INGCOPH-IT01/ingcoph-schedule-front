@@ -13,7 +13,7 @@
           <v-icon size="32" class="mr-3">mdi-calendar-check</v-icon>
           <div>
             <h2 class="text-h5">Book a Court</h2>
-            <p class="text-subtitle-2 text-grey">Select sport, court, and time slot</p>
+            <p class="text-subtitle-2 text-grey">Select sport and time slot</p>
           </div>
         </div>
         <v-btn icon="mdi-close" variant="text" @click="$emit('close')"></v-btn>
@@ -26,7 +26,7 @@
         <!-- Progress Indicator -->
         <div class="stepper-header mb-6">
           <div
-            v-for="(stepName, index) in ['Sport', 'Court', 'Time Slot', 'Confirm']"
+            v-for="(stepName, index) in ['Sport', 'Court & Time Slot', 'Confirm']"
             :key="index"
             :class="['step-indicator', { 'active': step === index + 1, 'completed': step > index + 1 }]"
           >
@@ -43,7 +43,7 @@
                 <v-icon class="mr-2" color="primary">mdi-racquetball</v-icon>
                 Select a Sport
               </h3>
-              
+
               <v-row>
                 <v-col
                   v-for="sport in sports"
@@ -80,105 +80,15 @@
             </div>
           </v-window-item>
 
-          <!-- Step 2: Select Courts (Multiple) -->
+          <!-- Step 2: Select Court & Time Slot -->
           <v-window-item :value="2">
             <div class="step-content">
               <div class="d-flex align-center justify-space-between mb-4">
-                <div class="d-flex align-items-center">
+                <div class="d-flex align-center">
                   <v-btn icon="mdi-arrow-left" variant="text" @click="step = 1" size="small"></v-btn>
                   <h3 class="text-h6 ml-2">
-                    <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                    Select Courts for {{ selectedSport?.name }}
-                  </h3>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                  <v-btn
-                    v-if="filteredCourts.length > 0"
-                    :color="allCourtsSelected ? 'error' : 'primary'"
-                    variant="outlined"
-                    size="small"
-                    @click="toggleSelectAllCourts"
-                    prepend-icon="mdi-checkbox-multiple-marked"
-                  >
-                    {{ allCourtsSelected ? 'Deselect All' : 'Select All' }}
-                  </v-btn>
-                  <v-chip color="primary" v-if="selectedCourts.length > 0">
-                    {{ selectedCourts.length }} court(s) selected
-                  </v-chip>
-                </div>
-              </div>
-
-              <v-row>
-                <v-col
-                  v-for="court in filteredCourts"
-                  :key="court.id"
-                  cols="12"
-                  md="6"
-                >
-                  <v-card
-                    :class="['court-card', { 'selected': isCourtSelected(court.id) }]"
-                    @click="toggleCourt(court)"
-                    hover
-                  >
-                    <div v-if="isCourtSelected(court.id)" class="selection-badge">
-                      <v-icon color="white" size="20">mdi-check-circle</v-icon>
-                    </div>
-                    <v-row no-gutters>
-                      <v-col cols="4">
-                        <div class="court-image-container">
-                          <img
-                            v-if="court.images && court.images.length > 0"
-                            :src="court.images[0].image_url"
-                            :alt="court.name"
-                            class="court-image"
-                            @error="handleImageError"
-                          />
-                          <div v-else class="court-image-placeholder">
-                            <v-icon size="48" color="grey">mdi-stadium</v-icon>
-                          </div>
-                        </div>
-                      </v-col>
-                      <v-col cols="8">
-                        <v-card-text>
-                          <h4 class="text-h6">{{ court.name }}</h4>
-                          <p class="text-caption text-grey mb-2">{{ court.location || 'No location specified' }}</p>
-                          <div class="d-flex align-center mb-1">
-                            <v-icon size="16" class="mr-1" color="success">mdi-currency-php</v-icon>
-                            <span class="text-body-2">{{ court.price_per_hour }}/hour</span>
-                          </div>
-                          <div v-if="court.amenities && court.amenities.length" class="amenities-chips">
-                            <v-chip
-                              v-for="(amenity, index) in court.amenities.slice(0, 3)"
-                              :key="index"
-                              size="x-small"
-                              class="mr-1"
-                            >
-                              {{ amenity }}
-                            </v-chip>
-                            <span v-if="court.amenities.length > 3" class="text-caption">+{{ court.amenities.length - 3 }} more</span>
-                          </div>
-                        </v-card-text>
-                      </v-col>
-                    </v-row>
-                  </v-card>
-                </v-col>
-              </v-row>
-
-              <v-alert v-if="filteredCourts.length === 0" type="info" class="mt-4">
-                No courts available for {{ selectedSport?.name }}. Please contact the administrator.
-              </v-alert>
-            </div>
-          </v-window-item>
-
-          <!-- Step 3: Select Date and Time Slots (Multiple) -->
-          <v-window-item :value="3">
-            <div class="step-content">
-              <div class="d-flex align-center justify-space-between mb-4">
-                <div class="d-flex align-center">
-                  <v-btn icon="mdi-arrow-left" variant="text" @click="step = 2" size="small"></v-btn>
-                  <h3 class="text-h6 ml-2">
                     <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
-                    Select Date & Time Slots
+                    Select Court & Time Slots
                   </h3>
                 </div>
                 <v-chip color="success" v-if="totalBookings > 0">
@@ -196,15 +106,15 @@
                     variant="outlined"
                     prepend-inner-icon="mdi-calendar"
                     :min="minDate"
-                    @update:model-value="loadTimeSlots"
+                    @update:model-value="loadTimeSlotsForAllCourts"
                   ></v-text-field>
                 </v-col>
               </v-row>
 
-              <!-- Time Slots Grid for Each Selected Court -->
+              <!-- Time Slots Grid for Each Court (All Courts) -->
               <div v-if="selectedDate">
                 <div
-                  v-for="court in selectedCourts"
+                  v-for="court in filteredCourts"
                   :key="court.id"
                   class="court-time-slots-section mb-6"
                 >
@@ -222,7 +132,7 @@
                         {{ courtTimeSlots[court.id].slots.length }} slot(s)
                       </v-chip>
                     </div>
-                    
+
                     <v-progress-circular
                       v-if="loadingSlots"
                       indeterminate
@@ -234,9 +144,9 @@
                       <v-card
                         v-for="slot in timeSlots[court.id]"
                         :key="slot.start"
-                        :class="['time-slot-card', { 
+                        :class="['time-slot-card', {
                           'selected': isTimeSlotSelected(court.id, slot.start),
-                          'unavailable': !slot.available 
+                          'unavailable': !slot.available
                         }]"
                         @click="slot.available && toggleTimeSlot(court.id, slot)"
                         :disabled="!slot.available"
@@ -281,11 +191,11 @@
             </div>
           </v-window-item>
 
-          <!-- Step 4: Confirm Booking -->
-          <v-window-item :value="4">
+          <!-- Step 3: Confirm Booking -->
+          <v-window-item :value="3">
             <div class="step-content">
               <div class="d-flex align-center mb-4">
-                <v-btn icon="mdi-arrow-left" variant="text" @click="step = 3" size="small"></v-btn>
+                <v-btn icon="mdi-arrow-left" variant="text" @click="step = 2" size="small"></v-btn>
                 <h3 class="text-h6 ml-2">
                   <v-icon class="mr-2" color="primary">mdi-check-circle</v-icon>
                   Confirm Your Booking
@@ -316,10 +226,10 @@
                       <div class="d-flex align-center mb-2">
                         <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
                         <h5 class="text-subtitle-1 font-weight-bold">
-                          {{ selectedCourts.find(c => c.id === parseInt(courtId))?.name }}
+                          {{ filteredCourts.find(c => c.id === parseInt(courtId))?.name }}
                         </h5>
                       </div>
-                      
+
                       <div class="text-caption text-grey mb-2">
                         <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
                         {{ formatDate(selectedDate) }}
@@ -370,7 +280,7 @@
 
                   <v-alert type="info" variant="tonal" class="mb-4">
                     <div class="d-flex align-center">
-                      
+
                       <div>
                         <div class="font-weight-bold">Payment is required to complete your booking</div>
                         <div class="text-caption">All bookings must be paid via GCash before submission</div>
@@ -489,7 +399,7 @@
           Cancel
         </v-btn>
         <v-btn
-          v-if="step < 4"
+          v-if="step < 3"
           color="primary"
           :disabled="!canProceed"
           @click="nextStep"
@@ -565,7 +475,7 @@ export default {
     const loadingSlots = ref(false)
     const submitting = ref(false)
     const addingToCart = ref(false)
-    
+
     // Payment options
     const paymentMethod = ref('gcash') // GCash payment is required
     const gcashReferenceNumber = ref('')
@@ -575,7 +485,6 @@ export default {
 
     // Selections
     const selectedSport = ref(null)
-    const selectedCourts = ref([]) // Changed to array for multiple courts
     const selectedDate = ref('')
     const courtTimeSlots = ref({}) // Store time slots per court: { courtId: { date: '', slots: [] } }
 
@@ -593,8 +502,7 @@ export default {
     const canProceed = computed(() => {
       switch (step.value) {
         case 1: return selectedSport.value !== null
-        case 2: return selectedCourts.value.length > 0
-        case 3: return Object.keys(courtTimeSlots.value).length > 0 && 
+        case 2: return Object.keys(courtTimeSlots.value).length > 0 &&
                        Object.values(courtTimeSlots.value).some(ct => ct.slots.length > 0)
         default: return false
       }
@@ -621,45 +529,9 @@ export default {
 
     const selectSport = (sport) => {
       selectedSport.value = sport
-      selectedCourts.value = []
       selectedDate.value = ''
       courtTimeSlots.value = {}
-      timeSlots.value = []
-    }
-
-    const toggleCourt = (court) => {
-      const index = selectedCourts.value.findIndex(c => c.id === court.id)
-      if (index > -1) {
-        // Remove court
-        selectedCourts.value.splice(index, 1)
-        // Remove its time slots
-        delete courtTimeSlots.value[court.id]
-      } else {
-        // Add court
-        selectedCourts.value.push(court)
-      }
-    }
-
-    const isCourtSelected = (courtId) => {
-      return selectedCourts.value.some(c => c.id === courtId)
-    }
-
-    // Check if all courts are selected
-    const allCourtsSelected = computed(() => {
-      return filteredCourts.value.length > 0 && 
-             selectedCourts.value.length === filteredCourts.value.length
-    })
-
-    // Toggle select/deselect all courts
-    const toggleSelectAllCourts = () => {
-      if (allCourtsSelected.value) {
-        // Deselect all
-        selectedCourts.value = []
-        courtTimeSlots.value = {}
-      } else {
-        // Select all
-        selectedCourts.value = [...filteredCourts.value]
-      }
+      timeSlots.value = {}
     }
 
     const toggleTimeSlot = (courtId, slot) => {
@@ -674,7 +546,7 @@ export default {
 
       const slots = courtTimeSlots.value[courtId].slots
       const index = slots.findIndex(s => s.start === slot.start)
-      
+
       if (index > -1) {
         // Remove slot
         slots.splice(index, 1)
@@ -708,16 +580,16 @@ export default {
           courtService.getAvailableSlots(court.id, selectedDate.value)
             .then(slots => ({ courtId: court.id, slots }))
         )
-        
+
         const results = await Promise.all(slotsPromises)
-        
+
         // Store slots by court ID with deduplication
         const newTimeSlots = {}
         results.forEach(result => {
           // Deduplicate slots based on start-end time combination
           const uniqueSlots = []
           const seenKeys = new Set()
-          
+
           result.slots.forEach(slot => {
             const key = `${slot.start}-${slot.end}`
             if (!seenKeys.has(key)) {
@@ -725,7 +597,50 @@ export default {
               uniqueSlots.push(slot)
             }
           })
-          
+
+          newTimeSlots[result.courtId] = uniqueSlots
+        })
+        timeSlots.value = newTimeSlots
+      } catch (error) {
+        console.error('Failed to load time slots:', error)
+        showAlert({
+          icon: 'error',
+          title: 'Error',
+          text: 'Failed to load available time slots. Please try again.'
+        })
+      } finally {
+        loadingSlots.value = false
+      }
+    }
+
+    const loadTimeSlotsForAllCourts = async () => {
+      if (!selectedDate.value) return
+
+      loadingSlots.value = true
+      try {
+        // Load time slots for all filtered courts
+        const slotsPromises = filteredCourts.value.map(court =>
+          courtService.getAvailableSlots(court.id, selectedDate.value)
+            .then(slots => ({ courtId: court.id, slots }))
+        )
+
+        const results = await Promise.all(slotsPromises)
+
+        // Store slots by court ID with deduplication
+        const newTimeSlots = {}
+        results.forEach(result => {
+          // Deduplicate slots based on start-end time combination
+          const uniqueSlots = []
+          const seenKeys = new Set()
+
+          result.slots.forEach(slot => {
+            const key = `${slot.start}-${slot.end}`
+            if (!seenKeys.has(key)) {
+              seenKeys.add(key)
+              uniqueSlots.push(slot)
+            }
+          })
+
           newTimeSlots[result.courtId] = uniqueSlots
         })
         timeSlots.value = newTimeSlots
@@ -759,7 +674,7 @@ export default {
     const calculateTotalPrice = () => {
       let total = 0
       Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
-        const court = selectedCourts.value.find(c => c.id === parseInt(courtId))
+        const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
         if (court) {
           courtData.slots.forEach(slot => {
             const start = new Date(`2000-01-01 ${slot.start}`)
@@ -791,14 +706,14 @@ export default {
 
     const addToCart = async () => {
       addingToCart.value = true
-      
+
       try {
         // Validate selections
-        if (!selectedSport.value || selectedCourts.value.length === 0 || !selectedDate.value) {
+        if (!selectedSport.value || !selectedDate.value) {
           showAlert({
             icon: 'warning',
             title: 'Incomplete Selection',
-            text: 'Please select sport, courts, and time slots before adding to cart.'
+            text: 'Please select sport and time slots before adding to cart.'
           })
           addingToCart.value = false
           return
@@ -807,7 +722,7 @@ export default {
         // Create cart items from current selections
         const cartItems = []
         Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
-          const court = selectedCourts.value.find(c => c.id === parseInt(courtId))
+          const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court && courtData.slots && courtData.slots.length > 0) {
             courtData.slots.forEach(slot => {
               cartItems.push({
@@ -830,19 +745,19 @@ export default {
           addingToCart.value = false
           return
         }
-        
+
         // Add to cart via API
         const response = await cartService.addToCart(cartItems)
-        
+
         console.log('Cart items added:', cartItems.length)
-        
+
         // Dispatch custom events to update cart count and refresh bookings
         window.dispatchEvent(new CustomEvent('cart-updated'))
         window.dispatchEvent(new CustomEvent('booking-created'))
-        
+
         // Emit booking-created event to refresh bookings list
         emit('booking-created')
-        
+
         showAlert({
           icon: 'success',
           title: 'Added to Cart!',
@@ -853,7 +768,7 @@ export default {
           confirmButtonText: 'OK',
           timer: 3000
         })
-        
+
         emit('close')
         resetForm()
       } catch (error) {
@@ -903,7 +818,7 @@ export default {
         // Create cart items array
         const cartItems = []
         Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
-          const court = selectedCourts.value.find(c => c.id === parseInt(courtId))
+          const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court) {
             courtData.slots.forEach(slot => {
               const start = new Date(`2000-01-01 ${slot.start}`)
@@ -939,14 +854,14 @@ export default {
 
         // Dispatch cart updated event
         window.dispatchEvent(new CustomEvent('cart-updated'))
-        
+
         // Emit booking-created event immediately to refresh the list
         emit('booking-created')
-        
+
         // Dispatch global events immediately
         window.dispatchEvent(new CustomEvent('booking-created'))
         window.dispatchEvent(new CustomEvent('cart-updated'))
-        
+
         // Show success message (non-blocking for list refresh)
         await showAlert({
           icon: 'success',
@@ -958,7 +873,7 @@ export default {
           `,
           confirmButtonText: 'OK'
         })
-        
+
         // Close dialog and reset form after user closes alert
         emit('close')
         resetForm()
@@ -966,9 +881,9 @@ export default {
         console.error('Failed to create bookings:', error)
         console.error('Error response:', error.response)
         console.error('Error data:', error.response?.data)
-        
+
         let errorMessage = 'Failed to process GCash payment. Please try again.'
-        
+
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message
         } else if (error.response?.data?.errors) {
@@ -977,7 +892,7 @@ export default {
         } else if (error.message) {
           errorMessage = error.message
         }
-        
+
         showAlert({
           icon: 'error',
           title: 'Payment Failed',
@@ -999,7 +914,7 @@ export default {
             // Format start and end times properly
             const startDateTime = `${selectedDate.value} ${slot.start}:00`
             const endDateTime = `${selectedDate.value} ${slot.end}:00`
-            
+
             bookingsToCreate.push({
               court_id: parseInt(courtId),
               start_time: startDateTime,
@@ -1043,7 +958,6 @@ export default {
     const resetForm = () => {
       step.value = 1
       selectedSport.value = null
-      selectedCourts.value = []
       selectedDate.value = ''
       courtTimeSlots.value = {}
       timeSlots.value = {}
@@ -1078,10 +992,10 @@ export default {
           const gcashNumber = '09171234567'
           const accountName = 'CourtBookingSystem'
           const amount = calculateTotalPrice()
-          
+
           // Generate QR code with GCash payment link
           const qrData = `gcash://pay?number=${gcashNumber}&amount=${amount}&name=${accountName}`
-          
+
           await QRCode.toCanvas(gcashQrCanvas.value, qrData, {
             width: 180,
             margin: 2,
@@ -1137,7 +1051,6 @@ export default {
       proofOfPayment,
       proofPreview,
       selectedSport,
-      selectedCourts,
       selectedDate,
       courtTimeSlots,
       minDate,
@@ -1146,14 +1059,11 @@ export default {
       totalBookings,
       getSportIcon,
       selectSport,
-      toggleCourt,
-      isCourtSelected,
-      allCourtsSelected,
-      toggleSelectAllCourts,
       toggleTimeSlot,
       isTimeSlotSelected,
       nextStep,
       loadTimeSlots,
+      loadTimeSlotsForAllCourts,
       formatTime,
       formatDate,
       calculateTotalPrice,
@@ -1673,7 +1583,7 @@ export default {
   .v-dialog.responsive-dialog {
     margin: 0 !important;
   }
-  
+
   .booking-dialog {
     max-height: 100vh;
     height: 100vh;
