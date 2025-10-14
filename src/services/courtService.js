@@ -19,6 +19,33 @@ export const courtService = {
     }
   },
 
+  async createSport(sportData) {
+    try {
+      const response = await api.post('/sports', sportData)
+      return response.data.data
+    } catch (error) {
+      throw error
+    }
+  },
+
+  async updateSport(id, sportData) {
+    try {
+      const response = await api.put(`/sports/${id}`, sportData)
+      return response.data.data
+    } catch (error) {
+      throw error
+    }
+  },
+
+  async deleteSport(id) {
+    try {
+      const response = await api.delete(`/sports/${id}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  },
+
   async getCourts(sportId = null) {
     try {
       const params = sportId ? { sport_id: sportId } : {}

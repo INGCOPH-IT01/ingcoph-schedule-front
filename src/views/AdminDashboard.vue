@@ -209,35 +209,165 @@
           </div>
           <div class="action-glow"></div>
         </div>
+
+        <div class="action-card action-card-5">
+          <div class="action-icon">
+            <v-icon color="purple" size="48">mdi-trophy</v-icon>
+          </div>
+          <div class="action-content">
+            <h3 class="action-title">Sports Management</h3>
+            <p class="action-description">Manage sports types and configurations</p>
+            <v-btn
+              class="action-btn"
+              color="purple"
+              size="large"
+              @click="goToSportsManagement"
+              prepend-icon="mdi-trophy"
+              elevation="4"
+            >
+              Manage Sports
+            </v-btn>
+          </div>
+          <div class="action-glow"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Pending Bookings Table -->
+    <!-- Transactions Table -->
     <v-row>
       <v-col cols="12">
         <v-card>
           <v-card-title class="text-h5 pa-6 pb-4">
-            <v-icon class="mr-2" color="warning">mdi-clock-alert</v-icon>
-            Pending Transactions
-            <v-spacer></v-spacer>
-            <v-btn
-              color="primary"
-              variant="outlined"
-              prepend-icon="mdi-refresh"
-              @click="loadPendingBookings"
-              :loading="loading"
-            >
-              Refresh
-            </v-btn>
+            <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
+            Transactions
           </v-card-title>
           <v-divider></v-divider>
 
+          <!-- Filters -->
+          <div class="pa-4">
+            <!-- Status Filter Chips -->
+            <div class="mb-4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold">Approval Status</div>
+              <v-chip-group
+                v-model="statusFilter"
+                mandatory
+                selected-class="text-primary"
+              >
+                <v-chip value="all" variant="outlined" filter>
+                  <v-icon start>mdi-format-list-bulleted</v-icon>
+                  All
+                </v-chip>
+                <v-chip value="pending" variant="outlined" filter>
+                  <v-icon start>mdi-clock-alert</v-icon>
+                  Pending
+                </v-chip>
+                <v-chip value="approved" variant="outlined" filter>
+                  <v-icon start>mdi-check-circle</v-icon>
+                  Approved
+                </v-chip>
+                <v-chip value="rejected" variant="outlined" filter>
+                  <v-icon start>mdi-close-circle</v-icon>
+                  Rejected
+                </v-chip>
+              </v-chip-group>
+            </div>
+
+            <!-- Additional Filters -->
+            <v-row>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model="userFilter"
+                  label="Search User"
+                  placeholder="Enter user name or email"
+                  prepend-inner-icon="mdi-account-search"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  hide-details
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" sm="6" md="2">
+                <v-select
+                  v-model="sportFilter"
+                  :items="sportOptions"
+                  label="Filter by Sport"
+                  prepend-inner-icon="mdi-basketball"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  hide-details
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model="dateFromFilter"
+                  label="From Date"
+                  type="date"
+                  prepend-inner-icon="mdi-calendar-start"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  hide-details
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model="dateToFilter"
+                  label="To Date"
+                  type="date"
+                  prepend-inner-icon="mdi-calendar-end"
+                  variant="outlined"
+                  density="compact"
+                  clearable
+                  hide-details
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" sm="12" md="1">
+                <v-btn
+                  color="primary"
+                  variant="outlined"
+                  prepend-icon="mdi-refresh"
+                  @click="loadPendingBookings"
+                  :loading="loading"
+                >
+                  Refresh
+                </v-btn>
+              </v-col>
+            </v-row>
+
+            <!-- Clear All Filters Button -->
+            <v-row v-if="hasActiveFilters" class="mt-2">
+              <v-col cols="12">
+                <v-btn
+                  variant="text"
+                  color="error"
+                  prepend-icon="mdi-filter-off"
+                  size="small"
+                  @click="clearAllFilters"
+                >
+                  Clear All Filters
+                </v-btn>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider></v-divider>
+
+          <!-- Results Count -->
+          <div class="px-4 py-2 text-caption text-grey">
+            Showing {{ filteredTransactions.length }} of {{ pendingBookings.length }} transaction{{ pendingBookings.length !== 1 ? 's' : '' }}
+          </div>
+
           <v-data-table
             :headers="headers"
-            :items="pendingBookings"
+            :items="filteredTransactions"
             :loading="loading"
             class="elevation-0"
-            no-data-text="No pending transactions found"
+            no-data-text="No transactions found"
           >
             <template v-slot:[`item.user_name`]="{ item }">
               <div class="d-flex align-center">
@@ -252,20 +382,21 @@
             </template>
 
             <template v-slot:[`item.court_name`]="{ item }">
-              <div class="d-flex align-center">
-                <CourtImageGallery
-                  :images="item.cart_items?.[0]?.court?.images || []"
-                  :court-name="item.court_name"
-                  size="small"
-                  @image-error="handleImageError"
-                />
-                <div class="ml-3">
-                  <div class="font-weight-medium">{{ item.court_name }}</div>
-                  <div class="text-caption text-grey">
-                    {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
-                  </div>
-                </div>
-              </div>
+              <div class="font-weight-medium">{{ item.court_name }}</div>
+            </template>
+
+            <template v-slot:[`item.sport_name`]="{ item }">
+              <v-chip
+                :color="getSportColor(item.cart_items?.[0]?.court?.sport?.name)"
+                variant="tonal"
+                size="small"
+              >
+                <!-- Use MDI icon from sport if available, otherwise use fallback -->
+                <v-icon class="mr-1" size="small">
+                  {{ item.cart_items?.[0]?.court?.sport?.icon || getSportIcon(item.cart_items?.[0]?.court?.sport?.name) }}
+                </v-icon>
+                {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
+              </v-chip>
             </template>
 
             <template v-slot:[`item.items_count`]="{ item }">
@@ -298,6 +429,19 @@
               </v-chip>
             </template>
 
+            <template v-slot:[`item.approval_status`]="{ item }">
+              <v-chip
+                :color="item.approval_status === 'approved' ? 'success' : item.approval_status === 'rejected' ? 'error' : 'warning'"
+                variant="tonal"
+                size="small"
+              >
+                <v-icon class="mr-1" size="small">
+                  {{ item.approval_status === 'approved' ? 'mdi-check-circle' : item.approval_status === 'rejected' ? 'mdi-close-circle' : 'mdi-clock-alert' }}
+                </v-icon>
+                {{ item.approval_status ? item.approval_status.charAt(0).toUpperCase() + item.approval_status.slice(1) : 'Pending' }}
+              </v-chip>
+            </template>
+
             <template v-slot:[`item.actions`]="{ item }">
               <div class="d-flex gap-2">
                 <v-btn
@@ -310,6 +454,7 @@
                   View
                 </v-btn>
                 <v-btn
+                  v-if="item.approval_status === 'pending'"
                   color="success"
                   variant="tonal"
                   size="small"
@@ -321,6 +466,7 @@
                   Approve
                 </v-btn>
                 <v-btn
+                  v-if="item.approval_status === 'pending'"
                   color="error"
                   variant="tonal"
                   size="small"
@@ -498,7 +644,7 @@
                   >
                     <template v-slot:prepend>
                       <v-avatar :color="getSportColor(item.court?.sport?.name)" size="40">
-                        <v-icon color="white">{{ getSportIcon(item.court?.sport?.name) }}</v-icon>
+                        <v-icon color="white">{{ item.court?.sport?.icon || getSportIcon(item.court?.sport?.name) }}</v-icon>
                       </v-avatar>
                     </template>
                     <v-list-item-title class="font-weight-bold">
@@ -791,7 +937,8 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { formatPrice } from '../utils/formatters'
@@ -804,6 +951,7 @@ export default {
     CourtImageGallery
   },
   setup() {
+    const router = useRouter()
     const stats = ref({})
     const pendingBookings = ref([])
     const loading = ref(false)
@@ -825,14 +973,23 @@ export default {
     })
     const qrScannerDialog = ref(false)
 
+    // Filter states
+    const statusFilter = ref('all')
+    const userFilter = ref('')
+    const sportFilter = ref(null)
+    const dateFromFilter = ref('')
+    const dateToFilter = ref('')
+
     const headers = [
       { title: 'Transaction ID', key: 'id', sortable: true },
       { title: 'User', key: 'user_name', sortable: false },
       { title: 'Courts', key: 'court_name', sortable: false },
+      { title: 'Sport', key: 'sport_name', sortable: false },
       { title: 'Items', key: 'items_count', sortable: false },
       { title: 'Created At', key: 'created_at', sortable: true },
       { title: 'Total Price', key: 'total_price', sortable: true },
       { title: 'Payment Status', key: 'payment_status', sortable: false },
+      { title: 'Approval Status', key: 'approval_status', sortable: false },
       { title: 'Notes', key: 'notes', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false }
     ]
@@ -850,8 +1007,8 @@ export default {
     const loadPendingBookings = async () => {
       try {
         loading.value = true
-        // Fetch pending cart transactions instead of bookings
-        const transactions = await cartService.getPendingTransactions()
+        // Fetch all cart transactions instead of just pending
+        const transactions = await cartService.getAllTransactions()
         pendingBookings.value = transactions.map(transaction => ({
           ...transaction,
           approving: false,
@@ -866,8 +1023,8 @@ export default {
           items_count: transaction.cart_items?.length || 0
         }))
       } catch (error) {
-        console.error('Failed to load pending transactions:', error)
-        showSnackbar('Failed to load pending transactions', 'error')
+        console.error('Failed to load transactions:', error)
+        showSnackbar('Failed to load transactions', 'error')
       } finally {
         loading.value = false
       }
@@ -1142,6 +1299,97 @@ export default {
       }
     }
 
+    // Computed property for sport options
+    const sportOptions = computed(() => {
+      const sports = new Set()
+      pendingBookings.value.forEach(transaction => {
+        if (transaction.cart_items && transaction.cart_items.length > 0) {
+          transaction.cart_items.forEach(item => {
+            if (item.court?.sport?.name) {
+              sports.add(item.court.sport.name)
+            }
+          })
+        }
+      })
+      return ['All Sports', ...Array.from(sports).sort()]
+    })
+
+    // Computed property to check if any filters are active
+    const hasActiveFilters = computed(() => {
+      return statusFilter.value !== 'all' ||
+             userFilter.value !== '' ||
+             sportFilter.value !== null ||
+             dateFromFilter.value !== '' ||
+             dateToFilter.value !== ''
+    })
+
+    // Clear all filters function
+    const clearAllFilters = () => {
+      statusFilter.value = 'all'
+      userFilter.value = ''
+      sportFilter.value = null
+      dateFromFilter.value = ''
+      dateToFilter.value = ''
+    }
+
+    // Computed property for filtered transactions
+    const filteredTransactions = computed(() => {
+      let filtered = pendingBookings.value
+
+      // Filter by approval status
+      if (statusFilter.value !== 'all') {
+        filtered = filtered.filter(transaction => {
+          const status = transaction.approval_status || 'pending'
+          return status === statusFilter.value
+        })
+      }
+
+      // Filter by user (name or email)
+      if (userFilter.value && userFilter.value.trim() !== '') {
+        const searchTerm = userFilter.value.toLowerCase().trim()
+        filtered = filtered.filter(transaction => {
+          const userName = transaction.user?.name?.toLowerCase() || ''
+          const userEmail = transaction.user?.email?.toLowerCase() || ''
+          return userName.includes(searchTerm) || userEmail.includes(searchTerm)
+        })
+      }
+
+      // Filter by sport
+      if (sportFilter.value && sportFilter.value !== 'All Sports') {
+        filtered = filtered.filter(transaction => {
+          if (!transaction.cart_items || transaction.cart_items.length === 0) {
+            return false
+          }
+          // Check if any cart item has the selected sport
+          return transaction.cart_items.some(item =>
+            item.court?.sport?.name === sportFilter.value
+          )
+        })
+      }
+
+      // Filter by date range
+      if (dateFromFilter.value) {
+        const fromDate = new Date(dateFromFilter.value)
+        fromDate.setHours(0, 0, 0, 0)
+        filtered = filtered.filter(transaction => {
+          const transactionDate = new Date(transaction.created_at)
+          transactionDate.setHours(0, 0, 0, 0)
+          return transactionDate >= fromDate
+        })
+      }
+
+      if (dateToFilter.value) {
+        const toDate = new Date(dateToFilter.value)
+        toDate.setHours(23, 59, 59, 999)
+        filtered = filtered.filter(transaction => {
+          const transactionDate = new Date(transaction.created_at)
+          return transactionDate <= toDate
+        })
+      }
+
+      return filtered
+    })
+
     // QR Scanner functions
     const openQrScanner = () => {
       qrScannerDialog.value = true
@@ -1149,6 +1397,11 @@ export default {
 
     const closeQrScannerDialog = () => {
       qrScannerDialog.value = false
+    }
+
+    // Navigation functions
+    const goToSportsManagement = () => {
+      router.push({ name: 'SportsManagement' })
     }
 
     const handleImageError = (event) => {
@@ -1222,8 +1475,18 @@ export default {
       openQrScanner,
       closeQrScannerDialog,
       qrScannerDialog,
+      goToSportsManagement,
       handleImageError,
       headers,
+      statusFilter,
+      userFilter,
+      sportFilter,
+      dateFromFilter,
+      dateToFilter,
+      sportOptions,
+      hasActiveFilters,
+      clearAllFilters,
+      filteredTransactions,
       loadStats,
       loadPendingBookings,
       approveBooking,
@@ -1408,6 +1671,10 @@ export default {
 
 .stat-card-4:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+.action-card-5:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(168, 85, 247, 0.02) 100%);
 }
 
 .stat-icon {

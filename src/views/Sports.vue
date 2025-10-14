@@ -58,7 +58,11 @@
           class="excel-court-card"
         >
         <div class="excel-court-header">
-          <div class="excel-court-icon">{{ getSportIcon(sport.name) }}</div>
+          <div class="excel-court-icon-wrapper">
+            <!-- Use MDI icon if available, otherwise fallback to emoji -->
+            <v-icon v-if="sport.icon" size="48" color="white">{{ sport.icon }}</v-icon>
+            <span v-else class="excel-court-icon-emoji">{{ getSportIcon(sport.name) }}</span>
+          </div>
           <v-chip
             :color="sport.is_active ? 'success' : 'error'"
             variant="tonal"
@@ -440,7 +444,14 @@ export default {
   align-items: center;
 }
 
-.excel-court-icon {
+.excel-court-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+}
+
+.excel-court-icon-emoji {
   font-size: 48px;
   color: white;
 }
