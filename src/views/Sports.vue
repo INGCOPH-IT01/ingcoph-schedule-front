@@ -5,7 +5,7 @@
       <div class="sports-overlay"></div>
       <div class="sports-pattern"></div>
     </div>
-    
+
     <!-- Enhanced Header -->
     <div class="sports-header">
       <div class="header-content">
@@ -14,7 +14,7 @@
           Multi-Sport Facility
         </div>
         <h1 class="header-title">
-          <span class="title-gradient">Our</span> Sports Courts
+          <span class="title-gradient">Our</span> Sports
         </h1>
         <p class="header-subtitle">
           Professional sports facility designed for champions and enthusiasts of all skill levels
@@ -42,25 +42,39 @@
       </div>
     </div>
 
-    <!-- Single Court Display -->
+    <!-- Empty State -->
+    <div v-else-if="sports.length === 0" class="excel-empty">
+      <div class="excel-empty-icon">🏟️</div>
+      <h3 class="excel-empty-title">No Sports Available</h3>
+      <p class="excel-empty-text">There are currently no sports available. Please check back later.</p>
+    </div>
+
+    <!-- Dynamic Sports Display -->
     <div v-else class="excel-court-container">
-      <div class="excel-court-card">
+      <div class="sports-grid">
+        <div
+          v-for="sport in sports"
+          :key="sport.id"
+          class="excel-court-card"
+        >
         <div class="excel-court-header">
-          <div class="excel-court-icon">🏸</div>
+          <div class="excel-court-icon">{{ getSportIcon(sport.name) }}</div>
           <v-chip
-            color="success"
+            :color="sport.is_active ? 'success' : 'error'"
             variant="tonal"
             size="large"
             class="excel-court-status"
           >
-            Available
+            {{ sport.is_active ? 'Available' : 'Unavailable' }}
           </v-chip>
         </div>
-        
+
         <div class="excel-court-content">
-          <h2 class="excel-court-title">Badminton Court</h2>
-          <p class="excel-court-description">Professional badminton court with wooden floor and modern facilities</p>
-          
+          <h2 class="excel-court-title">{{ sport.name }}</h2>
+          <p class="excel-court-description">
+            {{ sport.description || `Professional ${sport.name.toLowerCase()} court with modern facilities` }}
+          </p>
+
           <div class="excel-court-features">
             <h4 class="excel-features-title">Court Features</h4>
             <div class="excel-features-grid">
@@ -86,12 +100,12 @@
               </div>
               <div class="excel-feature-item">
                 <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
-                <span>₱{{ getCourtPrice() }}/hour</span>
+                <span>₱{{ getCourtPriceForSport(sport.id) }}/hour</span>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="excel-court-footer">
           <v-btn
             color="primary"
@@ -99,10 +113,12 @@
             size="large"
             class="excel-court-btn"
             @click="handleBookNowClick"
+            :disabled="!sport.is_active"
           >
             <v-icon class="mr-2">mdi-calendar-plus</v-icon>
-            Book Now - {{ formatPriceTemplate(getCourtPrice()) }}/hour
+            Book Now - {{ formatPriceTemplate(getCourtPriceForSport(sport.id)) }}/hour
           </v-btn>
+        </div>
         </div>
       </div>
     </div>
@@ -165,6 +181,16 @@ export default {
       return 25 // fallback to default price
     }
 
+    const getCourtPriceForSport = (sportId) => {
+      // Find courts that belong to this sport
+      const sportCourts = courts.value.filter(court => court.sport_id === sportId)
+      if (sportCourts.length > 0) {
+        // Return the price of the first court for this sport
+        return sportCourts[0].price_per_hour
+      }
+      return 25 // fallback to default price
+    }
+
     // Wrapper function for template use
     const formatPriceTemplate = (price) => {
       return formatPrice(price)
@@ -191,6 +217,7 @@ export default {
       error,
       getSportIcon,
       getCourtPrice,
+      getCourtPriceForSport,
       handleBookNowClick,
       formatPriceTemplate
     }
@@ -225,7 +252,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -238,7 +265,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -382,13 +409,27 @@ export default {
   padding: 40px;
 }
 
+.sports-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  width: 100%;
+}
+
+/* Two columns for medium screens and up */
+@media (min-width: 960px) {
+  .sports-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 .excel-court-card {
-  max-width: 800px;
-  margin: 0 auto;
   background: white;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .excel-court-header {
@@ -411,6 +452,7 @@ export default {
 
 .excel-court-content {
   padding: 32px;
+  flex: 1;
 }
 
 .excel-court-title {
@@ -629,20 +671,33 @@ export default {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .excel-container {
-    padding: 12px;
-  }
-  
-  .excel-sports-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .excel-sport-card {
+  .sports-container {
     padding: 16px;
   }
-  
-  .excel-title {
-    font-size: 20px;
+
+  .excel-court-container {
+    padding: 20px;
+  }
+
+  .sports-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .excel-court-card {
+    margin-bottom: 0;
+  }
+
+  .excel-court-title {
+    font-size: 24px;
+  }
+
+  .excel-court-description {
+    font-size: 16px;
+  }
+
+  .excel-features-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
