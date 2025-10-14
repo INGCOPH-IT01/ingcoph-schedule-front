@@ -1,150 +1,8 @@
 <template>
   <v-app>
-    <v-navigation-drawer
-      v-model="drawer"
-      :rail="rail"
-      permanent
-      @click="rail = false"
-      class="excel-sidebar"
-    >
-      <v-list-item
-        :prepend-avatar="isAuthenticated ? `https://ui-avatars.com/api/?name=${user?.name}&background=3b82f6&color=fff` : 'https://ui-avatars.com/api/?name=Guest&background=6b7280&color=fff'"
-        :title="isAuthenticated ? user?.name : 'Guest'"
-        :subtitle="isAuthenticated ? user?.email : 'Please login'"
-        nav
-        class="excel-user-info"
-      >
-        <template v-slot:append>
-          <v-btn
-            variant="text"
-            icon="mdi-chevron-left"
-            @click.stop="rail = !rail"
-            class="excel-rail-btn"
-          ></v-btn>
-        </template>
-      </v-list-item>
-
-      <v-divider class="excel-divider"></v-divider>
-
-      <v-list density="compact" nav class="excel-nav-list">
-        <v-list-item
-          prepend-icon="mdi-view-dashboard"
-          title="Dashboard"
-          value="dashboard"
-          :to="{ name: 'Home' }"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          prepend-icon="mdi-racquetball"
-          title="Sports"
-          value="sports"
-          :to="{ name: 'Sports' }"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          prepend-icon="mdi-stadium"
-          title="Courts"
-          value="courts"
-          @click="handleCourtsClick"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          prepend-icon="mdi-calendar"
-          title="My Bookings"
-          value="bookings"
-          @click="handleBookingsClick"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          v-if="isAuthenticated"
-          prepend-icon="mdi-account-cog"
-          title="My Profile"
-          value="profile"
-          :to="{ name: 'UserProfile' }"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          v-if="isAuthenticated && isAdmin"
-          prepend-icon="mdi-shield-account"
-          title="Admin Panel"
-          value="admin"
-          :to="{ name: 'AdminDashboard' }"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          v-if="isAuthenticated && isAdmin"
-          prepend-icon="mdi-account-group"
-          title="User Management"
-          value="users"
-          :to="{ name: 'UserManagement' }"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          v-if="isAuthenticated && isAdmin"
-          prepend-icon="mdi-cog"
-          title="Company Settings"
-          value="company-settings"
-          :to="{ name: 'CompanySettings' }"
-          class="excel-nav-item"
-        ></v-list-item>
-
-        <v-list-item
-          v-if="isAuthenticated && (isStaff || isAdmin)"
-          prepend-icon="mdi-qrcode-scan"
-          title="Staff Scanner"
-          value="staff"
-          :to="{ name: 'StaffDashboard' }"
-          class="excel-nav-item"
-        ></v-list-item>
-      </v-list>
-
-      <template v-slot:append>
-        <v-divider class="excel-divider"></v-divider>
-        <div v-if="!isAuthenticated" class="excel-auth-section">
-          <v-btn
-            block
-            variant="outlined"
-            class="excel-auth-btn mb-2"
-            :to="{ name: 'Login' }"
-            prepend-icon="mdi-login"
-          >
-            Login
-          </v-btn>
-          <v-btn
-            block
-            variant="elevated"
-            :to="{ name: 'Register' }"
-            prepend-icon="mdi-account-plus"
-            class="excel-auth-btn"
-          >
-            Register
-          </v-btn>
-        </div>
-        <div v-else class="excel-auth-section">
-          <v-btn
-            block
-            variant="outlined"
-            color="error"
-            @click="logout"
-            prepend-icon="mdi-logout"
-            class="excel-logout-btn"
-          >
-            Logout
-          </v-btn>
-        </div>
-      </template>
-    </v-navigation-drawer>
-
     <v-app-bar class="excel-app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
-      <v-toolbar-title class="excel-app-title">{{ companyName }}</v-toolbar-title>
+      <v-toolbar-title class="excel-app-title" @click="router.push({ name: 'Home' })" style="cursor: pointer;">{{ companyName }}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
         v-if="isAuthenticated"
@@ -161,15 +19,137 @@
           <v-icon>mdi-cart</v-icon>
         </v-badge>
       </v-btn>
-      <!-- <v-btn icon class="excel-notification-btn">
-        <v-icon>mdi-bell</v-icon>
-      </v-btn>
-      <v-btn icon class="excel-profile-btn">
-        <v-icon>mdi-account-circle</v-icon>
-      </v-btn> -->
+
+      <!-- Login/Register buttons for non-authenticated users -->
+      <template v-if="!isAuthenticated">
+        <v-btn
+          variant="outlined"
+          class="mr-2"
+          :to="{ name: 'Login' }"
+          prepend-icon="mdi-login"
+        >
+          Login
+        </v-btn>
+        <v-btn
+          variant="elevated"
+          color="primary"
+          :to="{ name: 'Register' }"
+          prepend-icon="mdi-account-plus"
+        >
+          Register
+        </v-btn>
+      </template>
+
+      <!-- User avatar and profile menu for authenticated users -->
+      <v-menu v-else offset-y>
+        <template v-slot:activator="{ props }">
+          <v-btn
+            icon
+            v-bind="props"
+            class="excel-profile-btn"
+          >
+            <v-avatar size="40">
+              <v-img :src="`https://ui-avatars.com/api/?name=${user?.name}&background=3b82f6&color=fff`"></v-img>
+            </v-avatar>
+          </v-btn>
+        </template>
+        <v-list>
+          <v-list-item
+            prepend-icon="mdi-account-cog"
+            :to="{ name: 'UserProfile' }"
+          >
+            <v-list-item-title>My Profile</v-list-item-title>
+          </v-list-item>
+          <v-divider></v-divider>
+          <v-list-item
+            prepend-icon="mdi-logout"
+            @click="logout"
+          >
+            <v-list-item-title>Logout</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-menu>
     </v-app-bar>
 
     <v-main class="excel-main">
+      <v-navigation-drawer
+        v-model="drawer"
+        :rail="rail"
+        @click="rail = false"
+        class="excel-sidebar"
+        absolute
+      >
+        <v-list density="compact" nav class="excel-nav-list">
+          <v-list-item
+            prepend-icon="mdi-view-dashboard"
+            title="Dashboard"
+            value="dashboard"
+            :to="{ name: 'Home' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-racquetball"
+            title="Sports"
+            value="sports"
+            :to="{ name: 'Sports' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-stadium"
+            title="Courts"
+            value="courts"
+            @click="handleCourtsClick"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            prepend-icon="mdi-calendar"
+            title="My Bookings"
+            value="bookings"
+            @click="handleBookingsClick"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-shield-account"
+            title="Admin Panel"
+            value="admin"
+            :to="{ name: 'AdminDashboard' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-account-group"
+            title="User Management"
+            value="users"
+            :to="{ name: 'UserManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-cog"
+            title="Company Settings"
+            value="company-settings"
+            :to="{ name: 'CompanySettings' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-list-item
+            v-if="isAuthenticated && (isStaff || isAdmin)"
+            prepend-icon="mdi-qrcode-scan"
+            title="Staff Scanner"
+            value="staff"
+            :to="{ name: 'StaffDashboard' }"
+            class="excel-nav-item"
+          ></v-list-item>
+        </v-list>
+      </v-navigation-drawer>
+
       <v-container fluid class="excel-container">
         <router-view :key="$route.fullPath" />
       </v-container>
@@ -374,6 +354,7 @@ export default {
       cartCount,
       companyName,
       route,
+      router,
       logout,
       openBookingDialog,
       closeBookingDialog,
@@ -389,106 +370,94 @@ export default {
 <style scoped>
 /* Modern Sports Theme - Dynamic Athletic Design */
 .excel-sidebar {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #334155 100%) !important;
-  border-right: 1px solid #475569 !important;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15) !important;
-}
-
-.excel-user-info {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-  margin: 12px;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-}
-
-.excel-rail-btn {
-  color: #94a3b8 !important;
-}
-
-.excel-divider {
-  border-color: #475569 !important;
-  margin: 12px 0 !important;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%) !important;
+  border-right: 1px solid #e2e8f0 !important;
+  box-shadow: 2px 0 16px rgba(0, 0, 0, 0.06) !important;
 }
 
 .excel-nav-list {
-  padding: 0 12px;
+  padding: 16px 12px;
 }
 
 .excel-nav-item {
-  border-radius: 10px !important;
-  margin-bottom: 6px !important;
-  color: #cbd5e1 !important;
+  border-radius: 12px !important;
+  margin-bottom: 8px !important;
+  color: #475569 !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   position: relative;
   overflow: hidden;
+  padding: 12px 16px !important;
+  min-height: 48px !important;
 }
 
 .excel-nav-item::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -100%;
-  width: 100%;
+  left: 0;
+  width: 4px;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  transition: left 0.5s;
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+  border-radius: 0 4px 4px 0;
 }
 
 .excel-nav-item:hover::before {
+  transform: scaleY(1);
+}
+
+.excel-nav-item::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.08), transparent);
+  transition: left 0.6s ease;
+}
+
+.excel-nav-item:hover::after {
   left: 100%;
 }
 
 .excel-nav-item:hover {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
-  color: #ffffff !important;
-  transform: translateX(4px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #1e40af !important;
+  transform: translateX(6px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 .excel-nav-item.v-list-item--active {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
-  transform: translateX(4px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  transform: translateX(6px);
 }
 
-.excel-auth-section {
-  padding: 12px;
+.excel-nav-item.v-list-item--active::before {
+  transform: scaleY(1);
+  background: linear-gradient(180deg, #ffffff 0%, #e0e7ff 100%);
 }
 
-.excel-auth-btn {
-  font-size: 14px !important;
-  text-transform: none !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
-  color: white !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
-  transition: all 0.3s ease !important;
+/* Icon styling */
+.excel-nav-item :deep(.v-list-item__prepend) {
+  margin-inline-end: 16px !important;
 }
 
-.excel-auth-btn:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
+.excel-nav-item :deep(.v-icon) {
+  font-size: 22px !important;
+  transition: all 0.3s ease;
 }
 
-.excel-logout-btn {
-  font-size: 14px !important;
-  text-transform: none !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
-  color: white !important;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
-  transition: all 0.3s ease !important;
+.excel-nav-item:hover :deep(.v-icon) {
+  transform: scale(1.1) rotate(5deg);
 }
 
-.excel-logout-btn:hover {
-  transform: translateY(-2px) !important;
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
+.excel-nav-item.v-list-item--active :deep(.v-icon) {
+  transform: scale(1.05);
 }
 
 .excel-app-bar {
@@ -553,7 +522,7 @@ export default {
 
 /* Global overrides */
 :deep(.v-navigation-drawer__content) {
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
 }
 
 :deep(.v-list-item__prepend) {
@@ -568,7 +537,7 @@ export default {
 
 :deep(.v-list-item__subtitle) {
   font-size: 13px;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 500;
 }
 
@@ -585,7 +554,7 @@ export default {
 /* Enhanced Animations */
 @keyframes slideInFromLeft {
   from {
-    transform: translateX(-100%);
+    transform: translateX(-30px);
     opacity: 0;
   }
   to {
@@ -594,24 +563,28 @@ export default {
   }
 }
 
-@keyframes fadeInUp {
+@keyframes fadeIn {
   from {
-    transform: translateY(30px);
     opacity: 0;
   }
   to {
-    transform: translateY(0);
     opacity: 1;
   }
 }
 
 .excel-nav-item {
-  animation: slideInFromLeft 0.6s ease-out;
+  animation: slideInFromLeft 0.4s ease-out;
+  animation-fill-mode: both;
 }
 
-.excel-user-info {
-  animation: fadeInUp 0.8s ease-out;
-}
+.excel-nav-item:nth-child(1) { animation-delay: 0.05s; }
+.excel-nav-item:nth-child(2) { animation-delay: 0.1s; }
+.excel-nav-item:nth-child(3) { animation-delay: 0.15s; }
+.excel-nav-item:nth-child(4) { animation-delay: 0.2s; }
+.excel-nav-item:nth-child(5) { animation-delay: 0.25s; }
+.excel-nav-item:nth-child(6) { animation-delay: 0.3s; }
+.excel-nav-item:nth-child(7) { animation-delay: 0.35s; }
+.excel-nav-item:nth-child(8) { animation-delay: 0.4s; }
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -619,22 +592,18 @@ export default {
     font-size: 18px !important;
   }
 
-  .excel-user-info {
-    margin: 8px;
-    border-radius: 10px;
-  }
-
-  .excel-auth-section {
-    padding: 8px;
+  .excel-nav-list {
+    padding: 12px 8px;
   }
 
   .excel-nav-item {
-    margin-bottom: 4px !important;
-    border-radius: 8px !important;
+    margin-bottom: 6px !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
   }
 
   .excel-sidebar {
-    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08) !important;
   }
 }
 
@@ -643,12 +612,12 @@ export default {
     font-size: 16px !important;
   }
 
-  .excel-user-info {
-    margin: 6px;
+  .excel-nav-list {
+    padding: 10px 6px;
   }
 
-  .excel-auth-section {
-    padding: 6px;
+  .excel-nav-item {
+    padding: 8px 10px !important;
   }
 }
 
@@ -670,20 +639,23 @@ export default {
 
 /* Sports-themed scrollbar */
 :deep(.v-navigation-drawer__content)::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 :deep(.v-navigation-drawer__content)::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  background: #f1f5f9;
+  border-radius: 4px;
+  margin: 4px 0;
 }
 
 :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 3px;
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 4px;
+  border: 2px solid #f1f5f9;
 }
 
 :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #e2e8f0;
 }
 </style>
