@@ -87,6 +87,15 @@
         ></v-list-item>
 
         <v-list-item
+          v-if="isAuthenticated && isAdmin"
+          prepend-icon="mdi-cog"
+          title="Company Settings"
+          value="company-settings"
+          :to="{ name: 'CompanySettings' }"
+          class="excel-nav-item"
+        ></v-list-item>
+
+        <v-list-item
           v-if="isAuthenticated && (isStaff || isAdmin)"
           prepend-icon="mdi-qrcode-scan"
           title="Staff Scanner"
@@ -135,7 +144,7 @@
 
     <v-app-bar class="excel-app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
-      <v-toolbar-title class="excel-app-title">Multi-Sport Court Booking</v-toolbar-title>
+      <v-toolbar-title class="excel-app-title">{{ companyName }}</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
         v-if="isAuthenticated"
@@ -198,6 +207,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from './services/authService'
 import { cartService } from './services/cartService'
+import { companySettingService } from './services/companySettingService'
 import NewBookingDialog from './components/NewBookingDialog.vue'
 import BookingCart from './components/BookingCart.vue'
 
@@ -216,6 +226,7 @@ export default {
     const bookingDialogOpen = ref(false)
     const cartDialogOpen = ref(false)
     const cartCount = ref(0)
+    const companyName = ref('Multi-Sport Court Booking')
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
     const isStaff = computed(() => user.value?.role === 'staff')
@@ -307,31 +318,47 @@ export default {
       }
     }
 
+    const loadCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        if (settings.company_name) {
+          companyName.value = settings.company_name
+        }
+      } catch (error) {
+        console.error('Failed to load company settings:', error)
+        // Keep default name if loading fails
+      }
+    }
+
     onMounted(() => {
       updateCartCount()
       // Update cart count every 5 seconds
       setInterval(updateCartCount, 5000)
       checkAuth()
-      
+      loadCompanySettings()
+
       // Listen for custom event from child components
       window.addEventListener('open-booking-dialog', openBookingDialog)
       window.addEventListener('cart-updated', updateCartCount)
       window.addEventListener('open-cart', () => {
         cartDialogOpen.value = true
       })
-      
+
       // Listen for authentication changes
       window.addEventListener('auth-changed', (event) => {
         user.value = event.detail.user
       })
+
+      // Listen for company settings updates
+      window.addEventListener('company-settings-updated', loadCompanySettings)
     })
 
     // Watch for route changes to ensure components re-initialize
     watch(() => route.path, (newPath, oldPath) => {
       console.log('Route changed from', oldPath, 'to', newPath)
       // Force re-render by dispatching a custom event
-      window.dispatchEvent(new CustomEvent('route-changed', { 
-        detail: { newPath, oldPath } 
+      window.dispatchEvent(new CustomEvent('route-changed', {
+        detail: { newPath, oldPath }
       }))
     })
 
@@ -345,6 +372,7 @@ export default {
       bookingDialogOpen,
       cartDialogOpen,
       cartCount,
+      companyName,
       route,
       logout,
       openBookingDialog,
@@ -509,7 +537,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
@@ -590,21 +618,21 @@ export default {
   .excel-app-title {
     font-size: 18px !important;
   }
-  
+
   .excel-user-info {
     margin: 8px;
     border-radius: 10px;
   }
-  
+
   .excel-auth-section {
     padding: 8px;
   }
-  
+
   .excel-nav-item {
     margin-bottom: 4px !important;
     border-radius: 8px !important;
   }
-  
+
   .excel-sidebar {
     box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1) !important;
   }
@@ -614,11 +642,11 @@ export default {
   .excel-app-title {
     font-size: 16px !important;
   }
-  
+
   .excel-user-info {
     margin: 6px;
   }
-  
+
   .excel-auth-section {
     padding: 6px;
   }

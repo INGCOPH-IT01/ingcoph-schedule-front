@@ -10,6 +10,7 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 import StaffDashboard from '../views/StaffDashboard.vue'
 import UserManagement from '../views/UserManagement.vue'
 import UserProfile from '../views/UserProfile.vue'
+import CompanySettings from '../views/CompanySettings.vue'
 import { authService } from '../services/authService'
 
 const routes = [
@@ -104,6 +105,23 @@ const routes = [
     path: '/admin/users',
     name: 'UserManagement',
     component: UserManagement,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAdmin = await authService.isAdmin()
+        if (isAdmin) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
+    path: '/admin/company-settings',
+    name: 'CompanySettings',
+    component: CompanySettings,
     beforeEnter: async (to, from, next) => {
       try {
         const isAdmin = await authService.isAdmin()
