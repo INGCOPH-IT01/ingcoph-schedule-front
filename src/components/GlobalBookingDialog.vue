@@ -18,9 +18,9 @@
           {{ isEditMode ? 'Update your court reservation details' : 'Reserve your court with professional precision' }}
         </p>
       </div>
-      
+
       <v-divider class="dialog-divider"></v-divider>
-      
+
       <v-card-text class="pa-6">
         <!-- Court Selection -->
         <v-row class="mb-4">
@@ -40,7 +40,7 @@
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
-                    <CourtImageGallery 
+                    <CourtImageGallery
                       :images="item.raw.images || []"
                       :court-name="item.raw.name"
                       size="small"
@@ -111,7 +111,7 @@
                 </div>
               </v-col>
             </v-row>
-            
+
             <!-- Court Images Gallery -->
             <v-row v-if="selectedCourt.images && selectedCourt.images.length > 0">
               <v-col cols="12">
@@ -120,7 +120,7 @@
                   <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
                   Court Images
                 </h4>
-                <CourtImageGallery 
+                <CourtImageGallery
                   :images="selectedCourt.images"
                   :court-name="selectedCourt.name"
                   size="large"
@@ -135,7 +135,7 @@
         <v-card v-if="selectedCourt && frequencyType !== 'once'" variant="outlined" class="mb-4">
           <v-card-text class="pa-4">
             <h3 class="text-h6 mb-3">Frequency Settings</h3>
-            
+
             <!-- Days Selection for Weekly/Monthly/Yearly -->
             <v-row v-if="['weekly', 'monthly', 'yearly'].includes(frequencyType)">
               <v-col cols="12">
@@ -202,7 +202,7 @@
                 @update:model-value="onDateChange"
               ></v-text-field>
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <v-select
                 v-model="form.start_time"
@@ -226,19 +226,19 @@
                     v-bind="props"
                     :color="item.raw.color"
                     :disabled="item.raw.isBooked && !isEditMode"
-                    :class="{ 
+                    :class="{
                       'booked-slot': item.raw.isBooked && !isEditMode,
                       'available-slot': !item.raw.isBooked || isEditMode
                     }"
                   >
                     <template v-slot:prepend>
-                      <v-icon 
+                      <v-icon
                         :color="item.raw.isBooked && !isEditMode ? 'error' : 'success'"
                         :icon="item.raw.isBooked && !isEditMode ? 'mdi-calendar-remove' : 'mdi-calendar-check'"
                       ></v-icon>
                     </template>
-                    <!-- <v-list-item-title 
-                      :class="{ 
+                    <!-- <v-list-item-title
+                      :class="{
                         'text-grey': item.raw.isBooked && !isEditMode,
                         'text-success': !item.raw.isBooked || isEditMode
                       }"
@@ -268,7 +268,7 @@
               </v-alert>
             </v-col>
           </v-row>
-          
+
           <v-row>
             <v-col cols="12" md="6">
               <v-select
@@ -288,19 +288,19 @@
                     :class="{ 'text-red': !item.raw.isAvailable }"
                   >
                     <template v-slot:prepend>
-                      <v-icon 
+                      <v-icon
                         :color="item.raw.isAvailable ? 'success' : 'error'"
                         :icon="item.raw.isAvailable ? 'mdi-check-circle' : 'mdi-close-circle'"
                       ></v-icon>
                     </template>
-                   
+
                     <v-list-item-subtitle v-if="!item.raw.isAvailable">
                       This duration conflicts with existing bookings
                     </v-list-item-subtitle>
                   </v-list-item>
                 </template>
               </v-select>
-              
+
               <!-- Duration Availability Alert -->
               <v-alert
                 v-if="form.start_time && durationOptions.some(option => !option.isAvailable)"
@@ -313,7 +313,7 @@
                 Some durations are not available for the selected start time due to existing bookings.
               </v-alert>
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <v-textarea
                 v-model="form.notes"
@@ -361,7 +361,7 @@
               <h4 class="text-h6 mb-3">
                 <v-icon class="mr-2" color="success">mdi-cellphone</v-icon>
                 GCash Payment
-                <v-chip 
+                <v-chip
                   :color="getPaymentStatusColor()"
                   variant="tonal"
                   size="small"
@@ -370,7 +370,7 @@
                   {{ getPaymentStatusText() }}
                 </v-chip>
               </h4>
-              
+
               <!-- Payment Status Alert -->
               <v-alert
                 :type="getPaymentStatusAlertType()"
@@ -378,10 +378,10 @@
                 class="mb-4"
                 density="compact"
               >
-              
+
                 {{ getPaymentStatusMessage() }}
               </v-alert>
-              
+
               <!-- Amount Display -->
               <v-row>
                 <v-col cols="12">
@@ -407,8 +407,8 @@
                         Scan GCash QR Code to Pay
                       </h6>
                       <div class="qr-code-container mb-3">
-                        <img 
-                          src="/images/gcash-qr-code.svg" 
+                        <img
+                          src="/images/gcash-qr-code.svg"
                           alt="GCash QR Code"
                           class="qr-code-image"
                           style="max-width: 200px; height: auto;"
@@ -454,8 +454,8 @@
                         <div class="mt-2">
                           <!-- Image Preview -->
                           <div class="proof-preview-container">
-                            <img 
-                              :src="`https://bschedule.m4d8q2.com/storage/${editBooking.proof_of_payment}`" 
+                            <img
+                              :src="`${import.meta.env.VITE_API_URL}/storage/${editBooking.proof_of_payment}`"
                               :alt="'Proof of payment for booking #' + editBooking.id"
                               class="proof-preview-image"
                               @click="openImageDialog(editBooking.proof_of_payment)"
@@ -486,7 +486,7 @@
             variant="tonal"
             class="mt-4"
           >
-           
+
             {{ getBookingInfoText() }}
           </v-alert>
 
@@ -500,9 +500,9 @@
           </v-alert>
         </v-form>
       </v-card-text>
-      
+
       <v-divider></v-divider>
-      
+
       <v-card-actions class="pa-6">
         <v-spacer></v-spacer>
         <v-btn
@@ -532,22 +532,22 @@
           <v-icon class="mr-2" color="primary">mdi-image</v-icon>
           Proof of Payment
         </v-card-title>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-text class="pa-6">
           <div class="text-center">
-            <img 
-              :src="selectedImageUrl" 
+            <img
+              :src="selectedImageUrl"
               alt="Proof of Payment"
               class="full-size-image"
               style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
             />
           </div>
         </v-card-text>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-actions class="pa-6">
           <v-spacer></v-spacer>
           <v-btn
@@ -602,18 +602,18 @@ export default {
     const slotsLoaded = ref(false)
     const isSelectingDate = ref(false)
     const courts = ref([])
-    
+
     const frequencyType = ref('once')
     const isPopulatingForm = ref(false)
-    
+
     // Image dialog
     const imageDialog = ref(false)
     const selectedImageUrl = ref('')
-    
+
     // Computed property to determine if we're in edit mode
     const isEditMode = computed(() => !!props.editBooking)
-    
-    
+
+
     const form = ref({
       court_id: null,
       date: '',
@@ -628,7 +628,7 @@ export default {
       gcash_amount: '',
       proof_of_payment: null
     })
-    
+
     const durationOptions = ref([
       { title: '1 hour', value: 1, isAvailable: true },
       { title: '2 hours', value: 2, isAvailable: true },
@@ -646,7 +646,7 @@ export default {
       { value: 'monthly', label: 'Monthly' },
       { value: 'yearly', label: 'Yearly' }
     ]
-    
+
     const dayOptions = [
       { value: 0, label: 'Sunday' },
       { value: 1, label: 'Monday' },
@@ -657,16 +657,16 @@ export default {
       { value: 6, label: 'Saturday' }
     ]
 
-    
+
     const today = new Date().toISOString().split('T')[0]
-    
+
     const selectedCourt = ref(null)
-    
+
     const loadCourts = async () => {
       try {
         const courtsData = await courtService.getCourts()
         courts.value = courtsData.filter(court => court.is_active)
-        
+
         // Set default court if none selected and not in edit mode
         if (!isEditMode.value && courts.value.length > 0 && !form.value.court_id) {
           form.value.court_id = courts.value[0].id
@@ -684,7 +684,7 @@ export default {
         // Clear time slots when court changes
         form.value.start_time = ''
         availableSlots.value = []
-        
+
         // Reload available slots if date is selected
         if (form.value.date) {
           await loadAvailableSlots()
@@ -700,12 +700,12 @@ export default {
         fallback.style.display = 'inline'
       }
     }
-    
+
     const totalPrice = computed(() => {
       if (!selectedCourt.value || !form.value.duration) return 0
-      
+
       const basePrice = selectedCourt.value.price_per_hour * form.value.duration
-      
+
       // Calculate frequency multiplier
       if (frequencyType.value === 'once') {
         return basePrice
@@ -728,17 +728,17 @@ export default {
         const monthsInYear = 12
         return basePrice * sessionsPerMonth * monthsInYear
       }
-      
+
       return basePrice
     })
 
     // Frequency validation
     const isFrequencyFormValid = computed(() => {
       if (!form.value.date || !form.value.start_time || !form.value.duration) return false
-      
+
       // For edit mode, don't require available slots since we're editing an existing booking
       if (!isEditMode.value && availableSlots.value.length === 0) return false
-      
+
       if (frequencyType.value === 'once') {
         return true
       } else if (['weekly', 'monthly', 'yearly'].includes(frequencyType.value)) {
@@ -764,7 +764,7 @@ export default {
 
     const getPriceBreakdown = () => {
       if (!selectedCourt.value) return ''
-      
+
       const basePrice = selectedCourt.value.price_per_hour * form.value.duration
       if (frequencyType.value === 'once') {
         return `${formatPrice(basePrice)} for ${form.value.duration}h`
@@ -822,11 +822,11 @@ export default {
         }
 
         // Additional safety check - make sure we have valid slots before proceeding
-        const hasValidSlots = availableSlots.value.some(slot => 
-          slot && slot.start_time && slot.end_time && 
+        const hasValidSlots = availableSlots.value.some(slot =>
+          slot && slot.start_time && slot.end_time &&
           typeof slot.start_time === 'string' && typeof slot.end_time === 'string'
         )
-        
+
         if (!hasValidSlots) {
           console.log('No valid slots found, skipping duration check')
           return
@@ -836,13 +836,13 @@ export default {
 
       // Extract start time from the selected slot
       let startTimeString = form.value.start_time
-      
+
       // Add null/undefined checks before calling string methods
       if (!startTimeString || typeof startTimeString !== 'string') {
         console.warn('Invalid start_time value:', startTimeString)
         return
       }
-      
+
       if (startTimeString.includes(' ')) {
         // If it's a full datetime, extract just the time part
         startTimeString = startTimeString.split(' ')[1] || startTimeString.split('T')[1] || startTimeString
@@ -850,7 +850,7 @@ export default {
       if (startTimeString.includes('T')) {
         startTimeString = startTimeString.split('T')[1]
       }
-      
+
       const [startHours, startMinutes] = startTimeString.split(':')
       const startTimeInMinutes = parseInt(startHours) * 60 + parseInt(startMinutes)
 
@@ -859,16 +859,16 @@ export default {
         const endTimeInMinutes = startTimeInMinutes + (option.value * 60)
         const endHours = Math.floor(endTimeInMinutes / 60)
         const endMinutes = endTimeInMinutes % 60
-        
+
         // Check if this duration conflicts with any existing bookings
         const conflictsWithBooking = availableSlots.value.some(slot => {
           if (slot.is_booked) return false // Skip booked slots in our check
-          
+
           // Parse slot times with null checks
           let slotStartTime = slot.start_time
           if (!slotStartTime || typeof slotStartTime !== 'string') {
             console.warn('Invalid slot start_time:', slotStartTime)
-            
+
             // Show alert for invalid slot data
             Swal.fire({
               title: 'Invalid Time Slot Data',
@@ -877,29 +877,29 @@ export default {
               confirmButtonText: 'OK',
               confirmButtonColor: '#ff6b6b'
             })
-            
+
             // Reset start time to original selection (if we have it stored)
             if (originalStartTime.value) {
               form.value.start_time = originalStartTime.value
             }
-            
+
             return false
           }
-          
+
           if (slotStartTime.includes(' ')) {
             slotStartTime = slotStartTime.split(' ')[1]
           }
           if (slotStartTime.includes('T')) {
             slotStartTime = slotStartTime.split('T')[1]
           }
-          
+
           const [slotStartHours, slotStartMinutes] = slotStartTime.split(':')
           const slotStartTimeInMinutes = parseInt(slotStartHours) * 60 + parseInt(slotStartMinutes)
-          
+
           let slotEndTime = slot.end_time
           if (!slotEndTime || typeof slotEndTime !== 'string') {
             console.warn('Invalid slot end_time:', slotEndTime)
-            
+
             // Show alert for invalid slot data
             Swal.fire({
               title: 'Invalid Time Slot Data',
@@ -908,25 +908,25 @@ export default {
               confirmButtonText: 'OK',
               confirmButtonColor: '#ff6b6b'
             })
-            
+
             // Reset start time to original selection (if we have it stored)
             if (originalStartTime.value) {
               form.value.start_time = originalStartTime.value
             }
-            
+
             return false
           }
-          
+
           if (slotEndTime.includes(' ')) {
             slotEndTime = slotEndTime.split(' ')[1]
           }
           if (slotEndTime.includes('T')) {
             slotEndTime = slotEndTime.split('T')[1]
           }
-          
+
           const [slotEndHours, slotEndMinutes] = slotEndTime.split(':')
           const slotEndTimeInMinutes = parseInt(slotEndHours) * 60 + parseInt(slotEndMinutes)
-          
+
           // Check for overlap
           return (startTimeInMinutes < slotEndTimeInMinutes && endTimeInMinutes > slotStartTimeInMinutes)
         })
@@ -936,7 +936,7 @@ export default {
         const isWithinCourtHours = endTimeInMinutes <= courtCloseTime
 
         option.isAvailable = !conflictsWithBooking && isWithinCourtHours
-        
+
         // Update title with availability status
         if (option.isAvailable) {
           option.title = `${option.value} hour${option.value > 1 ? 's' : ''}`
@@ -957,7 +957,7 @@ export default {
     const onFrequencyChange = (newFrequencyType) => {
       // Update the frequencyType ref
       frequencyType.value = newFrequencyType
-      
+
       // Reset frequency-specific fields when changing type
       if (newFrequencyType === 'once') {
         form.value.frequency_days = []
@@ -970,12 +970,12 @@ export default {
 
     const populateFormForEdit = () => {
       if (!props.editBooking) return
-      
+
       const booking = props.editBooking
-      
+
       // Set flag to prevent watchers from interfering
       isPopulatingForm.value = true
-      
+
       // Set basic form data
       // Use the full datetime format for start_time
       let startTimeValue = ''
@@ -996,19 +996,19 @@ export default {
         // For Date objects, convert to SQL format
         startTimeValue = booking.start_time.toISOString().replace('T', ' ').substring(0, 19)
       }
-      
+
       // Set date (use the original date from the booking)
       const startTimeDate = new Date(booking.start_time)
       form.value.date = startTimeDate.toISOString().split('T')[0]
-      
+
       // Set start_time to the full datetime format
       form.value.start_time = startTimeValue
       form.value.duration = getDuration(booking.start_time, booking.end_time)
       form.value.notes = booking.notes || ''
-      
+
       // Set frequency data
       frequencyType.value = booking.frequency_type || 'once'
-      
+
       // Parse frequency_days if it's a string (from database JSON)
       let parsedFrequencyDays = []
       if (booking.frequency_days) {
@@ -1023,25 +1023,25 @@ export default {
           parsedFrequencyDays = booking.frequency_days
         }
       }
-      
+
       form.value.frequency_days = parsedFrequencyDays
       form.value.frequency_duration_months = booking.frequency_duration_months || 1
       form.value.frequency_end_date = booking.frequency_end_date || ''
-      
+
       // Set payment data - GCash only
       form.value.payment_method = 'gcash'
       form.value.gcash_amount = formatPrice(totalPrice.value)
       form.value.proof_of_payment = null
-      
+
       // Set court selection
       if (booking.court) {
         form.value.court_id = booking.court.id
         selectedCourt.value = booking.court
       }
-      
+
       // Load available slots
      loadAvailableSlots()
-      
+
       // Clear the flag after form population is complete
       isPopulatingForm.value = false
     }
@@ -1056,13 +1056,13 @@ export default {
     // Get the display text for selected time
     const getSelectedTimeDisplay = (timeValue) => {
       if (!timeValue) return ''
-      
+
       // Find the corresponding slot in availableSlots
       const selectedSlot = availableSlots.value.find(slot => slot.value === timeValue)
       if (selectedSlot) {
         return selectedSlot.title
       }
-      
+
       // If not found in availableSlots, try to format the timeValue directly
       if (typeof timeValue === 'string') {
         // If it's a datetime string, extract just the time part
@@ -1082,7 +1082,7 @@ export default {
           }
         }
       }
-      
+
       return timeValue
     }
 
@@ -1102,7 +1102,7 @@ export default {
         gcash_amount: '',
         proof_of_payment: null
       }
-      
+
       // Reset original start time
       originalStartTime.value = null
       availableSlots.value = []
@@ -1115,7 +1115,7 @@ export default {
         availableSlots.value = []
         return
       }
-      
+
       try {
         slotsLoaded.value = false
         const slots = await courtService.getAvailableSlots(
@@ -1123,8 +1123,8 @@ export default {
           form.value.date,
           form.value.duration || 1
         )
-        
-        
+
+
         availableSlots.value = slots.map(slot => {
           // Use the full datetime format for the value
           let timeValue = slot.start_time
@@ -1132,16 +1132,16 @@ export default {
             // Convert ISO format to SQL format
             timeValue = timeValue.replace('T', ' ').substring(0, 19)
           }
-          
+
           // Add visual distinction for booked slots
           let displayTitle = slot.formatted_time
           let itemColor = 'primary' // Default color for available slots
-          
+
           if (slot.is_booked) {
             displayTitle = `${slot.formatted_time} (Booked)`
             itemColor = 'error' // Red color for booked slots
           }
-          
+
           return {
             title: displayTitle,
             value: timeValue,
@@ -1157,14 +1157,14 @@ export default {
         slotsLoaded.value = true
       }
     }
-    
+
     const onDateChange = async () => {
       // Only clear start_time if we're not populating the form for edit
       if (!isPopulatingForm.value) {
         form.value.start_time = ''
       }
       await loadAvailableSlots()
-      
+
       // Auto-select the first available slot if not in edit mode
       if (!isEditMode.value && availableSlots.value.length > 0) {
         // Find the first available (non-booked) slot
@@ -1192,7 +1192,7 @@ export default {
         // Calculate end time based on start time and duration
         // Ensure start_time is in HH:MM format
         let startTimeString = form.value.start_time
-        
+
         // Handle different time formats
         if (typeof startTimeString === 'string') {
           if (startTimeString.includes('T')) {
@@ -1218,19 +1218,19 @@ export default {
         // Construct datetime strings directly without Date objects to avoid timezone issues
         const [year, month, day] = form.value.date.split('-')
         const [startHours, startMinutes] = startTimeString.split(':')
-        
+
         // Calculate end time by adding duration
         const startTimeInMinutes = parseInt(startHours) * 60 + parseInt(startMinutes)
         const endTimeInMinutes = startTimeInMinutes + (form.value.duration * 60)
-        
+
         // Convert back to hours and minutes
         const endHours = Math.floor(endTimeInMinutes / 60)
         const endMinutes = endTimeInMinutes % 60
-        
+
         // Format datetime strings directly
         const startDateTime = `${year}-${month}-${day} ${startHours.padStart(2, '0')}:${startMinutes.padStart(2, '0')}:00`
         const endDateTime = `${year}-${month}-${day} ${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`
-        
+
         const bookingData = {
           court_id: form.value.court_id,
           start_time: startDateTime,
@@ -1250,19 +1250,19 @@ export default {
         let result
         if (isEditMode.value) {
           // Payment validation removed - users can update bookings regardless of payment status
-          
+
           result = await courtService.updateBooking(props.editBooking.id, bookingData)
-          
+
           // Handle proof of payment upload if provided
           console.log('=== FILE UPLOAD DEBUG ===')
           console.log('form.value.proof_of_payment:', form.value.proof_of_payment)
           console.log('Type of proof_of_payment:', typeof form.value.proof_of_payment)
           console.log('Is Array:', Array.isArray(form.value.proof_of_payment))
-          
+
           const proofFile = Array.isArray(form.value.proof_of_payment) ? form.value.proof_of_payment[0] : form.value.proof_of_payment
           console.log('proofFile:', proofFile)
           console.log('Is File instance:', proofFile instanceof File)
-          
+
           if (proofFile && proofFile instanceof File) {
             console.log('Attempting to upload file:', proofFile.name, proofFile.size)
             try {
@@ -1275,11 +1275,11 @@ export default {
           } else {
             console.log('No file to upload or file is not a File instance')
           }
-          
+
           // Dispatch event to refresh bookings table
           window.dispatchEvent(new CustomEvent('booking-updated'))
           showSnackbar('Booking updated successfully!', 'success')
-          
+
           // Show SweetAlert success message
           Swal.fire({
             icon: 'success',
@@ -1304,7 +1304,7 @@ export default {
           // Dispatch event to refresh bookings table
           window.dispatchEvent(new CustomEvent('booking-created'))
           showSnackbar('Booking created successfully!', 'success')
-          
+
           // Show SweetAlert success message
           Swal.fire({
             icon: 'success',
@@ -1315,10 +1315,10 @@ export default {
             timerProgressBar: true
           })
         }
-        
+
         // Close dialog
         closeModal()
-        
+
       } catch (err) {
         console.error('Error creating booking:', err)
         error.value = err.message || 'Failed to create booking'
@@ -1327,7 +1327,7 @@ export default {
         loading.value = false
       }
     }
-    
+
     const closeModal = () => {
       resetForm()
       emit('close')
@@ -1336,7 +1336,7 @@ export default {
     const handleCancel = () => {
       closeModal()
     }
-    
+
     const showSnackbar = (message, type = 'info') => {
       emit('show-snackbar', { message, type })
     }
@@ -1353,32 +1353,32 @@ export default {
       console.log('Event received:', event)
       console.log('Event type:', event.type)
       console.log('Event target:', event.target)
-      
+
       // Extract files from the event target
       const files = event.target.files
       console.log('Files extracted:', files)
       console.log('Files length:', files ? files.length : 'null')
-      
+
       if (files && files.length > 0) {
         const file = files[0]
         console.log('Selected file:', file)
         console.log('File name:', file.name)
         console.log('File size:', file.size)
         console.log('File type:', file.type)
-        
+
         if (file.size > 5000000) { // 5MB limit
           showSnackbar('File size should be less than 5 MB', 'error')
           form.value.proof_of_payment = null
           return
         }
-        
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
           showSnackbar('Please upload an image file', 'error')
           form.value.proof_of_payment = null
           return
         }
-        
+
         // Assign the file to the form
         form.value.proof_of_payment = file
         console.log('File assigned to form.value.proof_of_payment:', form.value.proof_of_payment)
@@ -1389,7 +1389,7 @@ export default {
     const onDurationChange = (duration) => {
       // Check if the selected duration is available
       const selectedOption = durationOptions.value.find(option => option.value === duration)
-      
+
       if (selectedOption && !selectedOption.isAvailable) {
         // Show alert for occupied duration
         Swal.fire({
@@ -1399,7 +1399,7 @@ export default {
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff6b6b'
         })
-        
+
         // Reset to a available duration (preferably 1 hour)
         const availableOption = durationOptions.value.find(option => option.isAvailable)
         if (availableOption) {
@@ -1411,24 +1411,24 @@ export default {
     // Validation function for start time selection
     const validateStartTimeSelection = (value) => {
       if (!value) return true // Let required rule handle empty values
-      
+
       // Find the selected slot
       const selectedSlot = availableSlots.value.find(slot => slot.value === value)
-      
+
       if (selectedSlot && selectedSlot.isBooked && !isEditMode.value) {
         return 'This time slot is already booked and cannot be selected'
       }
-      
+
       return true
     }
 
     // Handler for start time changes
     const onStartTimeChange = (value) => {
       if (!value) return
-      
+
       // Find the selected slot
       const selectedSlot = availableSlots.value.find(slot => slot.value === value)
-      
+
       if (selectedSlot && selectedSlot.isBooked && !isEditMode.value) {
         // Show alert for booked slot
         Swal.fire({
@@ -1438,7 +1438,7 @@ export default {
           confirmButtonText: 'OK',
           confirmButtonColor: '#ff6b6b'
         })
-        
+
         // Reset to empty or find an available slot
         const availableSlot = availableSlots.value.find(slot => !slot.isBooked)
         if (availableSlot) {
@@ -1446,10 +1446,10 @@ export default {
         } else {
           form.value.start_time = null
         }
-        
+
         return
       }
-      
+
       // If the selection is valid, trigger duration availability check
       checkDurationAvailability()
     }
@@ -1475,7 +1475,7 @@ export default {
     }
 
     const openImageDialog = (imageUrl) => {
-      selectedImageUrl.value = `https://bschedule.m4d8q2.com/storage/${imageUrl}`
+      selectedImageUrl.value = `${import.meta.env.VITE_API_URL}/storage/${imageUrl}`
       imageDialog.value = true
     }
 
@@ -1496,30 +1496,30 @@ export default {
         console.log('bookingId:', bookingId)
         console.log('file:', file)
         console.log('payment_method:', form.value.payment_method)
-        
+
         const formData = new FormData()
         formData.append('proof_of_payment', file)
         formData.append('payment_method', form.value.payment_method)
-        
+
         console.log('FormData created, making request to:', `/api/bookings/${bookingId}/upload-proof`)
-        
-        const response = await fetch(`https://bschedule.m4d8q2.com/api/bookings/${bookingId}/upload-proof`, {
+
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${bookingId}/upload-proof`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
           body: formData
         })
-        
+
         console.log('Response status:', response.status)
         console.log('Response ok:', response.ok)
-        
+
         if (!response.ok) {
           const errorText = await response.text()
           console.error('Response error:', errorText)
           throw new Error('Failed to upload proof of payment')
         }
-        
+
         const result = await response.json()
         console.log('Upload result:', result)
         return result.data
@@ -1532,12 +1532,12 @@ export default {
     // Payment status helper functions
     const getPaymentStatus = () => {
       if (!props.editBooking || props.editBooking.status !== 'pending') return 'not_required'
-      
+
       const hasPaymentMethod = form.value.payment_method && form.value.payment_method.trim() !== ''
       const hasNewProof = form.value.proof_of_payment && (Array.isArray(form.value.proof_of_payment) ? form.value.proof_of_payment.length > 0 : form.value.proof_of_payment instanceof File)
       const hasExistingProof = props.editBooking.proof_of_payment && props.editBooking.proof_of_payment.trim() !== ''
       const hasProofOfPayment = hasNewProof || hasExistingProof
-      
+
       if (hasPaymentMethod && hasProofOfPayment) {
         return 'complete'
       } else if (hasPaymentMethod && !hasProofOfPayment) {
@@ -1613,14 +1613,14 @@ export default {
       if (!isEditMode.value || !props.editBooking || props.editBooking.status !== 'pending') {
         return false
       }
-      
+
       const status = getPaymentStatus()
-      
+
       // For edit mode, only block if payment is completely missing (no method AND no proof)
       // Allow updates if user has payment method but missing proof, or vice versa
       return status === 'incomplete'
     }
-    
+
     // Watch for changes in date to load available slots
     watch(() => form.value.date, (newDate) => {
       if (newDate && !isPopulatingForm.value) {
@@ -1632,7 +1632,7 @@ export default {
         }, 1000)
       }
     })
-    
+
     // Watch for changes in duration to reload available slots
     watch(() => form.value.duration, () => {
       if (form.value.date && !isPopulatingForm.value) {
@@ -1644,13 +1644,13 @@ export default {
     watch(() => form.value.start_time, (newStartTime) => {
       if (!isPopulatingForm.value) {
         console.log('Start time changed:', newStartTime, 'Type:', typeof newStartTime)
-        
+
         // Store the original start time when user first selects it
         if (newStartTime && !originalStartTime.value) {
           originalStartTime.value = newStartTime
           console.log('Original start time stored:', originalStartTime.value)
         }
-        
+
         // Only check duration availability if we have a date, slots are loaded, not loading, user actually selected a time, and not selecting date
         if (form.value.date && availableSlots.value.length > 0 && !loading.value && slotsLoaded.value && newStartTime && !isSelectingDate.value) {
           // Add a longer delay to ensure everything is fully processed
@@ -1669,7 +1669,7 @@ export default {
       // Only check if we have a start time selected and valid slots
       if (!isPopulatingForm.value && newSlots && newSlots.length > 0 && !loading.value && slotsLoaded.value && form.value.start_time && form.value.date && !isSelectingDate.value) {
         console.log('Available slots changed, checking duration availability')
-        
+
         // Add a longer delay to ensure slots are fully processed and loading is complete
         setTimeout(() => {
           // Double-check that we're not loading before checking duration
@@ -1679,14 +1679,14 @@ export default {
         }, 500)
       }
     }, { deep: true })
-    
+
     // Watch for changes in total price to update GCash amount
     watch(() => totalPrice.value, (newPrice) => {
       if (isEditMode.value && form.value.payment_method === 'gcash') {
         form.value.gcash_amount = `₱${newPrice.toFixed(2)}`
       }
     })
-    
+
     // Watch for changes in editBooking prop to populate form
     watch(() => props.editBooking, (newBooking) => {
       if (newBooking) {
@@ -1695,11 +1695,11 @@ export default {
         resetForm()
       }
     }, { immediate: true })
-    
+
     onMounted(() => {
       loadCourts()
     })
-    
+
     return {
       courts,
       availableSlots,
@@ -1789,7 +1789,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
   z-index: 1;

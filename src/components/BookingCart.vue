@@ -1,8 +1,8 @@
 <template>
-  <v-dialog 
-    :model-value="isOpen" 
-    @update:model-value="$emit('close')" 
-    max-width="1200px" 
+  <v-dialog
+    :model-value="isOpen"
+    @update:model-value="$emit('close')"
+    max-width="1200px"
     scrollable
     class="responsive-dialog"
   >
@@ -570,11 +570,11 @@ export default {
         const response = await cartService.getCartTransaction()
         const items = response.cart_items || []
         cartTransaction.value = response.cart_transaction
-        
+
         console.log('✅ Cart API response:', items)
         console.log('📊 Total items received:', items.length)
         console.log('📦 Cart transaction:', cartTransaction.value)
-        
+
         // Check if items were expired (cart had items before but now has fewer or none)
         if (previousItemCount > 0 && items.length < previousItemCount) {
           const expiredCount = previousItemCount - items.length
@@ -587,16 +587,16 @@ export default {
             confirmButtonColor: '#1976d2'
           })
         }
-        
+
         // All items should now be in the pending cart transaction
         cartItems.value = items
         console.log('✅ Cart loaded successfully:', items.length, 'items')
-        
+
         // Start expiration timer if we have a transaction
         if (cartTransaction.value) {
           updateExpirationTimer()
         }
-        
+
         if (items.length > 0) {
           console.log('📦 First cart item:', items[0])
           console.log('🏟️ Court info:', items[0].court)
@@ -651,7 +651,7 @@ export default {
 
       const groups = []
       const itemsCopy = [...cartItems.value]
-      
+
       // Sort by court, date, and start time
       itemsCopy.sort((a, b) => {
         if (!a.court || !b.court) return 0
@@ -664,7 +664,7 @@ export default {
 
       let currentGroup = null
       let groupIdCounter = 0
-      
+
       itemsCopy.forEach((item, index) => {
         if (!item || !item.court) {
           return // Skip invalid items
@@ -690,7 +690,7 @@ export default {
           const isSameCourt = item.court.id === currentGroup.court.id
           const isSameDate = itemDate === currentGroup.date
           const isConsecutive = itemStartTime === currentGroup.endTime
-          
+
           if (isSameCourt && isSameDate && isConsecutive) {
             // Add to current group
             currentGroup.originalItems.push(item)
@@ -709,13 +709,13 @@ export default {
             }
           }
         }
-        
+
         // Add the last group
         if (index === itemsCopy.length - 1 && currentGroup) {
           groups.push(currentGroup)
         }
       })
-      
+
       console.log('Grouped cart items:', groups.length, 'groups')
       return groups
     })
@@ -729,7 +729,7 @@ export default {
 
     // Computed properties for selected items
     const selectedTotalPrice = computed(() => {
-      const selectedItems = groupedCartItems.value.filter(group => 
+      const selectedItems = groupedCartItems.value.filter(group =>
         selectedGroups.value.includes(group.id)
       )
       return selectedItems.reduce((sum, group) => {
@@ -738,7 +738,7 @@ export default {
     })
 
     const selectedSlotsCount = computed(() => {
-      const selectedItems = groupedCartItems.value.filter(group => 
+      const selectedItems = groupedCartItems.value.filter(group =>
         selectedGroups.value.includes(group.id)
       )
       return selectedItems.reduce((sum, group) => {
@@ -790,7 +790,7 @@ export default {
         const durationMinutes = endMinutes - startMinutes
         const hours = Math.floor(durationMinutes / 60)
         const minutes = durationMinutes % 60
-        
+
         if (minutes === 0) {
           return `${hours} hour${hours !== 1 ? 's' : ''}`
         }
@@ -839,7 +839,7 @@ export default {
           for (const originalItem of group.originalItems) {
             await cartService.removeFromCart(originalItem.id)
           }
-          
+
           // Reload cart
           await loadCart()
           window.dispatchEvent(new CustomEvent('cart-updated'))
@@ -883,10 +883,10 @@ export default {
           const gcashNumber = '09171234567'
           const accountName = 'CourtBookingSystem'
           const amount = totalPrice.value
-          
+
           // Generate QR code with GCash payment link
           const qrData = `gcash://pay?number=${gcashNumber}&amount=${amount}&name=${accountName}`
-          
+
           await QRCode.toCanvas(gcashQrCanvas.value, qrData, {
             width: 200,
             margin: 2,
@@ -906,7 +906,7 @@ export default {
       console.log('Opening payment dialog...')
       console.log('Cart items:', cartItems.value)
       console.log('Grouped cart items:', groupedCartItems.value)
-      
+
       if (!groupedCartItems.value || groupedCartItems.value.length === 0) {
         showAlert({
           icon: 'warning',
@@ -931,7 +931,7 @@ export default {
     // Edit functions
     const fetchCourts = async () => {
       try {
-        const response = await fetch('https://bschedule.m4d8q2.com/api/courts', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/courts`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Accept': 'application/json'
@@ -966,7 +966,7 @@ export default {
       loadingSlots.value = true
       try {
         const response = await fetch(
-          `https://bschedule.m4d8q2.com/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`,
+          `${import.meta.env.VITE_API_URL}/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`,
           {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -979,11 +979,11 @@ export default {
           const result = await response.json()
           // Backend returns { success: true, data: [...] }
           let slots = result.data || result.slots || []
-          
+
           // Deduplicate slots (in case API returns duplicates)
           const uniqueSlots = []
           const seenKeys = new Set()
-          
+
           slots.forEach(slot => {
             const key = `${slot.start}-${slot.end}`
             if (!seenKeys.has(key)) {
@@ -991,7 +991,7 @@ export default {
               uniqueSlots.push(slot)
             }
           })
-          
+
           availableSlots.value = uniqueSlots
         } else {
           availableSlots.value = []
@@ -1010,13 +1010,13 @@ export default {
         if (!time) return time
         return time.substring(0, 5) // HH:MM:SS -> HH:MM
       }
-      return normalizeTime(editItem.value.start_time) === normalizeTime(slot.start) && 
+      return normalizeTime(editItem.value.start_time) === normalizeTime(slot.start) &&
              normalizeTime(editItem.value.end_time) === normalizeTime(slot.end)
     }
 
     const selectTimeSlot = (slot) => {
       if (!slot.available) return
-      
+
       editItem.value.start_time = slot.start
       editItem.value.end_time = slot.end
     }
@@ -1024,7 +1024,7 @@ export default {
     const editGroup = (group) => {
       // Get the first item from the group to edit
       const firstItem = group.originalItems[0]
-      
+
       // Format the date properly
       let bookingDate = firstItem.booking_date
       if (typeof bookingDate === 'object' && bookingDate !== null) {
@@ -1042,12 +1042,12 @@ export default {
         price: group.originalItems.reduce((sum, item) => sum + parseFloat(item.price), 0),
         originalItems: group.originalItems
       }
-      
+
       editDialog.value = true
       // Fetch available slots after opening dialog
       nextTick(async () => {
         await fetchAvailableSlots()
-        
+
         // Mark user's own booked slots as available so they can be deselected
         if (group.originalItems && group.originalItems.length > 0) {
           // Normalize time format helper
@@ -1055,15 +1055,15 @@ export default {
             if (!time) return time
             return time.substring(0, 5) // HH:MM:SS -> HH:MM
           }
-          
+
           group.originalItems.forEach(cartItem => {
             const normalizedStart = normalizeTime(cartItem.start_time)
             const normalizedEnd = normalizeTime(cartItem.end_time)
-            
+
             const slotIndex = availableSlots.value.findIndex(
               slot => normalizeTime(slot.start) === normalizedStart && normalizeTime(slot.end) === normalizedEnd
             )
-            
+
             if (slotIndex !== -1) {
               // Mark own slot as available
               availableSlots.value[slotIndex].available = true
@@ -1112,7 +1112,7 @@ export default {
     const saveEdit = async () => {
       // Validate form
       if (!editForm.value) return
-      
+
       const { valid } = await editForm.value.validate()
       if (!valid) return
 
@@ -1120,7 +1120,7 @@ export default {
 
       try {
         // Validate required fields
-        if (!editItem.value.court_id || !editItem.value.booking_date || 
+        if (!editItem.value.court_id || !editItem.value.booking_date ||
             !editItem.value.start_time || !editItem.value.end_time) {
           await showAlert({
             icon: 'warning',
@@ -1146,9 +1146,9 @@ export default {
           if (!time) return time
           return time.substring(0, 5) // HH:MM:SS -> HH:MM
         }
-        
+
         const selectedSlot = availableSlots.value.find(
-          slot => normalizeTime(slot.start) === normalizeTime(editItem.value.start_time) && 
+          slot => normalizeTime(slot.start) === normalizeTime(editItem.value.start_time) &&
                   normalizeTime(slot.end) === normalizeTime(editItem.value.end_time)
         )
 
@@ -1192,7 +1192,7 @@ export default {
 
         // Close dialog first
         closeEditDialog()
-        
+
         // Refresh cart
         await loadCart()
         window.dispatchEvent(new CustomEvent('cart-updated'))
@@ -1242,13 +1242,13 @@ export default {
         const selectedItems = groupedCartItems.value
           .filter(group => selectedGroups.value.includes(group.id))
           .flatMap(group => group.originalItems)
-        
+
         console.log('Selected items for checkout:', selectedItems.length)
 
         // Convert proof of payment to base64
         const file = Array.isArray(proofOfPayment.value) ? proofOfPayment.value[0] : proofOfPayment.value
         const reader = new FileReader()
-        
+
         const proofBase64 = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result)
           reader.onerror = reject
@@ -1262,7 +1262,7 @@ export default {
           proof_of_payment: proofBase64 ? 'base64 data present' : 'no proof',
           selected_items: selectedItems.map(item => item.id)
         })
-        
+
         const response = await cartService.checkout({
           payment_method: 'gcash',
           gcash_reference: gcashReference.value,
@@ -1290,10 +1290,10 @@ export default {
         // Clear cart and close dialogs
         cartItems.value = []
         window.dispatchEvent(new CustomEvent('cart-updated'))
-        
+
         // Dispatch event to refresh bookings list with updated payment status
         window.dispatchEvent(new CustomEvent('booking-created'))
-        
+
         closePaymentDialog()
         emit('checkout-complete')
         emit('close')
@@ -1301,7 +1301,7 @@ export default {
         console.error('Failed to complete payment:', error)
         console.error('Error response:', error.response)
         console.error('Error data:', error.response?.data)
-        
+
         let errorMessage = 'Failed to process payment. Please try again.'
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message
@@ -1310,7 +1310,7 @@ export default {
         } else if (error.message) {
           errorMessage = error.message
         }
-        
+
         showAlert({
           icon: 'error',
           title: 'Payment Failed',
@@ -1329,7 +1329,7 @@ export default {
       const hour12 = hour % 12 || 12
       return `${hour12}:${minutes} ${ampm}`
     }
-    
+
     const formatDate = (date) => {
       if (!date) {
         return 'Invalid Date'
@@ -1601,7 +1601,7 @@ export default {
   .v-dialog.responsive-dialog {
     margin: 0 !important;
   }
-  
+
   .cart-dialog {
     max-height: 100vh;
     height: 100vh;
@@ -1653,15 +1653,15 @@ export default {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 6px;
   }
-  
+
   .time-slot-chip {
     padding: 8px 10px !important;
   }
-  
+
   .time-text {
     font-size: 11px;
   }
-  
+
   .price-text {
     font-size: 10px;
   }

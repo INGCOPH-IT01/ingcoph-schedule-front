@@ -5,7 +5,7 @@
       <div class="sports-overlay"></div>
       <div class="sports-pattern"></div>
     </div>
-    
+
     <!-- Enhanced Header -->
     <div class="dashboard-header">
       <div class="header-content">
@@ -41,7 +41,7 @@
             <div class="stat-glow"></div>
           </div>
         </v-col>
-        
+
         <v-col cols="12" sm="6" md="3">
           <div class="stat-card stat-card-2">
             <div class="stat-icon">
@@ -58,7 +58,7 @@
             <div class="stat-glow"></div>
           </div>
         </v-col>
-        
+
         <v-col cols="12" sm="6" md="3">
           <div class="stat-card stat-card-3">
             <div class="stat-icon">
@@ -75,7 +75,7 @@
             <div class="stat-glow"></div>
           </div>
         </v-col>
-        
+
         <v-col cols="12" sm="6" md="3">
           <div class="stat-card stat-card-4">
             <div class="stat-icon">
@@ -123,7 +123,7 @@
           Manage bookings and system operations with professional efficiency
         </p>
       </div>
-      
+
       <div class="actions-grid">
         <div class="action-card action-card-1">
           <div class="action-icon">
@@ -145,7 +145,7 @@
           </div>
           <div class="action-glow"></div>
         </div>
-        
+
         <div class="action-card action-card-2">
           <div class="action-icon">
             <v-icon color="success" size="48">mdi-check-all</v-icon>
@@ -167,7 +167,7 @@
           </div>
           <div class="action-glow"></div>
         </div>
-        
+
         <div class="action-card action-card-3">
           <div class="action-icon">
             <v-icon color="info" size="48">mdi-chart-line</v-icon>
@@ -188,7 +188,7 @@
           </div>
           <div class="action-glow"></div>
         </div>
-        
+
         <div class="action-card action-card-4">
           <div class="action-icon">
             <v-icon color="warning" size="48">mdi-qrcode-scan</v-icon>
@@ -231,7 +231,7 @@
             </v-btn>
           </v-card-title>
           <v-divider></v-divider>
-          
+
           <v-data-table
             :headers="headers"
             :items="pendingBookings"
@@ -253,7 +253,7 @@
 
             <template v-slot:[`item.court_name`]="{ item }">
               <div class="d-flex align-center">
-                <CourtImageGallery 
+                <CourtImageGallery
                   :images="item.cart_items?.[0]?.court?.images || []"
                   :court-name="item.court_name"
                   size="small"
@@ -288,7 +288,7 @@
             </template>
 
             <template v-slot:[`item.payment_status`]="{ item }">
-              <v-chip 
+              <v-chip
                 :color="getPaymentStatusColor(item)"
                 variant="tonal"
                 size="small"
@@ -343,9 +343,9 @@
           <v-icon class="mr-2" color="primary">mdi-calendar-detail</v-icon>
           Booking Details
         </v-card-title>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-text class="pa-6" v-if="selectedBooking">
           <!-- User Information -->
           <v-row class="mb-4">
@@ -430,7 +430,7 @@
                 Court Images
               </h4>
               <v-card variant="outlined" class="pa-4">
-                <CourtImageGallery 
+                <CourtImageGallery
                   :images="selectedBooking.court.images"
                   :court-name="selectedBooking.court.name"
                   size="large"
@@ -463,7 +463,7 @@
                   <v-col cols="12" md="6">
                     <div class="text-body-2 mb-2">
                       <strong>Approval Status:</strong>
-                      <v-chip 
+                      <v-chip
                         :color="selectedBooking.approval_status === 'approved' ? 'success' : selectedBooking.approval_status === 'rejected' ? 'error' : 'warning'"
                         variant="tonal"
                         size="small"
@@ -473,7 +473,7 @@
                       </v-chip>
                     </div>
                     <div class="text-body-2 mb-2">
-                      <strong>Total Price:</strong> 
+                      <strong>Total Price:</strong>
                       <span class="text-h6 text-success">{{ formatPrice(selectedBooking.total_price ?? 0) }}</span>
                     </div>
                   </v-col>
@@ -505,9 +505,9 @@
                       {{ item.court?.name || 'Unknown Court' }}
                     </v-list-item-title>
                     <v-list-item-subtitle>
-                      {{ item.court?.sport?.name || 'Unknown Sport' }} • 
-                      {{ formatDate(item.booking_date) }} • 
-                      {{ item.start_time }} - {{ item.end_time }} • 
+                      {{ item.court?.sport?.name || 'Unknown Sport' }} •
+                      {{ formatDate(item.booking_date) }} •
+                      {{ item.start_time }} - {{ item.end_time }} •
                       <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>
                     </v-list-item-subtitle>
                   </v-list-item>
@@ -542,7 +542,7 @@
                   <v-col cols="12" md="6">
                     <div class="text-body-2 mb-2">
                       <strong>Status:</strong>
-                      <v-chip 
+                      <v-chip
                         :color="getStatusColor(selectedBooking.status)"
                         variant="tonal"
                         size="small"
@@ -552,7 +552,7 @@
                       </v-chip>
                     </div>
                     <div class="text-body-2 mb-2">
-                      <strong>Total Price:</strong> 
+                      <strong>Total Price:</strong>
                       <span class="text-h6 text-success">{{ formatPrice(selectedBooking.total_price ?? 0) }}</span>
                     </div>
                     <div class="text-body-2 mb-2" v-if="selectedBooking.notes">
@@ -576,7 +576,7 @@
                   <v-col cols="12" md="6">
                     <div class="text-body-2 mb-2">
                       <strong>Frequency Type:</strong>
-                      <v-chip 
+                      <v-chip
                         :color="getFrequencyColor(selectedBooking.frequency_type)"
                         variant="tonal"
                         size="small"
@@ -623,7 +623,7 @@
                   <v-col cols="12" md="6">
                     <div class="text-body-2 mb-2">
                       <strong>Payment Method:</strong>
-                      <v-chip 
+                      <v-chip
                         :color="selectedBooking.payment_method ? 'success' : 'error'"
                         variant="tonal"
                         size="small"
@@ -634,7 +634,7 @@
                     </div>
                     <div class="text-body-2 mb-2">
                       <strong>Payment Status:</strong>
-                      <v-chip 
+                      <v-chip
                         :color="getPaymentStatusColor(selectedBooking)"
                         variant="tonal"
                         size="small"
@@ -671,9 +671,9 @@
             </v-col>
           </v-row>
         </v-card-text>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-actions class="pa-6">
           <v-spacer></v-spacer>
           <v-btn
@@ -737,22 +737,22 @@
           <v-icon class="mr-2" color="primary">mdi-image</v-icon>
           Proof of Payment
         </v-card-title>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-text class="pa-6">
           <div class="text-center">
-            <img 
-              :src="selectedImageUrl" 
+            <img
+              :src="selectedImageUrl"
               alt="Proof of Payment"
               class="full-size-image"
               style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
             />
           </div>
         </v-card-text>
-        
+
         <v-divider></v-divider>
-        
+
         <v-card-actions class="pa-6">
           <v-spacer></v-spacer>
           <v-btn
@@ -813,11 +813,11 @@ export default {
     const selectedBookingId = ref(null)
     const detailsDialog = ref(false)
     const selectedBooking = ref(null)
-    
+
     // Image dialog
     const imageDialog = ref(false)
     const selectedImageUrl = ref('')
-    
+
     const snackbar = ref({
       show: false,
       message: '',
@@ -881,12 +881,12 @@ export default {
         // Validate payment requirements before approval
         const hasPaymentMethod = transaction.payment_method && transaction.payment_method.trim() !== ''
         const hasProofOfPayment = transaction.proof_of_payment && transaction.proof_of_payment.trim() !== ''
-        
+
         if (!hasPaymentMethod) {
           showSnackbar('Cannot approve transaction: Payment method is missing. Please ensure the user has selected GCash as payment method.', 'error')
           return
         }
-        
+
         if (!hasProofOfPayment) {
           showSnackbar('Cannot approve transaction: Proof of payment is missing. Please ensure the user has uploaded a screenshot of their GCash payment confirmation.', 'error')
           return
@@ -895,10 +895,10 @@ export default {
         // Approve cart transaction instead of booking
         await cartService.approveTransaction(bookingId)
         showSnackbar('Transaction approved successfully', 'success')
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
-        
+
         await loadPendingBookings()
         await loadStats()
       } catch (error) {
@@ -923,10 +923,10 @@ export default {
         await cartService.rejectTransaction(selectedBookingId.value, rejectReason.value)
         showSnackbar('Transaction rejected successfully', 'success')
         rejectDialog.value = false
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
-        
+
         await loadPendingBookings()
         await loadStats()
       } catch (error) {
@@ -940,37 +940,37 @@ export default {
     const approveAllPending = async () => {
       try {
         loading.value = true
-        
+
         // Filter bookings that have complete payment (both payment method and proof of payment)
-        const bookingsWithCompletePayment = pendingBookings.value.filter(booking => 
+        const bookingsWithCompletePayment = pendingBookings.value.filter(booking =>
           getBookingPaymentStatus(booking) === 'complete'
         )
-        
+
         if (bookingsWithCompletePayment.length === 0) {
           showSnackbar('No bookings with complete payment found to approve', 'warning')
           return
         }
-        
+
         // Approve only bookings with complete payment
-        const promises = bookingsWithCompletePayment.map(booking => 
+        const promises = bookingsWithCompletePayment.map(booking =>
           bookingService.approveBooking(booking.id)
         )
         await Promise.all(promises)
-        
+
         const totalPending = pendingBookings.value.length
         const approvedCount = bookingsWithCompletePayment.length
         const skippedCount = totalPending - approvedCount
-        
+
         let message = `Successfully approved ${approvedCount} booking${approvedCount !== 1 ? 's' : ''}`
         if (skippedCount > 0) {
           message += `. Skipped ${skippedCount} booking${skippedCount !== 1 ? 's' : ''} without complete payment`
         }
-        
+
         showSnackbar(message, 'success')
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
-        
+
         await loadPendingBookings()
         await loadStats()
       } catch (error) {
@@ -1019,7 +1019,7 @@ export default {
     const getBookingPaymentStatus = (booking) => {
       const hasPaymentMethod = booking.payment_method && booking.payment_method.trim() !== ''
       const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment.trim() !== ''
-      
+
       if (hasPaymentMethod && hasProofOfPayment) {
         return 'complete'
       } else if (hasPaymentMethod && !hasProofOfPayment) {
@@ -1073,7 +1073,7 @@ export default {
     const viewProofOfPayment = (proofUrl) => {
       if (proofUrl) {
         // Open proof of payment in dialog
-        selectedImageUrl.value = `https://bschedule.m4d8q2.com/storage/${proofUrl}`
+        selectedImageUrl.value = `${import.meta.env.VITE_API_URL}/storage/${proofUrl}`
         imageDialog.value = true
       }
     }
@@ -1194,7 +1194,7 @@ export default {
     onMounted(() => {
       loadStats()
       loadPendingBookings()
-      
+
       // Listen for custom events to refresh admin data
       window.addEventListener('booking-created', handleBookingRefresh)
       window.addEventListener('booking-updated', handleBookingRefresh)
@@ -1285,7 +1285,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -1298,7 +1298,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -1597,17 +1597,17 @@ export default {
   .admin-dashboard {
     padding: 16px;
   }
-  
+
   .dashboard-header {
     padding: 32px 0;
     margin-bottom: 32px;
   }
-  
+
   .actions-grid {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .stat-card,
   .action-card {
     padding: 24px;
@@ -1618,11 +1618,11 @@ export default {
   .admin-dashboard {
     padding: 12px;
   }
-  
+
   .dashboard-header {
     padding: 24px 0;
   }
-  
+
   .stat-card,
   .action-card {
     padding: 20px;

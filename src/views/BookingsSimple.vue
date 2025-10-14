@@ -89,7 +89,7 @@
           elevation="3"
         >
           <!-- Status Banner -->
-          <div 
+          <div
             class="status-banner"
             :class="{
               'bg-warning': transaction.approval_status === 'pending',
@@ -98,7 +98,7 @@
             }"
           >
             <v-icon size="small" class="mr-2">
-              {{ transaction.approval_status === 'approved' ? 'mdi-check-circle' : 
+              {{ transaction.approval_status === 'approved' ? 'mdi-check-circle' :
                  transaction.approval_status === 'rejected' ? 'mdi-close-circle' : 'mdi-clock-alert' }}
             </v-icon>
             {{ transaction.approval_status.toUpperCase() }}
@@ -187,7 +187,7 @@
 
             <!-- Cart Items Section -->
             <v-divider class="my-4"></v-divider>
-            
+
             <div class="d-flex align-center justify-space-between mb-3">
               <h3 class="text-h6">
                 <v-icon color="primary" class="mr-2">mdi-cart</v-icon>
@@ -225,8 +225,8 @@
                           <strong>{{ item.court?.name }}</strong> - {{ item.court?.sport?.name }}
                         </v-list-item-title>
                         <v-list-item-subtitle>
-                          📅 {{ formatDate(item.booking_date) }} | 
-                          🕐 {{ item.start_time }} - {{ item.end_time }} | 
+                          📅 {{ formatDate(item.booking_date) }} |
+                          🕐 {{ item.start_time }} - {{ item.end_time }} |
                           💰 ₱{{ parseFloat(item.price).toFixed(2) }}
                         </v-list-item-subtitle>
                       </v-list-item>
@@ -287,7 +287,7 @@ export default {
     const fetchTransactions = async () => {
       try {
         loading.value = true
-        const response = await fetch('https://bschedule.m4d8q2.com/api/cart-transactions', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart-transactions`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Accept': 'application/json'

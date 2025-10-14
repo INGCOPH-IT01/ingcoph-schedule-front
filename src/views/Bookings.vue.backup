@@ -5,7 +5,7 @@
       <div class="sports-overlay"></div>
       <div class="sports-pattern"></div>
     </div>
-    
+
     <!-- Enhanced Header -->
     <div class="bookings-header">
       <div class="header-content">
@@ -162,7 +162,7 @@
                 v-for="transaction in filteredTransactions"
                 :key="transaction.id"
                 class="transaction-card mb-4"
-                :class="{ 
+                :class="{
                   'pending-card': transaction.approval_status === 'pending',
                   'approved-card': transaction.approval_status === 'approved',
                   'rejected-card': transaction.approval_status === 'rejected'
@@ -198,8 +198,8 @@
                               Created: {{ formatDateTime(transaction.created_at) }}
                             </p>
                           </div>
-                          <v-chip 
-                            :color="transaction.payment_status === 'paid' ? 'success' : 'warning'" 
+                          <v-chip
+                            :color="transaction.payment_status === 'paid' ? 'success' : 'warning'"
                             size="large"
                             variant="flat"
                             class="text-white font-weight-bold"
@@ -265,8 +265,8 @@
                               <div class="detail-content">
                                 <div class="detail-label">Payment Status</div>
                                 <div class="detail-value">
-                                  <v-chip 
-                                    :color="booking.payment_status === 'paid' ? 'success' : 'warning'" 
+                                  <v-chip
+                                    :color="booking.payment_status === 'paid' ? 'success' : 'warning'"
                                     size="small"
                                     variant="flat"
                                     class="text-white"
@@ -329,8 +329,8 @@
                                         {{ getSportIcon(item.court?.sport?.name) }}
                                       </v-icon>
                                       <span class="text-caption">
-                                        {{ item.court?.name }} • 
-                                        {{ item.start_time }} - {{ item.end_time }} • 
+                                        {{ item.court?.name }} •
+                                        {{ item.start_time }} - {{ item.end_time }} •
                                         <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>
                                       </span>
                                     </div>
@@ -428,7 +428,7 @@
                   <td class="excel-cell">
                     <div class="excel-cell-content">
                       <div class="excel-cell-icon">
-                        <CourtImageGallery 
+                        <CourtImageGallery
                           :images="item.court?.images || []"
                           :court-name="item.court?.name || 'Unknown Court'"
                           size="small"
@@ -454,9 +454,9 @@
                         {{ formatTime(item.start_time) }} - {{ formatTime(item.end_time) }}
                       </div>
                       <div class="excel-frequency">
-                        <v-chip 
+                        <v-chip
                           :color="getFrequencyColor(item.frequency_type)"
-                          variant="tonal" 
+                          variant="tonal"
                           size="x-small"
                           class="mt-1"
                         >
@@ -473,9 +473,9 @@
                   </td>
             <td class="excel-cell">
               <div v-if="item.status === 'recurring_schedule'">
-                <v-chip 
-                  color="primary" 
-                  variant="tonal" 
+                <v-chip
+                  color="primary"
+                  variant="tonal"
                   size="small"
                   class="excel-duration-chip"
                 >
@@ -484,9 +484,9 @@
               </div>
               <div v-else-if="item.frequency_type">
                 <div class="excel-frequency-details">
-                  <v-chip 
-                    color="info" 
-                    variant="tonal" 
+                  <v-chip
+                    color="info"
+                    variant="tonal"
                     size="small"
                     class="excel-duration-chip mb-1"
                   >
@@ -498,9 +498,9 @@
                 </div>
               </div>
               <div v-else>
-                <v-chip 
-                  color="info" 
-                  variant="tonal" 
+                <v-chip
+                  color="info"
+                  variant="tonal"
                   size="small"
                   class="excel-duration-chip"
                 >
@@ -549,9 +549,9 @@
                       size="small"
                       class="excel-payment-chip"
                     >
-                      <v-icon 
-                        :icon="getPaymentStatusIcon(item)" 
-                        size="x-small" 
+                      <v-icon
+                        :icon="getPaymentStatusIcon(item)"
+                        size="x-small"
                         class="mr-1"
                       ></v-icon>
                       {{ getPaymentStatusText(item) }}
@@ -572,9 +572,9 @@
                   size="small"
                   class="excel-payment-chip"
                 >
-                  <v-icon 
-                    :icon="getPaymentStatusIcon(item)" 
-                    size="x-small" 
+                  <v-icon
+                    :icon="getPaymentStatusIcon(item)"
+                    size="x-small"
                     class="mr-1"
                   ></v-icon>
                   {{ getPaymentStatusText(item) }}
@@ -753,7 +753,7 @@
           <v-icon class="mr-2">mdi-calendar-detail</v-icon>
           Booking Details
         </v-card-title>
-        
+
         <v-card-text v-if="selectedBooking">
           <v-row>
             <v-col cols="12" md="6">
@@ -772,7 +772,7 @@
                 </div>
               </div>
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <div class="detail-section">
                 <h4 class="detail-label">Booking Information</h4>
@@ -781,7 +781,7 @@
                     <strong>User:</strong> {{ selectedBooking.user?.name || 'Unknown' }}
                   </div>
                   <div class="detail-item">
-                    <strong>Status:</strong> 
+                    <strong>Status:</strong>
                     <v-chip
                       :color="getStatusColor(selectedBooking.status)"
                       variant="tonal"
@@ -798,7 +798,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <!-- Court Images Gallery -->
           <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0">
             <v-col cols="12">
@@ -808,7 +808,7 @@
                   Court Images
                 </h4>
                 <div class="detail-content">
-                  <CourtImageGallery 
+                  <CourtImageGallery
                     :images="selectedBooking.court.images"
                     :court-name="selectedBooking.court.name"
                     size="large"
@@ -818,7 +818,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <v-row>
             <v-col cols="12" md="6">
               <div class="detail-section">
@@ -836,7 +836,7 @@
                 </div>
               </div>
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <div class="detail-section">
                 <h4 class="detail-label">Status</h4>
@@ -854,7 +854,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <v-row v-if="selectedBooking.notes">
             <v-col cols="12">
               <div class="detail-section">
@@ -884,7 +884,7 @@
                         </div>
                         <div class="mb-3">
                           <strong>Recurrence Type:</strong>
-                          <v-chip 
+                          <v-chip
                             :color="getRecurrenceTypeColor(selectedBooking.recurring_schedule_data.recurrence_type)"
                             variant="tonal"
                             size="small"
@@ -894,12 +894,12 @@
                           </v-chip>
                         </div>
                         <div class="mb-3">
-                          <strong>Interval:</strong> Every {{ selectedBooking.recurring_schedule_data.recurrence_interval || 1 }} 
+                          <strong>Interval:</strong> Every {{ selectedBooking.recurring_schedule_data.recurrence_interval || 1 }}
                           {{ getIntervalSuffix(selectedBooking.recurring_schedule_data.recurrence_type) }}
                         </div>
                         <div class="mb-3">
                           <strong>Auto Approve:</strong>
-                          <v-chip 
+                          <v-chip
                             :color="selectedBooking.recurring_schedule_data.auto_approve ? 'success' : 'warning'"
                             variant="tonal"
                             size="small"
@@ -1016,7 +1016,7 @@
                       <v-col cols="12" md="6">
                         <div class="mb-3">
                           <strong>Frequency Type:</strong>
-                          <v-chip 
+                          <v-chip
                             :color="getFrequencyColor(selectedBooking.frequency_type)"
                             variant="tonal"
                             size="small"
@@ -1076,7 +1076,7 @@
             </v-col>
           </v-row>
         </v-card-text>
-        
+
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn
@@ -1097,7 +1097,7 @@
           <v-icon class="mr-2">mdi-pencil</v-icon>
           Edit Booking
         </v-card-title>
-        
+
         <v-card-text v-if="editingBooking">
           <!-- Show form if editForm exists, otherwise show loading -->
           <div v-if="editingBooking && editForm">
@@ -1116,7 +1116,7 @@
                     <strong>Sport:</strong> {{ editingBooking.court?.sport?.name || 'Unknown' }}
                   </div>
                   <div class="info-item">
-                    <strong>Status:</strong> 
+                    <strong>Status:</strong>
                     <v-chip
                       :color="getStatusColor(editingBooking.status)"
                       variant="tonal"
@@ -1182,9 +1182,9 @@
                   </div>
                   <div class="detail-item mb-2">
                     <strong>Status:</strong>
-                    <v-chip 
+                    <v-chip
                       :color="getStatusColor(editingBooking.status)"
-                      variant="tonal" 
+                      variant="tonal"
                       size="small"
                       class="ml-2"
                     >
@@ -1196,7 +1196,7 @@
                   </div>
                 </v-col>
               </v-row>
-              
+
               <!-- Frequency Booking Details -->
               <v-row v-if="editingBooking.frequency_type && editingBooking.frequency_type !== 'once'">
                 <v-col cols="12">
@@ -1209,7 +1209,7 @@
                     <v-col cols="12" md="6">
                       <div class="detail-item mb-2">
                         <strong>Frequency Type:</strong>
-                        <v-chip 
+                        <v-chip
                           :color="getFrequencyColor(editingBooking.frequency_type)"
                           variant="tonal"
                           size="small"
@@ -1242,7 +1242,7 @@
                   </v-row>
                 </v-col>
               </v-row>
-              
+
               <!-- Notes -->
               <v-row v-if="editingBooking.notes">
                 <v-col cols="12">
@@ -1285,7 +1285,7 @@
                   </template>
                 </v-select>
               </v-col>
-              
+
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="editForm.date"
@@ -1298,7 +1298,7 @@
                 ></v-text-field>
               </v-col>
             </v-row>
-            
+
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
@@ -1313,7 +1313,7 @@
                   :disabled="!editForm?.court_id || !editForm?.date"
                 ></v-select>
               </v-col>
-              
+
               <v-col cols="12" md="6">
                 <v-select
                   v-model="editForm.duration"
@@ -1326,8 +1326,8 @@
                 ></v-select>
               </v-col>
             </v-row>
-            
-            
+
+
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
@@ -1340,7 +1340,7 @@
                   prepend-inner-icon="mdi-flag"
                 ></v-select>
               </v-col>
-              
+
               <v-col cols="12" md="6">
                 <v-select
                   v-model="editForm.frequency_type"
@@ -1361,7 +1361,7 @@
                     <v-icon class="mr-2" color="success">mdi-credit-card</v-icon>
                     Payment Method
                   </h5>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6">
                         <v-select
@@ -1375,7 +1375,7 @@
                           @update:model-value="onPaymentMethodChange"
                       ></v-select>
                     </v-col>
-                    
+
                     <v-col cols="12" md="6" v-if="editForm?.payment_method === 'gcash'">
                       <v-text-field
                         v-model="editForm.gcash_amount"
@@ -1398,8 +1398,8 @@
                             Scan GCash QR Code to Pay
                           </h6>
                           <div class="qr-code-container mb-3">
-                            <img 
-                              src="/images/gcash-qr-code.svg" 
+                            <img
+                              src="/images/gcash-qr-code.svg"
                               alt="GCash QR Code"
                               class="qr-code-image"
                               style="max-width: 200px; height: auto;"
@@ -1470,7 +1470,7 @@
                     <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
                     Frequency Booking Details
                   </h5>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6" v-if="editForm && ['weekly', 'monthly', 'yearly'].includes(editForm.frequency_type)">
                       <v-select
@@ -1485,7 +1485,7 @@
                         prepend-inner-icon="mdi-calendar-week"
                       ></v-select>
                     </v-col>
-                    
+
                     <v-col cols="12" md="6">
                       <v-text-field
                         v-model="editForm.frequency_duration_months"
@@ -1498,7 +1498,7 @@
                       ></v-text-field>
                     </v-col>
                   </v-row>
-                  
+
                   <v-alert
                     type="info"
                     variant="tonal"
@@ -1513,7 +1513,7 @@
                 </v-card>
               </v-col>
             </v-row>
-            
+
             <v-row>
               <v-col cols="12">
                 <v-textarea
@@ -1525,7 +1525,7 @@
                 ></v-textarea>
               </v-col>
             </v-row>
-            
+
             <!-- Price Calculation Section -->
             <v-row v-if="selectedCourt">
               <v-col cols="12">
@@ -1534,7 +1534,7 @@
                     <v-icon class="mr-2" color="success">mdi-calculator</v-icon>
                     Price Calculation
                   </h5>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6">
                       <div class="text-body-2 mb-2">
@@ -1555,14 +1555,14 @@
                         <strong>Duration:</strong> {{ editForm?.frequency_duration_months }} month{{ editForm?.frequency_duration_months > 1 ? 's' : '' }}
                       </div>
                       <div class="text-body-2 mb-2">
-                        <strong>Total Price:</strong> 
+                        <strong>Total Price:</strong>
                         <span class="text-h6 text-success">{{ formatPriceTemplate(totalPrice) }}</span>
                       </div>
                     </v-col>
                   </v-row>
-                  
+
                   <v-divider class="my-3"></v-divider>
-                  
+
                   <v-alert
                     type="info"
                     variant="tonal"
@@ -1574,7 +1574,7 @@
                 </v-card>
               </v-col>
             </v-row>
-            
+
             <v-row>
               <v-col cols="12">
                 <v-alert
@@ -1592,7 +1592,7 @@
                 </v-alert>
               </v-col>
             </v-row>
-            
+
             <v-alert
               v-if="editError"
               type="error"
@@ -1602,11 +1602,11 @@
               {{ editError }}
             </v-alert>
           </v-form>
-        
-          
+
+
           <!-- Loading state when editForm doesn't exist -->
         </v-card-text>
-        
+
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="testEditDialog" color="primary" variant="text">Test Dialog</v-btn>
@@ -1766,16 +1766,16 @@ export default {
         return 'Error accessing localStorage'
       }
     })
-    
+
     // View booking dialog
     const viewDialog = ref(false)
     const expanded = ref([])
-    
+
     // Recurring schedule view dialog
     const recurringViewDialog = ref(false)
     const selectedRecurringSchedule = ref(null)
     const selectedBooking = ref(null)
-    
+
     // Edit booking dialog
     const editDialog = ref(false)
     const globalEditDialog = ref(false)
@@ -1804,7 +1804,7 @@ export default {
     const availableSlots = ref([])
     const selectedCourt = ref(null)
     const totalPrice = ref(0)
-    
+
     const durationOptions = [
       { title: '1 hour', value: 1 },
       { title: '2 hours', value: 2 },
@@ -1901,7 +1901,7 @@ export default {
           t.user?.email?.toLowerCase().includes(query) ||
           t.approval_status?.toLowerCase().includes(query) ||
           t.payment_status?.toLowerCase().includes(query) ||
-          t.cart_items?.some(item => 
+          t.cart_items?.some(item =>
             item.court?.name?.toLowerCase().includes(query) ||
             item.court?.sport?.name?.toLowerCase().includes(query)
           )
@@ -1955,19 +1955,19 @@ export default {
     // Group transactions by booking/schedule date
     const groupedByDay = computed(() => {
       const groups = {}
-      
+
       filteredBookings.value.forEach(booking => {
         // For transactions, we need to group by the actual booking dates from cart items
         if (booking.isTransaction && booking.cart_transaction?.cart_items) {
           // A transaction can have multiple dates, so we need to create entries for each date
           const dateGroups = {}
-          
+
           booking.cart_transaction.cart_items.forEach(item => {
             let itemDate = item.booking_date
             if (typeof itemDate === 'string' && itemDate.includes('T')) {
               itemDate = itemDate.split('T')[0]
             }
-            
+
             if (!dateGroups[itemDate]) {
               dateGroups[itemDate] = {
                 items: [],
@@ -1977,18 +1977,18 @@ export default {
             dateGroups[itemDate].items.push(item)
             dateGroups[itemDate].price += parseFloat(item.price || 0)
           })
-          
+
           // Create a booking entry for each date
           Object.entries(dateGroups).forEach(([dateStr, dateData]) => {
             const groupDate = new Date(dateStr)
-            
+
             if (isNaN(groupDate.getTime())) {
               console.warn('Invalid date:', dateStr)
               return
             }
-            
+
             const dateKey = groupDate.toISOString().split('T')[0]
-            
+
             if (!groups[dateKey]) {
               groups[dateKey] = {
                 date: dateKey,
@@ -1998,7 +1998,7 @@ export default {
                 transactionCount: 0
               }
             }
-            
+
             // Add the transaction with date-specific info
             groups[dateKey].bookings.push({
               ...booking,
@@ -2011,14 +2011,14 @@ export default {
         } else if (booking.start_time) {
           // Regular booking - group by start_time
           const groupDate = new Date(booking.start_time)
-          
+
           if (isNaN(groupDate.getTime())) {
             console.warn('Invalid date for booking:', booking)
             return
           }
-          
+
           const dateKey = groupDate.toISOString().split('T')[0]
-          
+
           if (!groups[dateKey]) {
             groups[dateKey] = {
               date: dateKey,
@@ -2028,14 +2028,14 @@ export default {
               transactionCount: 0
             }
           }
-          
+
           groups[dateKey].bookings.push(booking)
           groups[dateKey].totalPrice += parseFloat(booking.total_price || 0)
         } else {
           console.warn('Booking missing date:', booking)
         }
       })
-      
+
       // Convert to array and sort by date (newest first)
       return Object.values(groups)
         .sort((a, b) => new Date(b.date) - new Date(a.date))
@@ -2051,7 +2051,7 @@ export default {
       tomorrow.setDate(tomorrow.getDate() + 1)
       const yesterday = new Date(today)
       yesterday.setDate(yesterday.getDate() - 1)
-      
+
       if (date.toDateString() === today.toDateString()) {
         return 'Today, ' + date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
       } else if (date.toDateString() === tomorrow.toDateString()) {
@@ -2065,7 +2065,7 @@ export default {
 
     // Expanded cart items
     const expandedCartItems = ref([])
-    
+
     const toggleCartItems = (bookingId) => {
       const index = expandedCartItems.value.indexOf(bookingId)
       if (index > -1) {
@@ -2083,47 +2083,47 @@ export default {
     const fetchBookings = async () => {
       try {
         loading.value = true
-        
+
         // Fetch cart transactions
         console.log('🛒 Fetching cart transactions...')
-        
+
         try {
-          const cartResponse = await fetch('https://bschedule.m4d8q2.com/api/cart-transactions', {
+          const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart-transactions`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
               'Accept': 'application/json'
             }
           })
-          
+
           if (cartResponse.ok) {
             const transactionsData = await cartResponse.json()
             console.log('✅ Cart transactions received:', transactionsData.length)
             console.log('📋 Transactions data:', transactionsData)
-            
+
             // Store transactions directly
             transactions.value = transactionsData
-            
+
             // Also convert transactions to booking format for backward compatibility
             const transactionBookings = transactionsData.map(transaction => {
               // Get earliest start time and latest end time from cart items
               let earliestStart = null
               let latestEnd = null
               let bookingDate = null
-              
+
               transaction.cart_items.forEach(item => {
-                const itemDate = typeof item.booking_date === 'string' && item.booking_date.includes('T') 
-                  ? item.booking_date.split('T')[0] 
+                const itemDate = typeof item.booking_date === 'string' && item.booking_date.includes('T')
+                  ? item.booking_date.split('T')[0]
                   : item.booking_date
-                
+
                 if (!bookingDate) bookingDate = itemDate
-                
+
                 const startTime = `${itemDate} ${item.start_time}`
                 const endTime = `${itemDate} ${item.end_time}`
-                
+
                 if (!earliestStart || startTime < earliestStart) earliestStart = startTime
                 if (!latestEnd || endTime > latestEnd) latestEnd = endTime
               })
-              
+
               return {
                 id: `transaction_${transaction.id}`,
                 transaction_id: transaction.id,
@@ -2146,7 +2146,7 @@ export default {
                 created_at: transaction.created_at
               }
             })
-            
+
             // Set bookings to cart transactions
             bookings.value = transactionBookings
             console.log('📦 Displaying', bookings.value.length, 'cart transactions')
@@ -2179,7 +2179,7 @@ export default {
     const formatDateTime = (dateTime) => {
       if (!dateTime) return 'N/A'
       const date = new Date(dateTime)
-      return date.toLocaleString('en-US', { 
+      return date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -2204,7 +2204,7 @@ export default {
         const durationMinutes = endMinutes - startMinutes
         const hours = Math.floor(durationMinutes / 60)
         const minutes = durationMinutes % 60
-        
+
         if (minutes === 0) {
           return `${hours} hour${hours !== 1 ? 's' : ''}`
         }
@@ -2281,13 +2281,13 @@ export default {
 
     const formatRecurrenceDetails = (data) => {
       if (!data) return 'Unknown'
-      
+
       const type = data.recurrence_type
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-      
+
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(type) && data.day_specific_times) {
         // Show day-specific times
-        const times = data.day_specific_times.map(dayTime => 
+        const times = data.day_specific_times.map(dayTime =>
           `${dayNames[dayTime.day]} ${dayTime.start_time}-${dayTime.end_time}`
         ).join(', ')
         return times
@@ -2306,7 +2306,7 @@ export default {
 
     const getRecurringDurationText = (data) => {
       if (!data) return 'Recurring'
-      
+
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(data.recurrence_type) && data.day_specific_times) {
         // Calculate total duration for all day-specific times
         let totalHours = 0
@@ -2332,7 +2332,7 @@ export default {
 
     const getRecurringPriceText = (data) => {
       if (!data) return 'Per Session'
-      
+
       // For now, just show "Per Session" - this could be enhanced to calculate actual pricing
       return 'Per Session'
     }
@@ -2386,9 +2386,9 @@ export default {
 
     const getRecurringSummaryText = (data) => {
       if (!data) return ''
-      
+
       const type = data.recurrence_type
-      
+
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(type) && data.day_specific_times) {
         const totalHours = data.day_specific_times.reduce((total, dayTime) => {
           return total + parseFloat(calculateDuration(dayTime.start_time, dayTime.end_time))
@@ -2428,10 +2428,10 @@ export default {
     // Payment status functions
     const getPaymentStatus = (booking) => {
       if (!booking) return 'unknown'
-      
+
       const hasPaymentMethod = booking.payment_method && booking.payment_method !== ''
       const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment !== ''
-      
+
       if (hasPaymentMethod && hasProofOfPayment) {
         return 'complete'
       } else if (hasPaymentMethod && !hasProofOfPayment) {
@@ -2448,7 +2448,7 @@ export default {
       if (booking.payment_status === 'paid') {
         return 'success'
       }
-      
+
       if (booking.payment_status === 'unpaid') {
         return 'warning'
       }
@@ -2473,7 +2473,7 @@ export default {
         }
         return 'Paid'
       }
-      
+
       if (booking.payment_status === 'unpaid') {
         return 'Pending Payment'
       }
@@ -2498,7 +2498,7 @@ export default {
         }
         return 'mdi-check-circle'
       }
-      
+
       if (booking.payment_status === 'unpaid') {
         return 'mdi-clock-outline'
       }
@@ -2524,10 +2524,10 @@ export default {
 
     const getFrequencyDetailsText = (item) => {
       if (!item.frequency_type) return ''
-      
+
       const duration = item.frequency_duration_months || 1
       let details = ''
-      
+
       if (item.frequency_type === 'once') {
         // For 'once' bookings, show it as a one-time booking with frequency data
         if (item.frequency_days && item.frequency_days.length > 0) {
@@ -2538,14 +2538,14 @@ export default {
         }
         return details
       }
-      
+
       if (item.frequency_days && item.frequency_days.length > 0) {
         const dayNames = item.frequency_days.map(day => getDayName(day)).join(', ')
         details = `${formatFrequencyType(item.frequency_type)} on ${dayNames}`
       } else {
         details = formatFrequencyType(item.frequency_type)
       }
-      
+
       return `${details} for ${duration} month${duration > 1 ? 's' : ''}`
     }
 
@@ -2617,7 +2617,7 @@ export default {
           // Remove all cart items associated with this booking
           if (booking.cart_transaction?.cart_items) {
             for (const item of booking.cart_transaction.cart_items) {
-              await fetch(`https://bschedule.m4d8q2.com/api/cart/${item.id}`, {
+              await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${item.id}`, {
                 method: 'DELETE',
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -2637,7 +2637,7 @@ export default {
 
           // Refresh the cart
           fetchBookings()
-          
+
           // Update cart count
           window.dispatchEvent(new CustomEvent('cart-updated'))
         } catch (error) {
@@ -2664,16 +2664,16 @@ export default {
       })
 
       if (!result.isConfirmed) return
-      
+
       try {
         cancelling.value = bookingId
         await courtService.updateBooking(bookingId, { status: 'cancelled' })
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-cancelled'))
-        
+
         await fetchBookings() // Refresh the list
-        
+
         // Show success message
         Swal.fire({
           icon: 'success',
@@ -2723,7 +2723,7 @@ export default {
     const forcePopulateForm = () => {
       console.log('Force populating form...')
       console.log('Current editingBooking:', editingBooking.value)
-      
+
       if (editingBooking.value) {
         // Simple form population
         editForm.court_id = editingBooking.value.court_id || 1
@@ -2740,7 +2740,7 @@ export default {
         editForm.payment_method = editingBooking.value.payment_method || ''
         editForm.gcash_amount = ''
         editForm.proof_of_payment = null
-        
+
         console.log('Form force populated:', editForm)
       }
     }
@@ -2768,14 +2768,14 @@ export default {
 
     const loadAvailableSlots = async () => {
       if (!editForm.court_id || !editForm.date) return
-      
+
       try {
         const slots = await courtService.getAvailableSlots(
-          editForm.court_id, 
+          editForm.court_id,
           editForm.date,
           editForm.duration || 1
         )
-        
+
         // If we're editing a booking, add the current booking's time slot to available slots
         if (editingBooking.value) {
           const currentStartTime = new Date(editingBooking.value.start_time).toISOString()
@@ -2785,14 +2785,14 @@ export default {
             end_time: currentEndTime,
             formatted_time: `${new Date(currentStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(currentEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
           }
-          
+
           // Check if current slot is already in the list
           const existingSlot = slots.find(slot => slot.start_time === currentStartTime)
           if (!existingSlot) {
             slots.unshift(currentSlot) // Add to beginning
           }
         }
-        
+
         availableSlots.value = slots
         calculatePrice()
       } catch (error) {
@@ -2806,7 +2806,7 @@ export default {
       editForm.start_time = ''
       availableSlots.value = []
       totalPrice.value = 0
-      
+
       if (editForm.date) {
         await loadAvailableSlots()
       }
@@ -2816,7 +2816,7 @@ export default {
       editForm.start_time = ''
       availableSlots.value = []
       totalPrice.value = 0
-      
+
       if (editForm.court_id) {
         await loadAvailableSlots()
       }
@@ -2829,7 +2829,7 @@ export default {
       }
 
       const basePrice = selectedCourt.value.price_per_hour * editForm.duration
-      
+
       if (editForm.frequency_type === 'once') {
         totalPrice.value = basePrice
       } else if (editForm.frequency_type === 'daily') {
@@ -2883,8 +2883,8 @@ export default {
       try {
         editLoading.value = true
         editError.value = ''
-        
-        
+
+
         if (!editForm.court_id || !editForm.date || !editForm.start_time) {
           editError.value = 'Please fill in all required fields'
           console.error('Validation failed:', {
@@ -2894,16 +2894,16 @@ export default {
           })
           return
         }
-        
+
         if (!selectedCourt.value) {
           editError.value = 'Please select a valid court'
           return
         }
-        
+
         // Calculate end time
         const startDateTime = new Date(editForm.start_time)
         const endDateTime = new Date(startDateTime.getTime() + (editForm.duration * 60 * 60 * 1000))
-        
+
         const updateData = {
           court_id: parseInt(editForm.court_id),
           start_time: startDateTime.toISOString(),
@@ -2918,10 +2918,10 @@ export default {
           frequency_end_date: editForm.frequency_end_date || null,
           payment_method: editForm.payment_method || null
         }
-        
+
         // Update booking
         await courtService.updateBooking(editingBooking.value.id, updateData)
-        
+
         // Handle proof of payment upload if provided
         if (editForm.proof_of_payment && editForm.proof_of_payment.length > 0) {
           try {
@@ -2932,17 +2932,17 @@ export default {
             showSnackbar('Failed to upload proof of payment', 'error')
           }
         }
-        
+
         // Refresh bookings list
         await fetchBookings()
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
-        
+
         closeEditDialog()
       } catch (error) {
         console.error('Failed to update booking:', error)
-        
+
         // Handle validation errors specifically
         if (error.response?.status === 422 && error.response?.data?.errors) {
           const validationErrors = error.response.data.errors
@@ -3011,7 +3011,7 @@ export default {
     const checkAuth = async (retryCount = 0) => {
       try {
         const token = localStorage.getItem('token')
-        
+
         if (token) {
           const userData = await authService.getUser()
           user.value = userData
@@ -3020,18 +3020,18 @@ export default {
         return false
       } catch (error) {
         console.error('Bookings - Auth check failed:', error)
-        
+
         // If it's a network error and we haven't retried, try once more
         if (retryCount === 0 && (error.code === 'NETWORK_ERROR' || !error.response)) {
           await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
           return checkAuth(1)
         }
-        
+
         // If it's a 401 error, the token is invalid
         if (error.response?.status === 401) {
           localStorage.removeItem('token')
         }
-        
+
         user.value = null
         return false
       }
@@ -3057,10 +3057,10 @@ export default {
 
     onMounted(async () => {
       authLoading.value = true
-      
+
       // Wait a moment for App.vue to complete its auth check
       await new Promise(resolve => setTimeout(resolve, 50))
-      
+
       // First check if we already have user data (from App.vue)
       const token = localStorage.getItem('token')
       if (token) {
@@ -3078,14 +3078,14 @@ export default {
       // Always try to fetch bookings regardless of auth status
       console.log('Bookings - Attempting to fetch bookings...')
       await fetchBookings()
-      
+
       authLoading.value = false
-      
+
       // Listen for custom events to refresh bookings
       window.addEventListener('booking-created', handleBookingRefresh)
       window.addEventListener('booking-updated', handleBookingRefresh)
       window.addEventListener('booking-cancelled', handleBookingRefresh)
-      
+
       // Listen for authentication changes
       window.addEventListener('auth-changed', handleAuthChange)
     })
@@ -3113,7 +3113,7 @@ export default {
     const showSnackbar = (data, color = 'success') => {
       // Handle both object format from GlobalBookingDialog and direct parameters
       let message, messageColor
-      
+
       if (typeof data === 'object' && data.message) {
         // Object format: { message, type }
         message = data.message
@@ -3123,7 +3123,7 @@ export default {
         message = data
         messageColor = color
       }
-      
+
       snackbar.value = {
         show: true,
         message,
@@ -3158,14 +3158,14 @@ export default {
           editForm.proof_of_payment = null
           return
         }
-        
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
           showSnackbar('Please upload an image file', 'error')
           editForm.proof_of_payment = null
           return
         }
-        
+
         showSnackbar('Proof of payment uploaded successfully!', 'success')
       }
     }
@@ -3182,7 +3182,7 @@ export default {
         const formData = new FormData()
         formData.append('proof_of_payment', file)
         formData.append('payment_method', editForm.payment_method)
-        
+
         const response = await fetch(`/api/bookings/${bookingId}/upload-proof`, {
           method: 'POST',
           headers: {
@@ -3190,11 +3190,11 @@ export default {
           },
           body: formData
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to upload proof of payment')
         }
-        
+
         const result = await response.json()
         return result.data
       } catch (error) {
@@ -3353,7 +3353,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -3366,7 +3366,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -4369,23 +4369,23 @@ export default {
   .excel-container {
     padding: 12px;
   }
-  
+
   .excel-header {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .excel-toolbar {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .excel-search {
     max-width: none;
   }
-  
+
   .excel-filters {
     justify-content: space-between;
   }
