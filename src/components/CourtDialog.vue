@@ -20,9 +20,9 @@
           {{ isEdit ? 'Update court information and settings' : 'Create a new badminton court facility' }}
         </p>
       </div>
-      
+
       <v-divider class="dialog-divider"></v-divider>
-      
+
       <v-form @submit.prevent="handleSubmit" class="pa-6">
         <v-row>
           <v-col cols="12" md="6">
@@ -35,20 +35,23 @@
               variant="outlined"
             ></v-text-field>
           </v-col>
-          
+
           <v-col cols="12" md="6">
             <v-select
-              v-model="form.sport_id"
+              v-model="form.sport_ids"
               :items="sports"
               item-title="name"
               item-value="id"
-              label="Sport"
+              label="Sports"
               variant="outlined"
-              :rules="[v => !!v || 'Sport is required']"
+              :rules="[v => (v && v.length > 0) || 'At least one sport is required']"
               required
+              multiple
+              chips
+              closable-chips
             >
               <template v-slot:prepend-inner>
-                <span class="sport-icon">{{ form.sport_id ? getSportIcon(sports.find(sport => sport.id === form.sport_id)?.name) : '🏟️' }}</span>
+                <span class="sport-icon">🏟️</span>
               </template>
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
@@ -59,10 +62,19 @@
                   <v-list-item-subtitle>{{ item.raw.description }}</v-list-item-subtitle>
                 </v-list-item>
               </template>
+              <template v-slot:chip="{ item }">
+                <v-chip
+                  closable
+                  size="small"
+                >
+                  <span class="sport-icon mr-1">{{ getSportIcon(item.raw.name) }}</span>
+                  {{ item.raw.name }}
+                </v-chip>
+              </template>
             </v-select>
           </v-col>
         </v-row>
-        
+
         <v-row>
           <v-col cols="12">
             <v-textarea
@@ -74,7 +86,7 @@
             ></v-textarea>
           </v-col>
         </v-row>
-        
+
         <v-row>
           <v-col cols="12" md="6">
             <v-text-field
@@ -89,7 +101,7 @@
               class="excel-price-field"
             ></v-text-field>
           </v-col>
-          
+
           <v-col cols="12" md="6">
             <v-text-field
               v-model="form.location"
@@ -109,7 +121,7 @@
                 Upload Photos
               </v-btn>
             </div>
- 
+
               <v-card
                 v-if="previewImages.length > 0"
                 height="200px"
@@ -162,7 +174,7 @@
             </v-card>
           </v-col>
         </v-row>
-        
+
         <v-row>
           <v-col cols="12">
             <v-label class="text-subtitle-2 mb-2">Amenities</v-label>
@@ -179,7 +191,7 @@
             ></v-combobox>
           </v-col>
         </v-row>
-        
+
         <v-row>
           <v-col cols="12">
             <v-switch
@@ -190,7 +202,7 @@
             ></v-switch>
           </v-col>
         </v-row>
-        
+
         <v-alert
           v-if="error"
           type="error"
@@ -200,9 +212,9 @@
           {{ error }}
         </v-alert>
       </v-form>
-      
+
       <v-divider></v-divider>
-      
+
       <v-card-actions class="pa-6">
         <v-spacer></v-spacer>
         <v-btn
@@ -247,7 +259,7 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const sports = ref([])
-    
+
     const form = ref({
       name: '',
       description: '',
@@ -256,13 +268,13 @@ export default {
       amenities: [],
       is_active: true,
       images: [],
-      sport_id: null
+      sport_ids: []
     })
 
     const previewImages = ref([])
-    
+
     const isEdit = computed(() => !!props.court)
-    
+
     const getSportIcon = (sportName) => {
       const icons = {
         'Badminton': '🏸',
@@ -276,7 +288,7 @@ export default {
       }
       return icons[sportName] || '🏟️'
     }
-    
+
     const fetchSports = async () => {
       try {
         sports.value = await courtService.getSports()
@@ -285,7 +297,7 @@ export default {
         console.error('Failed to fetch sports:', err)
       }
     }
-    
+
     const resetForm = () => {
       form.value = {
         name: '',
@@ -295,16 +307,21 @@ export default {
         amenities: [],
         is_active: true,
         images: [],
-        sport_id: null, // No default sport - user must select
+        sport_ids: [], // Changed to array for multiple sports
         trashImages: []
       }
       error.value = ''
       previewImages.value = []
       form.value.trashImages = []
     }
-    
+
     const populateForm = () => {
       if (props.court) {
+        // Get sport IDs from the sports relationship (many-to-many)
+        const sportIds = props.court.sports && props.court.sports.length > 0
+          ? props.court.sports.map(sport => sport.id)
+          : (props.court.sport_id ? [props.court.sport_id] : []) // Fallback to single sport_id if exists
+
         form.value = {
           name: props.court.name || '',
           description: props.court.description || '',
@@ -313,13 +330,13 @@ export default {
           amenities: [...(props.court.amenities || [])],
           is_active: props.court.is_active !== false,
           images: [...([])],
-          sport_id: props.court.sport_id || null,
+          sport_ids: sportIds,
           trashImages: [...(props.court.trashImages || [])]
         }
         previewImages.value = [...(props.court.images || [])]
       }
     }
-    
+
     const uploadImages = () => {
       console.log(form.value.images)
     }
@@ -347,7 +364,7 @@ export default {
         const courtData = {
           ...form.value,
         }
-        
+
         if (isEdit.value) {
           await courtService.updateCourt(props.court.id, courtData)
           if(form.value.images.length > 0) {
@@ -359,7 +376,7 @@ export default {
             await saveUploadedImages()
           }
         }
-        
+
         emit('saved')
         closeModal()
       } catch (err) {
@@ -376,7 +393,7 @@ export default {
       });
       await courtService.saveImage(props.court.id, formData)
     }
-    
+
     const closeModal = () => {
       resetForm()
       emit('close')
@@ -386,23 +403,23 @@ export default {
       form.value.trashImages.push(previewImages.value[index])
       previewImages.value.splice(index, 1)
     }
-    
+
     watch(() => props.isOpen, (isOpen) => {
       if (isOpen) {
         populateForm()
       }
     })
-    
+
     watch(() => props.court, () => {
       if (props.isOpen) {
         populateForm()
       }
     })
-    
+
     onMounted(() => {
       fetchSports()
     })
-    
+
     return {
       sports,
       form,
@@ -449,7 +466,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
   z-index: 1;

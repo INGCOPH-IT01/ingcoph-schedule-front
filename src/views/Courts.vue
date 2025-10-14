@@ -5,7 +5,7 @@
       <div class="sports-overlay"></div>
       <div class="sports-pattern"></div>
     </div>
-    
+
     <!-- Enhanced Header -->
     <div class="courts-header">
       <div class="header-content">
@@ -63,7 +63,7 @@
               <v-icon>mdi-table</v-icon>
             </v-btn>
           </v-btn-toggle>
-          
+
           <v-btn
             class="filter-btn"
             variant="outlined"
@@ -88,9 +88,9 @@
             md="4"
             lg="3"
           >
-            <v-card 
-              class="court-card" 
-              elevation="2" 
+            <v-card
+              class="court-card"
+              elevation="2"
               hover
               @click="navigateToCourtDetails(court.id)"
               style="cursor: pointer;"
@@ -115,18 +115,22 @@
                 <div v-else class="court-no-image">
                   <v-icon size="64" color="grey-lighten-1">mdi-stadium</v-icon>
                 </div>
-                
-                <!-- Sport Badge -->
-                <v-chip
-                  class="court-sport-badge"
-                  :color="getSportColor(court.sport?.name)"
-                  size="small"
-                  label
-                >
-                  <v-icon start size="small">{{ getSportIcon(court.sport?.name) }}</v-icon>
-                  {{ court.sport?.name }}
-                </v-chip>
-                
+
+                <!-- Sport Badges - Multiple Sports Support -->
+                <div class="court-sport-badges">
+                  <v-chip
+                    v-for="sport in (court.sports && court.sports.length > 0 ? court.sports : [court.sport])"
+                    :key="sport?.id"
+                    class="court-sport-badge"
+                    :color="getSportColor(sport?.name)"
+                    size="small"
+                    label
+                  >
+                    <v-icon start size="small">{{ getSportIcon(sport?.name) }}</v-icon>
+                    {{ sport?.name }}
+                  </v-chip>
+                </div>
+
                 <!-- Status Badge -->
                 <v-chip
                   class="court-status-badge"
@@ -148,12 +152,12 @@
                   <v-icon size="small" color="primary">mdi-map-marker</v-icon>
                   <span class="court-info-text">{{ court.location || 'No location' }}</span>
                 </div>
-                
+
                 <div class="court-info-row">
                   <v-icon size="small" color="success">mdi-cash</v-icon>
                   <span class="court-info-price">₱{{ court.price_per_hour }}/hr</span>
                 </div>
-                
+
                 <div v-if="court.amenities && typeof court.amenities === 'string'" class="court-amenities">
                   <v-chip
                     v-for="(amenity, index) in court.amenities.split(',').slice(0, 3)"
@@ -202,7 +206,7 @@
             </v-card>
           </v-col>
         </v-row>
-        
+
         <!-- No Courts Message -->
         <v-row v-if="filteredCourts.length === 0 && !loading">
           <v-col cols="12" class="text-center py-12">
@@ -237,16 +241,20 @@
           </div>
         </template>
 
-        <!-- Sport Column -->
+        <!-- Sport Column - Multiple Sports Support -->
         <template v-slot:[`item.sport_name`]="{ item }">
-          <v-chip 
-            color="primary" 
-            variant="tonal" 
-            size="small"
-            class="excel-chip"
-          >
-            {{ item.sport.name }}
-          </v-chip>
+          <div class="d-flex flex-wrap gap-1">
+            <v-chip
+              v-for="sport in (item.sports && item.sports.length > 0 ? item.sports : [item.sport])"
+              :key="sport?.id"
+              color="primary"
+              variant="tonal"
+              size="small"
+              class="excel-chip"
+            >
+              {{ sport?.name }}
+            </v-chip>
+          </div>
         </template>
 
         <!-- Price Column -->
@@ -378,11 +386,18 @@ export default {
       // Filter by search query
       if (searchQuery.value) {
         const query = searchQuery.value.toLowerCase()
-        filtered = filtered.filter(court =>
-          court.name.toLowerCase().includes(query) ||
-          court.location?.toLowerCase().includes(query) ||
-          court.sport.name.toLowerCase().includes(query)
-        )
+        filtered = filtered.filter(court => {
+          // Check if court name or location matches
+          const nameMatch = court.name.toLowerCase().includes(query)
+          const locationMatch = court.location?.toLowerCase().includes(query)
+
+          // Check if any of the sports match
+          const sportsMatch = court.sports && court.sports.length > 0
+            ? court.sports.some(sport => sport.name.toLowerCase().includes(query))
+            : court.sport?.name.toLowerCase().includes(query)
+
+          return nameMatch || locationMatch || sportsMatch
+        })
       }
 
       return filtered
@@ -425,7 +440,7 @@ export default {
 
     const deleteCourt = async (courtId) => {
       if (!confirm('Are you sure you want to delete this court?')) return
-      
+
       try {
         await courtService.deleteCourt(courtId)
         await fetchData() // Refresh the list
@@ -550,7 +565,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -563,7 +578,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -935,11 +950,18 @@ export default {
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 
-.court-sport-badge {
+.court-sport-badges {
   position: absolute;
   top: 12px;
   left: 12px;
   z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: calc(100% - 80px); /* Leave space for status badge */
+}
+
+.court-sport-badge {
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -1047,23 +1069,23 @@ export default {
   .excel-container {
     padding: 12px;
   }
-  
+
   .excel-header {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .excel-toolbar {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .excel-search {
     max-width: none;
   }
-  
+
   .excel-filters {
     justify-content: space-between;
   }

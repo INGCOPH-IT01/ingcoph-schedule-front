@@ -13,7 +13,7 @@
         <p class="loading-text">Please wait while we fetch the court information.</p>
       </div>
     </div>
-    
+
     <div v-else-if="error" class="error-section">
       <div class="error-card">
         <div class="error-icon">
@@ -21,7 +21,7 @@
         </div>
         <h2 class="error-title">Error Loading Court</h2>
         <p class="error-text">{{ error }}</p>
-        <v-btn 
+        <v-btn
           class="error-btn"
           :to="{ name: 'Courts' }"
           prepend-icon="mdi-arrow-left"
@@ -31,7 +31,7 @@
         </v-btn>
       </div>
     </div>
-    
+
     <div v-else-if="court">
       <!-- Enhanced Court Header -->
       <div class="court-header">
@@ -62,9 +62,15 @@
                   </v-avatar>
                   <div>
                     <h1 class="text-h3 font-weight-bold">{{ court.name }}</h1>
-                    <div class="d-flex align-center gap-4">
-                      <v-chip color="primary" variant="tonal" size="large">
-                        {{ court.sport.name }}
+                    <div class="d-flex align-center gap-4 flex-wrap">
+                      <v-chip
+                        v-for="sport in (court.sports && court.sports.length > 0 ? court.sports : [court.sport])"
+                        :key="sport?.id"
+                        color="primary"
+                        variant="tonal"
+                        size="large"
+                      >
+                        {{ sport?.name }}
                       </v-chip>
                       <v-chip
                         :color="court.is_active ? 'success' : 'error'"
@@ -76,11 +82,11 @@
                     </div>
                   </div>
                 </div>
-                
+
                 <p v-if="court.description" class="text-h6 text-grey-darken-1 mb-4">
                   {{ court.description }}
                 </p>
-                
+
                 <div class="d-flex flex-wrap gap-4 mb-4">
                   <div class="d-flex align-center">
                     <v-icon class="mr-2" color="primary">mdi-map-marker</v-icon>
@@ -90,7 +96,7 @@
                     <span class="text-h5 font-weight-bold text-primary">{{ formatPrice(court.price_per_hour) }}/hour</span>
                   </div>
                 </div>
-                
+
                 <div v-if="court.amenities && court.amenities.length" class="mb-4">
                   <h3 class="text-h6 mb-2">Amenities</h3>
                   <div class="d-flex flex-wrap gap-2">
@@ -106,7 +112,7 @@
                   </div>
                 </div>
               </v-col>
-              
+
               <v-col cols="12" md="4">
                 <v-card variant="outlined" class="pa-4">
                   <h3 class="text-h6 mb-4">Quick Booking</h3>
@@ -152,7 +158,7 @@
               Recent Bookings
             </v-tab>
           </v-tabs>
-          
+
           <v-card-text>
             <v-window v-model="activeTab">
               <!-- Availability Tab -->
@@ -171,12 +177,12 @@
                       ></v-text-field>
                     </v-col>
                   </v-row>
-                  
+
                   <div v-if="availabilityLoading" class="text-center pa-4">
                     <v-progress-circular indeterminate color="primary"></v-progress-circular>
                     <p class="mt-2">Loading availability...</p>
                   </div>
-                  
+
                   <div v-else-if="availableSlots.length === 0" class="text-center pa-4">
                     <v-icon size="48" color="grey">mdi-calendar-remove</v-icon>
                     <p class="text-h6 mt-2">No available slots for this date</p>
@@ -192,7 +198,7 @@
                       Refresh Availability
                     </v-btn>
                   </div>
-                  
+
                   <div v-else class="d-flex flex-wrap gap-2">
                     <v-chip
                       v-for="slot in availableSlots"
@@ -207,7 +213,7 @@
                   </div>
                 </div>
               </v-window-item>
-              
+
               <!-- Bookings Tab -->
               <v-window-item value="bookings">
                 <div class="pa-4">
@@ -278,13 +284,13 @@ export default {
         loading.value = true
         error.value = null
         const courtId = route.params.id
-        
+
         court.value = await courtService.getCourt(courtId)
-        
+
         // Set today's date as default
         const today = new Date()
         selectedDate.value = today.toISOString().split('T')[0]
-        
+
         // Load initial availability
         await loadAvailability()
       } catch (err) {
@@ -297,7 +303,7 @@ export default {
 
     const loadAvailability = async () => {
       if (!selectedDate.value || !court.value) return
-      
+
       try {
         availabilityLoading.value = true
         const slots = await courtService.getAvailableSlots(
@@ -316,7 +322,7 @@ export default {
 
     const loadRecentBookings = async () => {
       if (!court.value) return
-      
+
       try {
         const bookings = await courtService.getBookings()
         recentBookings.value = bookings
@@ -337,7 +343,7 @@ export default {
       // Refresh availability and recent bookings
       loadAvailability()
       loadRecentBookings()
-      
+
       // Dispatch event to refresh bookings table
       window.dispatchEvent(new CustomEvent('booking-created'))
     }
@@ -408,7 +414,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -421,7 +427,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -556,12 +562,12 @@ export default {
   .court-detail-container {
     padding: 16px;
   }
-  
+
   .loading-card,
   .error-card {
     padding: 32px 24px;
   }
-  
+
   .loading-title,
   .error-title {
     font-size: 1.5rem;
@@ -572,7 +578,7 @@ export default {
   .court-detail-container {
     padding: 12px;
   }
-  
+
   .loading-card,
   .error-card {
     padding: 24px 16px;

@@ -39,14 +39,18 @@
             {{ court.is_active ? 'Active' : 'Inactive' }}
           </v-chip>
         </div>
-        <v-chip
-          :color="getSportColor(court.sport?.name)"
-          size="large"
-          class="sport-chip"
-        >
-          <v-icon start>{{ getSportIcon(court.sport?.name) }}</v-icon>
-          {{ court.sport?.name }}
-        </v-chip>
+        <div class="sport-chips-container">
+          <v-chip
+            v-for="sport in (court.sports && court.sports.length > 0 ? court.sports : [court.sport])"
+            :key="sport?.id"
+            :color="getSportColor(sport?.name)"
+            size="large"
+            class="sport-chip"
+          >
+            <v-icon start>{{ getSportIcon(sport?.name) }}</v-icon>
+            {{ sport?.name }}
+          </v-chip>
+        </div>
       </div>
 
       <!-- Court Images Gallery -->
@@ -316,12 +320,12 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const activeTab = ref('description')
-    
+
     // Availability
     const selectedDate = ref('')
     const availableSlots = ref([])
     const loadingAvailability = ref(false)
-    
+
     // Recent Bookings
     const recentBookings = ref([])
     const loadingBookings = ref(false)
@@ -365,7 +369,7 @@ export default {
 
     const fetchAvailability = async () => {
       if (!selectedDate.value || !court.value) return
-      
+
       try {
         loadingAvailability.value = true
         const response = await courtService.getAvailableSlots(court.value.id, selectedDate.value)
@@ -383,7 +387,7 @@ export default {
         console.log('No court data available yet')
         return
       }
-      
+
       try {
         loadingBookings.value = true
         console.log('Fetching recent bookings for court:', court.value.id)
@@ -412,7 +416,7 @@ export default {
     const formatBookingDate = (date) => {
       if (!date) return 'Unknown'
       const d = new Date(date)
-      return d.toLocaleDateString('en-US', { 
+      return d.toLocaleDateString('en-US', {
         weekday: 'short',
         year: 'numeric',
         month: 'short',
@@ -475,17 +479,17 @@ export default {
 
     const getAmenitiesArray = (amenities) => {
       if (!amenities) return []
-      
+
       // If it's already an array, return it
       if (Array.isArray(amenities)) {
         return amenities.filter(a => a && a.trim())
       }
-      
+
       // If it's a string, split by comma
       if (typeof amenities === 'string') {
         return amenities.split(',').map(a => a.trim()).filter(a => a)
       }
-      
+
       return []
     }
 
@@ -580,6 +584,12 @@ export default {
 .status-chip,
 .sport-chip {
   font-weight: 600;
+}
+
+.sport-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .court-gallery {
@@ -679,4 +689,3 @@ export default {
   }
 }
 </style>
-
