@@ -134,5 +134,17 @@ export const bookingService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to fetch approved bookings')
     }
+  },
+
+  // Update booking attendance status
+  async updateAttendanceStatus(bookingId, status) {
+    try {
+      const response = await api.patch(`/bookings/${bookingId}/attendance-status`, {
+        attendance_status: status
+      })
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to update attendance status')
+    }
   }
 }

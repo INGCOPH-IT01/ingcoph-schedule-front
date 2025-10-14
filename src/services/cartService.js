@@ -93,5 +93,17 @@ export const cartService = {
   async rejectTransaction(transactionId, reason) {
     const response = await api.post(`/admin/cart-transactions/${transactionId}/reject`, { rejection_reason: reason })
     return response.data
+  },
+
+  /**
+   * Update attendance status for a cart transaction (Admin only)
+   * @param {number} transactionId - Cart transaction ID
+   * @param {string} status - Attendance status (not_set, showed_up, no_show)
+   */
+  async updateAttendanceStatus(transactionId, status) {
+    const response = await api.patch(`/admin/cart-transactions/${transactionId}/attendance-status`, {
+      attendance_status: status
+    })
+    return response.data
   }
 }

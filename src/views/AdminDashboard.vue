@@ -442,6 +442,17 @@
               </v-chip>
             </template>
 
+            <template v-slot:[`item.attendance_status`]="{ item }">
+              <v-chip
+                :color="getAttendanceColor(item.attendance_status)"
+                variant="tonal"
+                size="small"
+              >
+                <v-icon class="mr-1" size="small">{{ getAttendanceIcon(item.attendance_status) }}</v-icon>
+                {{ getAttendanceLabel(item.attendance_status) }}
+              </v-chip>
+            </template>
+
             <template v-slot:[`item.actions`]="{ item }">
               <div class="d-flex gap-2">
                 <v-btn
@@ -516,51 +527,6 @@
                     </div>
                     <div class="text-body-2 mb-2">
                       <strong>Booking ID:</strong> #{{ selectedBooking.id }}
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Court Information -->
-          <v-row class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="success">mdi-stadium</v-icon>
-                Court Information
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Court:</strong> {{ selectedBooking.court?.name || 'N/A' }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Sport:</strong> {{ selectedBooking.court?.sport?.name || 'N/A' }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Location:</strong> {{ selectedBooking.court?.location || 'N/A' }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Price per Hour:</strong> ₱{{ selectedBooking.court?.price_per_hour || 'N/A' }}
-                    </div>
-                    <div class="text-body-2 mb-2" v-if="selectedBooking.court?.amenities && selectedBooking.court.amenities.length">
-                      <strong>Amenities:</strong>
-                      <div class="mt-1">
-                        <v-chip
-                          v-for="amenity in selectedBooking.court.amenities"
-                          :key="amenity"
-                          size="x-small"
-                          color="primary"
-                          variant="outlined"
-                          class="mr-1 mb-1"
-                        >
-                          {{ amenity }}
-                        </v-chip>
-                      </div>
                     </div>
                   </v-col>
                 </v-row>
@@ -816,6 +782,68 @@
               </v-card>
             </v-col>
           </v-row>
+
+          <!-- Attendance Status -->
+          <v-row v-if="selectedBooking.approval_status === 'approved'" class="mb-4">
+            <v-col cols="12">
+              <h4 class="text-h6 mb-3">
+                <v-icon class="mr-2" color="info">mdi-account-check</v-icon>
+                Attendance Status
+              </h4>
+              <v-card variant="outlined" class="pa-4">
+                <v-row align="center">
+                  <v-col cols="12" md="4">
+                    <div class="text-body-2 mb-2">
+                      <strong>Current Status:</strong>
+                    </div>
+                    <v-chip
+                      :color="getAttendanceColor(selectedBooking.attendance_status)"
+                      variant="tonal"
+                      size="large"
+                    >
+                      <v-icon class="mr-2">{{ getAttendanceIcon(selectedBooking.attendance_status) }}</v-icon>
+                      {{ getAttendanceLabel(selectedBooking.attendance_status) }}
+                    </v-chip>
+                  </v-col>
+                  <v-col cols="12" md="8">
+                    <div class="text-body-2 mb-3">
+                      <strong>Mark Attendance:</strong>
+                    </div>
+                    <div class="d-flex gap-2">
+                      <v-btn
+                        color="success"
+                        :variant="selectedBooking.attendance_status === 'showed_up' ? 'flat' : 'outlined'"
+                        prepend-icon="mdi-check-circle"
+                        @click="updateAttendance(selectedBooking.id, 'showed_up')"
+                        :disabled="selectedBooking.updatingAttendance"
+                      >
+                        Showed Up
+                      </v-btn>
+                      <v-btn
+                        color="error"
+                        :variant="selectedBooking.attendance_status === 'no_show' ? 'flat' : 'outlined'"
+                        prepend-icon="mdi-close-circle"
+                        @click="updateAttendance(selectedBooking.id, 'no_show')"
+                        :disabled="selectedBooking.updatingAttendance"
+                      >
+                        No Show
+                      </v-btn>
+                      <v-btn
+                        v-if="selectedBooking.attendance_status !== 'not_set'"
+                        color="grey"
+                        variant="outlined"
+                        prepend-icon="mdi-refresh"
+                        @click="updateAttendance(selectedBooking.id, 'not_set')"
+                        :disabled="selectedBooking.updatingAttendance"
+                      >
+                        Reset
+                      </v-btn>
+                    </div>
+                  </v-col>
+                </v-row>
+              </v-card>
+            </v-col>
+          </v-row>
         </v-card-text>
 
         <v-divider></v-divider>
@@ -990,6 +1018,7 @@ export default {
       { title: 'Total Price', key: 'total_price', sortable: true },
       { title: 'Payment Status', key: 'payment_status', sortable: false },
       { title: 'Approval Status', key: 'approval_status', sortable: false },
+      { title: 'Attendance', key: 'attendance_status', sortable: false },
       { title: 'Notes', key: 'notes', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false }
     ]
@@ -1438,6 +1467,71 @@ export default {
       return icons[sportName] || 'mdi-trophy'
     }
 
+    // Attendance status helper functions
+    const getAttendanceColor = (status) => {
+      const colors = {
+        'showed_up': 'success',
+        'no_show': 'error',
+        'not_set': 'grey'
+      }
+      return colors[status] || 'grey'
+    }
+
+    const getAttendanceIcon = (status) => {
+      const icons = {
+        'showed_up': 'mdi-account-check',
+        'no_show': 'mdi-account-remove',
+        'not_set': 'mdi-account-question'
+      }
+      return icons[status] || 'mdi-account-question'
+    }
+
+    const getAttendanceLabel = (status) => {
+      const labels = {
+        'showed_up': 'Showed Up',
+        'no_show': 'No Show',
+        'not_set': 'Not Set'
+      }
+      return labels[status] || 'Not Set'
+    }
+
+    const updateAttendance = async (transactionId, status) => {
+      try {
+        const transaction = pendingBookings.value.find(b => b.id === transactionId)
+        if (transaction) transaction.updatingAttendance = true
+
+        // Update selected booking if dialog is open
+        if (selectedBooking.value && selectedBooking.value.id === transactionId) {
+          selectedBooking.value.updatingAttendance = true
+        }
+
+        await cartService.updateAttendanceStatus(transactionId, status)
+
+        // Update the transaction in the list
+        if (transaction) {
+          transaction.attendance_status = status
+        }
+
+        // Update selected booking if dialog is open
+        if (selectedBooking.value && selectedBooking.value.id === transactionId) {
+          selectedBooking.value.attendance_status = status
+        }
+
+        showSnackbar('Attendance status updated successfully', 'success')
+      } catch (error) {
+        console.error('Failed to update attendance status:', error)
+        showSnackbar('Failed to update attendance status', 'error')
+      } finally {
+        const transaction = pendingBookings.value.find(b => b.id === transactionId)
+        if (transaction) transaction.updatingAttendance = false
+
+        // Update selected booking if dialog is open
+        if (selectedBooking.value && selectedBooking.value.id === transactionId) {
+          selectedBooking.value.updatingAttendance = false
+        }
+      }
+    }
+
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
       loadStats()
@@ -1516,7 +1610,12 @@ export default {
       imageDialog,
       selectedImageUrl,
       downloadImage,
-      formatPrice
+      formatPrice,
+      // Attendance status functions
+      getAttendanceColor,
+      getAttendanceIcon,
+      getAttendanceLabel,
+      updateAttendance
     }
   }
 }
