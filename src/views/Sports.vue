@@ -1,16 +1,10 @@
 <template>
   <div class="sports-container">
-    <!-- Modern Sports Background -->
-    <div class="sports-background">
-      <div class="sports-overlay"></div>
-      <div class="sports-pattern"></div>
-    </div>
-
     <!-- Enhanced Header -->
     <div class="sports-header">
       <div class="header-content">
         <div class="header-badge">
-          <v-icon color="white" size="20" class="mr-2">mdi-racquetball</v-icon>
+          <v-icon color="#B71C1C" size="20" class="mr-2">mdi-racquetball</v-icon>
           Multi-Sport Facility
         </div>
         <h1 class="header-title">
@@ -103,10 +97,15 @@
                 <span>Sound System</span>
               </div>
               <div class="excel-feature-item">
-                <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
-                <span>₱{{ getCourtPriceForSport(sport.id) }}/hour</span>
+                <v-icon size="20" color="success" class="mr-2">mdi-cash</v-icon>
+                <span>₱{{ sport.price_per_hour || 0 }}/hour</span>
               </div>
             </div>
+          </div>
+
+          <div class="excel-court-time">
+            <v-icon size="small" color="info" class="mr-2">mdi-clock-outline</v-icon>
+            <span class="excel-time-text">6:00 AM - 10:00 PM</span>
           </div>
         </div>
 
@@ -120,7 +119,7 @@
             :disabled="!sport.is_active"
           >
             <v-icon class="mr-2">mdi-calendar-plus</v-icon>
-            Book Now - {{ formatPriceTemplate(getCourtPriceForSport(sport.id)) }}/hour
+            Book Now - {{ formatPriceTemplate(sport.price_per_hour || 0) }}/hour
           </v-btn>
         </div>
         </div>
@@ -186,13 +185,12 @@ export default {
     }
 
     const getCourtPriceForSport = (sportId) => {
-      // Find courts that belong to this sport
-      const sportCourts = courts.value.filter(court => court.sport_id === sportId)
-      if (sportCourts.length > 0) {
-        // Return the price of the first court for this sport
-        return sportCourts[0].price_per_hour
+      // Find the sport and return its price
+      const sport = sports.value.find(s => s.id === sportId)
+      if (sport && sport.price_per_hour) {
+        return sport.price_per_hour
       }
-      return 25 // fallback to default price
+      return 0 // fallback to default price
     }
 
     // Wrapper function for template use
@@ -232,48 +230,13 @@ export default {
 <style scoped>
 /* Modern Sports Theme */
 .sports-container {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   min-height: 100vh;
   padding: 32px;
   position: relative;
   z-index: 1;
 }
 
-/* Enhanced Background */
-.sports-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  z-index: -3;
-}
-
-.sports-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
-  z-index: -2;
-}
-
-.sports-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
-  background-size: 20px 20px;
-  z-index: -1;
-}
+/* Background is now handled globally by App.vue */
 
 /* Sports Header */
 .sports-header {
@@ -291,13 +254,13 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(183, 28, 28, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: white;
+  color: #B71C1C;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
@@ -308,11 +271,11 @@ export default {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 24px;
-  color: white;
+  color: #1e293b;
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -320,7 +283,7 @@ export default {
 
 .header-subtitle {
   font-size: clamp(1.1rem, 2vw, 1.3rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
@@ -351,7 +314,7 @@ export default {
   font-size: 2rem;
   font-weight: 700;
   margin: 24px 0 16px;
-  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #B71C1C 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -437,7 +400,7 @@ export default {
 }
 
 .excel-court-header {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
   padding: 24px;
   display: flex;
   justify-content: space-between;
@@ -503,6 +466,22 @@ export default {
   font-size: 16px;
   color: #374151;
   padding: 8px 0;
+}
+
+.excel-court-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  margin-top: 16px;
+  background: rgba(183, 28, 28, 0.05);
+  border-radius: 8px;
+}
+
+.excel-time-text {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #B71C1C;
 }
 
 .excel-court-footer {

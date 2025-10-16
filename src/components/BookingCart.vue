@@ -566,15 +566,10 @@ export default {
     const loadCart = async () => {
       loading.value = true
       try {
-        console.log('🛒 Loading cart items...')
         const previousItemCount = cartItems.value.length
         const response = await cartService.getCartTransaction()
         const items = response.cart_items || []
         cartTransaction.value = response.cart_transaction
-
-        console.log('✅ Cart API response:', items)
-        console.log('📊 Total items received:', items.length)
-        console.log('📦 Cart transaction:', cartTransaction.value)
 
         // Check if items were expired (cart had items before but now has fewer or none)
         if (previousItemCount > 0 && items.length < previousItemCount) {
@@ -591,7 +586,6 @@ export default {
 
         // All items should now be in the pending cart transaction
         cartItems.value = items
-        console.log('✅ Cart loaded successfully:', items.length, 'items')
 
         // Start expiration timer if we have a transaction
         if (cartTransaction.value) {
@@ -904,10 +898,6 @@ export default {
     }
 
     const openPaymentDialog = async () => {
-      console.log('Opening payment dialog...')
-      console.log('Cart items:', cartItems.value)
-      console.log('Grouped cart items:', groupedCartItems.value)
-
       if (!groupedCartItems.value || groupedCartItems.value.length === 0) {
         showAlert({
           icon: 'warning',
@@ -917,9 +907,11 @@ export default {
         return
       }
       paymentDialog.value = true
-      // Generate QR code after dialog opens
+      // Generate QR code after dialog opens with longer delay
       await nextTick()
-      generateGCashQR()
+      setTimeout(() => {
+        generateGCashQR()
+      }, 150)
     }
 
     const closePaymentDialog = () => {
@@ -1364,6 +1356,17 @@ export default {
       if (newVal) {
         loadCart()
         fetchCourts()
+      }
+    })
+
+    // Watch for payment dialog open to generate QR code
+    watch(paymentDialog, async (newVal) => {
+      if (newVal) {
+        // Generate QR code when payment dialog opens
+        await nextTick()
+        setTimeout(() => {
+          generateGCashQR()
+        }, 150)
       }
     })
 

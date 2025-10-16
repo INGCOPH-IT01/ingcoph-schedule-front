@@ -31,6 +31,12 @@
           <span v-else class="text-grey">No icon set</span>
         </template>
 
+        <template v-slot:[`item.price_per_hour`]="{ item }">
+          <v-chip color="success" variant="tonal" size="small">
+            ₱{{ parseFloat(item.price_per_hour || 0).toFixed(2) }}/hr
+          </v-chip>
+        </template>
+
         <template v-slot:[`item.is_active`]="{ item }">
           <v-chip
             :color="item.is_active ? 'success' : 'error'"
@@ -98,6 +104,19 @@
               rows="3"
               class="mb-4"
             ></v-textarea>
+
+            <v-text-field
+              v-model.number="formData.price_per_hour"
+              label="Price per Hour (₱)"
+              placeholder="e.g., 150"
+              prepend-inner-icon="mdi-cash"
+              variant="outlined"
+              type="number"
+              min="0"
+              step="0.01"
+              :rules="[v => v >= 0 || 'Price must be 0 or greater']"
+              class="mb-4"
+            ></v-text-field>
 
             <!-- MDI Icon Picker -->
             <v-text-field
@@ -237,6 +256,7 @@ export default {
       name: '',
       description: '',
       icon: '',
+      price_per_hour: 0,
       is_active: true
     })
 
@@ -250,6 +270,7 @@ export default {
       { title: 'Icon', key: 'icon', sortable: false, width: '100px' },
       { title: 'Sport Name', key: 'name', sortable: true },
       { title: 'Description', key: 'description', sortable: false },
+      { title: 'Price/Hour', key: 'price_per_hour', sortable: true },
       { title: 'Status', key: 'is_active', sortable: true },
       { title: 'Courts', key: 'courts_count', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false, width: '150px' }
@@ -304,6 +325,7 @@ export default {
         name: '',
         description: '',
         icon: '',
+        price_per_hour: 0,
         is_active: true
       }
       dialog.value = true
@@ -316,6 +338,7 @@ export default {
         name: sport.name,
         description: sport.description || '',
         icon: sport.icon || '',
+        price_per_hour: sport.price_per_hour || 0,
         is_active: sport.is_active
       }
       dialog.value = true
@@ -424,7 +447,11 @@ export default {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  position: relative;
+  min-height: 100vh;
 }
+
+/* Background is now handled globally by App.vue */
 
 .page-header {
   display: flex;
@@ -436,7 +463,7 @@ export default {
 .page-title {
   font-size: 2rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #B71C1C;
   display: flex;
   align-items: center;
   margin: 0;

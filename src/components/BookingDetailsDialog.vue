@@ -4,6 +4,7 @@
     @update:model-value="$emit('update:isOpen', $event)"
     max-width="900px"
     persistent
+    fullscreen-on-mobile
   >
     <v-card class="booking-details-dialog-card">
       <div class="dialog-header">
@@ -76,6 +77,28 @@
                 Booking Details
               </h3>
               <div class="info-card">
+                <!-- User/Customer Information -->
+                <div 
+                  class="info-item" 
+                  :class="{ 'highlight-item': booking.booking_for_user_name }"
+                >
+                  <span class="label">
+                    <v-icon size="small" color="primary" class="mr-1">mdi-account</v-icon>
+                    {{ booking.booking_for_user_name ? 'Booked For:' : 'User:' }}
+                  </span>
+                  <span class="value">
+                    {{ booking.booking_for_user_name || booking.user?.name || 'N/A' }}
+                    <v-chip 
+                      v-if="booking.booking_for_user_name" 
+                      size="x-small" 
+                      color="info" 
+                      variant="outlined" 
+                      class="ml-2"
+                    >
+                      Admin Booking
+                    </v-chip>
+                  </span>
+                </div>
                 <div class="info-item">
                   <span class="label">Date:</span>
                   <span class="value">{{ formatDate(booking.start_time) }}</span>
@@ -287,7 +310,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import CourtImageGallery from './CourtImageGallery.vue'
 
 export default {
@@ -307,6 +330,19 @@ export default {
   },
   emits: ['update:isOpen', 'edit'],
   setup(props, { emit }) {
+    // Debug: Log booking data when it changes
+    watch(() => props.booking, (newBooking) => {
+      if (newBooking) {
+        console.log('=== BOOKING DETAILS ===')
+        console.log('Booking ID:', newBooking.id)
+        console.log('User:', newBooking.user)
+        console.log('booking_for_user_id:', newBooking.booking_for_user_id)
+        console.log('booking_for_user_name:', newBooking.booking_for_user_name)
+        console.log('bookingForUser:', newBooking.bookingForUser)
+        console.log('Full booking object:', newBooking)
+      }
+    }, { immediate: true })
+    
     // Format functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('en-PH', {
@@ -633,6 +669,15 @@ export default {
   align-items: center;
   padding: 12px 0;
   border-bottom: 1px solid #f1f5f9;
+}
+
+.info-item.highlight-item {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1));
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .info-item:last-child {

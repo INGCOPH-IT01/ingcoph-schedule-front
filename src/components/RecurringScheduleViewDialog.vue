@@ -4,6 +4,7 @@
     @update:model-value="$emit('update:isOpen', $event)"
     max-width="800px"
     persistent
+    fullscreen-on-mobile
   >
     <v-card class="schedule-view-dialog-card">
       <div class="dialog-header">

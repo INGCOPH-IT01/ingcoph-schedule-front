@@ -1,5 +1,24 @@
 <template>
   <div class="sports-home">
+    <!-- Dashboard Announcement Banner -->
+    <v-alert
+      v-if="dashboardSettings.announcement && dashboardSettings.announcement.trim()"
+      type="info"
+      variant="tonal"
+      closable
+      class="announcement-banner"
+      border="start"
+      border-color="primary"
+    >
+      <div class="d-flex align-center">
+        <v-icon class="mr-3" size="32" color="primary">mdi-bullhorn</v-icon>
+        <div>
+          <div class="text-h6 font-weight-bold mb-1">Announcement</div>
+          <div class="text-body-1">{{ dashboardSettings.announcement }}</div>
+        </div>
+      </div>
+    </v-alert>
+
     <!-- Hero Section with Enhanced Sports Design -->
     <div class="hero-section">
       <div class="hero-background">
@@ -10,20 +29,27 @@
         <v-row align="center" justify="center" class="min-height-screen">
           <v-col cols="12" md="10" class="text-center">
             <div class="hero-content">
+              <!-- Welcome Message -->
+              <div v-if="dashboardSettings.welcomeMessage && dashboardSettings.welcomeMessage.trim()" class="welcome-message">
+                <v-icon color="white" size="32" class="mr-2">mdi-hand-wave</v-icon>
+                {{ dashboardSettings.welcomeMessage }}
+              </div>
+              
               <div class="hero-badge">
-                <v-icon color="white" size="24" class="mr-2">mdi-trophy</v-icon>
-                Professional Multi-Sport Courts
+                <v-icon color="white" size="24" class="mr-2">mdi-badminton</v-icon>
+                Badminton & Pickleball Courts
               </div>
               <h1 class="hero-title">
-                <span class="title-gradient">Champion</span> Your Game
+                <span class="title-gradient">Perfect</span> Smash
                 <br>
                 <span class="title-accent">Book & Play</span> Today
             </h1>
               <p class="hero-subtitle">
-                Experience world-class multi-sport facilities with our premium court booking system. 
-                From casual games to competitive training, we've got you covered.
+                Experience premium badminton and pickleball facilities with championship-grade courts.
+                From casual games to competitive training, achieve your perfect smash!
               </p>
-              <div class="hero-stats">
+              <!-- Stats - Show only if enabled -->
+              <div v-if="dashboardSettings.showStats" class="hero-stats">
                 <div class="stat-item">
                   <div class="stat-number">24/7</div>
                   <div class="stat-label">Available</div>
@@ -70,13 +96,13 @@
           <v-col cols="12" class="text-center mb-12">
             <div class="section-badge">
               <v-icon color="primary" size="20" class="mr-2">mdi-star</v-icon>
-              Why Choose Us
+              Why Choose Perfect Smash
             </div>
             <h2 class="section-title">
-              <span class="title-gradient">Champion</span> Features
+              <span class="title-gradient">Perfect</span> Features
             </h2>
             <p class="section-subtitle">
-              Experience the ultimate multi-sport court booking system designed for champions
+              Experience the ultimate badminton and pickleball court booking system
             </p>
         </v-col>
       </v-row>
@@ -112,10 +138,10 @@
               Our Facility
             </div>
             <h2 class="section-title">
-              <span class="title-gradient">Premium</span> Multi-Sport Courts
+              <span class="title-gradient">Premium</span> Courts
             </h2>
             <p class="section-subtitle">
-              Professional-grade facilities designed for champions and enthusiasts alike
+              Championship-grade badminton and pickleball facilities designed for every player
             </p>
         </v-col>
       </v-row>
@@ -143,11 +169,11 @@
                   <v-col cols="12" md="5" class="text-center">
                     <div class="court-icon-section">
                       <div class="court-icon-wrapper">
-                        <v-icon size="100" color="white">mdi-racquetball</v-icon>
+                        <v-icon size="100" color="white">mdi-badminton</v-icon>
                         </div>
-                      <h3 class="court-name">Champion Court</h3>
+                      <h3 class="court-name">Perfect Smash Court</h3>
                       <p class="court-description">
-                        Professional-grade multi-sport facility with premium flooring and championship-level equipment
+                        Championship-grade facility for badminton and pickleball with premium flooring and professional equipment
                       </p>
                         </div>
                       </v-col>
@@ -195,9 +221,10 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
+import { companySettingService } from '../services/companySettingService'
 import { formatPrice } from '../utils/formatters'
 
 export default {
@@ -209,12 +236,20 @@ export default {
     const loading = ref(true)
     const error = ref(null)
 
+    // Dashboard settings
+    const dashboardSettings = ref({
+      welcomeMessage: '',
+      announcement: '',
+      showStats: true,
+      showRecentBookings: true
+    })
+
     // Features data for the features section
     const features = ref([
       {
-        icon: 'mdi-racquetball',
-        title: 'Professional Courts',
-        description: 'World-class multi-sport facilities with premium flooring and championship-level equipment',
+        icon: 'mdi-badminton',
+        title: 'Premium Courts',
+        description: 'Championship-grade badminton and pickleball courts with professional flooring and premium equipment',
         highlight: 'Tournament Ready',
         color: 'primary'
       },
@@ -321,8 +356,37 @@ export default {
       router.push({ name: 'Courts' })
     }
 
+    // Load dashboard settings
+    const loadDashboardSettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        dashboardSettings.value = {
+          welcomeMessage: settings.dashboard_welcome_message || '',
+          announcement: settings.dashboard_announcement || '',
+          showStats: settings.dashboard_show_stats !== undefined ? settings.dashboard_show_stats : true,
+          showRecentBookings: settings.dashboard_show_recent_bookings !== undefined ? settings.dashboard_show_recent_bookings : true
+        }
+      } catch (error) {
+        console.error('Failed to load dashboard settings:', error)
+        // Keep default values on error
+      }
+    }
+
+    // Event listener for dashboard settings updates
+    const handleDashboardUpdate = () => {
+      loadDashboardSettings()
+    }
+
     onMounted(async () => {
-      await Promise.all([fetchSports(), fetchCourts()])
+      await Promise.all([fetchSports(), fetchCourts(), loadDashboardSettings()])
+      
+      // Listen for dashboard settings updates
+      window.addEventListener('dashboard-settings-updated', handleDashboardUpdate)
+    })
+
+    onUnmounted(() => {
+      // Cleanup event listener
+      window.removeEventListener('dashboard-settings-updated', handleDashboardUpdate)
     })
 
     return {
@@ -332,6 +396,7 @@ export default {
       error,
       features,
       courtFeatures,
+      dashboardSettings,
       getCourtPrice,
       openBookingDialog,
       handleBookNowClick,
@@ -345,6 +410,32 @@ export default {
 /* Modern Sports Design Theme */
 .sports-home {
   overflow-x: hidden;
+}
+
+/* Announcement Banner */
+.announcement-banner {
+  margin: 0;
+  border-radius: 0;
+  z-index: 1000;
+  animation: slideInDown 0.5s ease-out;
+}
+
+/* Welcome Message */
+.welcome-message {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px;
+  padding: 12px 28px;
+  margin-bottom: 24px;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  animation: fadeInScale 0.6s ease-out;
 }
 
 /* Hero Section Styles */
@@ -424,14 +515,14 @@ export default {
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .title-accent {
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  background: linear-gradient(135deg, #5F6368 0%, #757575 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -462,7 +553,7 @@ export default {
 .stat-number {
   font-size: 2rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -484,19 +575,19 @@ export default {
 }
 
 .hero-btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   color: white !important;
   border-radius: 12px !important;
   font-weight: 700 !important;
   text-transform: none !important;
   padding: 16px 32px !important;
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .hero-btn-primary:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.6) !important;
+  box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
 }
 
 .hero-btn-secondary {
@@ -526,8 +617,8 @@ export default {
 .section-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: rgba(183, 28, 28, 0.1);
+  color: #B71C1C;
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 16px;
@@ -570,7 +661,7 @@ export default {
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b);
+  background: linear-gradient(90deg, #B71C1C, #C62828, #5F6368);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -585,15 +676,15 @@ export default {
 }
 
 .feature-card-1:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.05) 0%, rgba(183, 28, 28, 0.02) 100%);
 }
 
 .feature-card-2:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(76, 175, 80, 0.02) 100%);
 }
 
 .feature-card-3:hover {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
+  background: linear-gradient(135deg, rgba(245, 124, 0, 0.05) 0%, rgba(245, 124, 0, 0.02) 100%);
 }
 
 .feature-icon {
@@ -631,7 +722,7 @@ export default {
 
 .feature-highlight {
   display: inline-block;
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   color: white;
   padding: 6px 16px;
   border-radius: 20px;
@@ -691,19 +782,19 @@ export default {
   width: 120px;
   height: 120px;
   border-radius: 30px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 24px;
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4);
 }
 
 .court-name {
   font-size: 2rem;
   font-weight: 800;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #5F6368 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -743,7 +834,7 @@ export default {
 }
 
 .feature-item:hover {
-  background: rgba(59, 130, 246, 0.05);
+  background: rgba(183, 28, 28, 0.05);
   transform: translateX(4px);
 }
 
@@ -769,7 +860,7 @@ export default {
 .pricing-section {
   text-align: center;
   padding: 24px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.05) 0%, rgba(95, 99, 104, 0.05) 100%);
   border-radius: 16px;
 }
 
@@ -787,7 +878,7 @@ export default {
 .price-amount {
   font-size: 2.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -800,19 +891,19 @@ export default {
 }
 
 .book-now-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   color: white !important;
   border-radius: 12px !important;
   font-weight: 700 !important;
   text-transform: none !important;
   padding: 16px 32px !important;
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .book-now-btn:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
 }
 
 /* Animations */
@@ -823,6 +914,28 @@ export default {
   }
   to {
     transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
     opacity: 1;
   }
 }

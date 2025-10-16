@@ -4,6 +4,7 @@
     @update:model-value="closeModal"
     max-width="600"
     persistent
+    fullscreen-on-mobile
   >
     <v-card class="court-dialog-card">
       <div class="dialog-header">
@@ -292,7 +293,6 @@ export default {
     const fetchSports = async () => {
       try {
         sports.value = await courtService.getSports()
-        console.log('Loaded sports:', sports.value) // Debug: see what sports are loaded
       } catch (err) {
         console.error('Failed to fetch sports:', err)
       }
@@ -338,7 +338,7 @@ export default {
     }
 
     const uploadImages = () => {
-      console.log(form.value.images)
+      // Upload images functionality
     }
 
     const onImagesChange = (e) => {

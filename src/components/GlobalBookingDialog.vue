@@ -4,6 +4,7 @@
       :model-value="isOpen"
       @update:model-value="closeModal"
       max-width="900"
+      fullscreen-on-mobile
     >
     <v-card class="booking-dialog-card">
       <div class="dialog-header">
@@ -829,7 +830,6 @@ export default {
         )
 
         if (!hasValidSlots) {
-          console.log('No valid slots found, skipping duration check')
           return
         }
 
@@ -1255,17 +1255,9 @@ export default {
           result = await courtService.updateBooking(props.editBooking.id, bookingData)
 
           // Handle proof of payment upload if provided
-          console.log('=== FILE UPLOAD DEBUG ===')
-          console.log('form.value.proof_of_payment:', form.value.proof_of_payment)
-          console.log('Type of proof_of_payment:', typeof form.value.proof_of_payment)
-          console.log('Is Array:', Array.isArray(form.value.proof_of_payment))
-
           const proofFile = Array.isArray(form.value.proof_of_payment) ? form.value.proof_of_payment[0] : form.value.proof_of_payment
-          console.log('proofFile:', proofFile)
-          console.log('Is File instance:', proofFile instanceof File)
 
           if (proofFile && proofFile instanceof File) {
-            console.log('Attempting to upload file:', proofFile.name, proofFile.size)
             try {
               await uploadProofOfPayment(props.editBooking.id, proofFile)
               showSnackbar('Proof of payment uploaded successfully!', 'success')
@@ -1273,8 +1265,6 @@ export default {
               console.error('Failed to upload proof of payment:', error)
               showSnackbar('Failed to upload proof of payment', 'error')
             }
-          } else {
-            console.log('No file to upload or file is not a File instance')
           }
 
           // Dispatch event to refresh bookings table
@@ -1350,22 +1340,11 @@ export default {
     }
 
     const onProofOfPaymentChange = (event) => {
-      console.log('=== FILE SELECTION DEBUG ===')
-      console.log('Event received:', event)
-      console.log('Event type:', event.type)
-      console.log('Event target:', event.target)
-
       // Extract files from the event target
       const files = event.target.files
-      console.log('Files extracted:', files)
-      console.log('Files length:', files ? files.length : 'null')
 
       if (files && files.length > 0) {
         const file = files[0]
-        console.log('Selected file:', file)
-        console.log('File name:', file.name)
-        console.log('File size:', file.size)
-        console.log('File type:', file.type)
 
         if (file.size > 5000000) { // 5MB limit
           showSnackbar('File size should be less than 5 MB', 'error')
@@ -1382,7 +1361,6 @@ export default {
 
         // Assign the file to the form
         form.value.proof_of_payment = file
-        console.log('File assigned to form.value.proof_of_payment:', form.value.proof_of_payment)
         showSnackbar('Proof of payment selected successfully!', 'success')
       }
     }
@@ -1493,18 +1471,12 @@ export default {
 
     const uploadProofOfPayment = async (bookingId, file) => {
       try {
-        console.log('=== UPLOAD FUNCTION DEBUG ===')
-        console.log('bookingId:', bookingId)
-        console.log('file:', file)
-        console.log('payment_method:', form.value.payment_method)
-
         const result = await bookingService.uploadProofOfPayment(
           bookingId,
           file,
           form.value.payment_method
         )
 
-        console.log('Upload result:', result)
         return result.data
       } catch (error) {
         console.error('Error uploading proof of payment:', error)
@@ -1626,12 +1598,9 @@ export default {
     // Watch for changes in start time to check duration availability
     watch(() => form.value.start_time, (newStartTime) => {
       if (!isPopulatingForm.value) {
-        console.log('Start time changed:', newStartTime, 'Type:', typeof newStartTime)
-
         // Store the original start time when user first selects it
         if (newStartTime && !originalStartTime.value) {
           originalStartTime.value = newStartTime
-          console.log('Original start time stored:', originalStartTime.value)
         }
 
         // Only check duration availability if we have a date, slots are loaded, not loading, user actually selected a time, and not selecting date
@@ -1651,8 +1620,6 @@ export default {
     watch(() => availableSlots.value, (newSlots) => {
       // Only check if we have a start time selected and valid slots
       if (!isPopulatingForm.value && newSlots && newSlots.length > 0 && !loading.value && slotsLoaded.value && form.value.start_time && form.value.date && !isSelectingDate.value) {
-        console.log('Available slots changed, checking duration availability')
-
         // Add a longer delay to ensure slots are fully processed and loading is complete
         setTimeout(() => {
           // Double-check that we're not loading before checking duration

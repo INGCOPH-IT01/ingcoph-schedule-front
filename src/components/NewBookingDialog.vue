@@ -96,6 +96,24 @@
                 </v-chip>
               </div>
 
+              <!-- Selected Sport Info -->
+              <v-card variant="tonal" color="primary" class="mb-4" v-if="selectedSport">
+                <v-card-text class="pa-4">
+                  <div class="d-flex align-center justify-space-between">
+                    <div class="d-flex align-center">
+                      <v-icon size="32" class="mr-3">{{ getSportIcon(selectedSport.name) }}</v-icon>
+                      <div>
+                        <h4 class="text-h6">{{ selectedSport.name }} Courts</h4>
+                        <p class="text-caption mb-0">{{ selectedSport.description }}</p>
+                      </div>
+                    </div>
+                    <v-chip color="white" size="large">
+                      {{ filteredCourts.length }} court(s) available
+                    </v-chip>
+                  </div>
+                </v-card-text>
+              </v-card>
+
               <!-- Date Selection -->
               <v-row class="mb-4">
                 <v-col cols="12" md="6">
@@ -111,8 +129,23 @@
                 </v-col>
               </v-row>
 
-              <!-- Time Slots Grid for Each Court (All Courts) -->
+              <!-- Time Slots Grid for Each Court (Filtered by Sport) -->
               <div v-if="selectedDate">
+                <v-alert 
+                  v-if="filteredCourts.length === 0" 
+                  type="warning" 
+                  variant="tonal" 
+                  class="mb-4"
+                >
+                  <div class="d-flex align-center">
+                    <v-icon class="mr-2">mdi-alert-circle</v-icon>
+                    <div>
+                      <div class="font-weight-bold">No courts available for {{ selectedSport?.name }}</div>
+                      <div class="text-caption">Please select a different sport or contact the administrator.</div>
+                    </div>
+                  </div>
+                </v-alert>
+
                 <div
                   v-for="court in filteredCourts"
                   :key="court.id"
@@ -120,10 +153,26 @@
                 >
                   <v-card variant="outlined" class="pa-4">
                     <div class="d-flex align-center justify-space-between mb-3">
-                      <h4 class="text-subtitle-1">
-                        <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                        {{ court.name }}
-                      </h4>
+                      <div class="d-flex align-center flex-wrap">
+                        <h4 class="text-subtitle-1">
+                          <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
+                          {{ court.name }}
+                        </h4>
+                        <div class="d-flex flex-wrap ml-2">
+                          <!-- Show all sports this court supports -->
+                          <v-chip 
+                            v-for="sport in getCourtSports(court)" 
+                            :key="sport.id"
+                            :color="getSportColor(sport.name)" 
+                            size="small" 
+                            class="mr-1 mb-1"
+                            :variant="sport.id === selectedSport.id ? 'elevated' : 'outlined'"
+                          >
+                            <v-icon start size="small">{{ getSportIcon(sport.name) }}</v-icon>
+                            {{ sport.name }}
+                          </v-chip>
+                        </div>
+                      </div>
                       <v-chip
                         v-if="courtTimeSlots[court.id]?.slots.length > 0"
                         color="success"
@@ -259,7 +308,6 @@
                   <v-divider class="my-4"></v-divider>
 
                   <div class="summary-total">
-                    <v-icon class="mr-2" color="success" size="32">mdi-currency-php</v-icon>
                     <div>
                       <div class="text-caption text-grey">Total Price</div>
                       <div class="text-h5 font-weight-bold text-success">
@@ -267,6 +315,74 @@
                       </div>
                     </div>
                   </div>
+                </v-card-text>
+              </v-card>
+
+              <!-- Admin Booking Field - Only for admin users -->
+              <v-card v-if="isAdmin" variant="outlined" class="mt-4 admin-booking-field">
+                <v-card-text>
+                  <h4 class="text-h6 mb-4">
+                    <v-icon class="mr-2" color="warning">mdi-account-cog</v-icon>
+                    Admin Booking Details
+                  </h4>
+                  
+                  <v-alert type="info" variant="tonal" class="mb-4">
+                    <div class="d-flex align-center">
+                      <div>
+                        <div class="font-weight-bold">Booking on behalf of another user</div>
+                        <div class="text-caption">Specify who this booking is actually for</div>
+                      </div>
+                    </div>
+                  </v-alert>
+
+                  <v-combobox
+                    v-model="bookingForUser"
+                    :items="userNames"
+                    label="Booking for (Select or Type User Name)"
+                    placeholder="Select from list or type a name"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-account"
+                    hint="Select existing user or type a custom name (e.g., walk-in customer)"
+                    persistent-hint
+                    clearable
+                    class="mb-2"
+                    item-title="name"
+                    return-object
+                  >
+                    <template v-slot:item="{ props, item }">
+                      <v-list-item v-bind="props">
+                        <template v-slot:prepend>
+                          <v-avatar size="32" class="mr-2">
+                            <v-img :src="`https://ui-avatars.com/api/?name=${item.raw.name}&background=3b82f6&color=fff`"></v-img>
+                          </v-avatar>
+                        </template>
+                     
+                      </v-list-item>
+                    </template>
+                    <template v-slot:chip="{}">
+                      <div class="d-flex align-center" v-if="typeof bookingForUser === 'object' && bookingForUser && bookingForUser.name">
+                        <v-avatar size="24" class="mr-2">
+                          <v-img :src="`https://ui-avatars.com/api/?name=${bookingForUser.name}&background=3b82f6&color=fff`"></v-img>
+                        </v-avatar>
+                        <span>{{ bookingForUser.name }}</span>
+                      </div>
+                      <div class="d-flex align-center" v-else>
+                        <v-icon size="24" class="mr-2" color="orange">mdi-account-plus</v-icon>
+                        <span>{{ bookingForUser }}</span>
+                      </div>
+                    </template>
+                  </v-combobox>
+
+                  <v-textarea
+                    v-model="adminNotes"
+                    label="Admin Notes (Optional)"
+                    placeholder="Add any additional notes about this booking..."
+                    variant="outlined"
+                    prepend-inner-icon="mdi-note-text"
+                    rows="2"
+                    hint="Internal notes - not visible to the customer"
+                    persistent-hint
+                  ></v-textarea>
                 </v-card-text>
               </v-card>
 
@@ -438,6 +554,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
+import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 
@@ -488,15 +605,46 @@ export default {
     const selectedDate = ref('')
     const courtTimeSlots = ref({}) // Store time slots per court: { courtId: { date: '', slots: [] } }
 
+    // Admin booking fields
+    const bookingForUser = ref(null)
+    const adminNotes = ref('')
+    const currentUser = ref(null)
+    const userNames = ref([])
+
     // Computed
     const minDate = computed(() => {
       const today = new Date()
       return today.toISOString().split('T')[0]
     })
 
+    const isAdmin = computed(() => {
+      return currentUser.value?.role === 'admin'
+    })
+
     const filteredCourts = computed(() => {
       if (!selectedSport.value) return []
-      return courts.value.filter(court => court.sport_id === selectedSport.value.id && court.is_active)
+      
+      return courts.value.filter(court => {
+        if (!court.is_active) return false
+        
+        // Check if court supports the selected sport
+        // Handle both single sport_id and multiple sports array
+        if (court.sport_id === selectedSport.value.id) {
+          return true
+        }
+        
+        // Check if court has multiple sports (sports array)
+        if (court.sports && Array.isArray(court.sports)) {
+          return court.sports.some(sport => sport.id === selectedSport.value.id)
+        }
+        
+        // Check if court has sport_ids array
+        if (court.sport_ids && Array.isArray(court.sport_ids)) {
+          return court.sport_ids.includes(selectedSport.value.id)
+        }
+        
+        return false
+      })
     })
 
     const canProceed = computed(() => {
@@ -525,6 +673,53 @@ export default {
         'Squash': '🎾'
       }
       return icons[sportName] || '🏟️'
+    }
+
+    const getSportColor = (sportName) => {
+      const colors = {
+        'Badminton': 'blue',
+        'Tennis': 'green',
+        'Basketball': 'orange',
+        'Volleyball': 'red',
+        'Football': 'teal',
+        'Soccer': 'purple',
+        'Table Tennis': 'pink',
+        'Squash': 'indigo'
+      }
+      return colors[sportName] || 'grey'
+    }
+
+    const getCourtSports = (court) => {
+      const sportsList = []
+      
+      // If court has a single sport_id, find the sport object
+      if (court.sport_id) {
+        const sport = sports.value.find(s => s.id === court.sport_id)
+        if (sport) {
+          sportsList.push(sport)
+        }
+      }
+      
+      // If court has multiple sports array
+      if (court.sports && Array.isArray(court.sports)) {
+        court.sports.forEach(sport => {
+          if (!sportsList.find(s => s.id === sport.id)) {
+            sportsList.push(sport)
+          }
+        })
+      }
+      
+      // If court has sport_ids array, find corresponding sport objects
+      if (court.sport_ids && Array.isArray(court.sport_ids)) {
+        court.sport_ids.forEach(sportId => {
+          const sport = sports.value.find(s => s.id === sportId)
+          if (sport && !sportsList.find(s => s.id === sport.id)) {
+            sportsList.push(sport)
+          }
+        })
+      }
+      
+      return sportsList
     }
 
     const selectSport = (sport) => {
@@ -680,7 +875,9 @@ export default {
             const start = new Date(`2000-01-01 ${slot.start}`)
             const end = new Date(`2000-01-01 ${slot.end}`)
             const hours = (end - start) / (1000 * 60 * 60)
-            total += court.price_per_hour * hours
+            // Use sport price instead of court price
+            const pricePerHour = selectedSport.value?.price_per_hour || 0
+            total += pricePerHour * hours
           })
         }
       })
@@ -719,19 +916,55 @@ export default {
           return
         }
 
+        // Prepare admin booking data if admin is booking for someone else
+        console.log('=== ADD TO CART - CHECKING ADMIN BOOKING ===')
+        console.log('currentUser:', currentUser.value)
+        console.log('isAdmin.value:', isAdmin.value)
+        console.log('bookingForUser.value:', bookingForUser.value)
+        console.log('adminNotes.value:', adminNotes.value)
+        
+        let adminBookingData = null
+        if (isAdmin.value && bookingForUser.value) {
+          console.log('✅ Admin booking - adding fields to cart items')
+          // Check if bookingForUser is an object (existing user) or string (custom name)
+          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+            adminBookingData = {
+              booking_for_user_id: bookingForUser.value.id,
+              booking_for_user_name: bookingForUser.value.name
+            }
+          } else {
+            adminBookingData = {
+              booking_for_user_name: bookingForUser.value
+            }
+          }
+          
+          if (adminNotes.value) {
+            adminBookingData.admin_notes = adminNotes.value
+          }
+          
+          console.log('Admin booking data for cart:', adminBookingData)
+        }
+
         // Create cart items from current selections
         const cartItems = []
         Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court && courtData.slots && courtData.slots.length > 0) {
             courtData.slots.forEach(slot => {
-              cartItems.push({
+              const cartItem = {
                 court_id: court.id,
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
                 price: slot.price || 0
-              })
+              }
+              
+              // Add admin booking fields to each cart item if admin is booking for someone
+              if (adminBookingData) {
+                Object.assign(cartItem, adminBookingData)
+              }
+              
+              cartItems.push(cartItem)
             })
           }
         })
@@ -747,9 +980,8 @@ export default {
         }
 
         // Add to cart via API
+        console.log('Sending cart items with admin fields:', cartItems)
         const response = await cartService.addToCart(cartItems)
-
-        console.log('Cart items added:', cartItems.length)
 
         // Dispatch custom events to update cart count and refresh bookings
         window.dispatchEvent(new CustomEvent('cart-updated'))
@@ -815,7 +1047,41 @@ export default {
           })
         }
 
-        // Create cart items array
+        // Prepare admin booking data if admin is booking for someone else
+        console.log('=== CHECKING ADMIN BOOKING ===')
+        console.log('currentUser:', currentUser.value)
+        console.log('currentUser.role:', currentUser.value?.role)
+        console.log('isAdmin.value:', isAdmin.value)
+        console.log('bookingForUser.value:', bookingForUser.value)
+        console.log('adminNotes.value:', adminNotes.value)
+        
+        let adminBookingData = null
+        if (isAdmin.value && bookingForUser.value) {
+          console.log('✅ Admin booking conditions met!')
+          console.log('Admin booking - isAdmin:', isAdmin.value)
+          console.log('Admin booking - bookingForUser:', bookingForUser.value)
+          console.log('Admin booking - adminNotes:', adminNotes.value)
+          
+          // Check if bookingForUser is an object (existing user) or string (custom name)
+          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+            adminBookingData = {
+              booking_for_user_id: bookingForUser.value.id,
+              booking_for_user_name: bookingForUser.value.name
+            }
+          } else {
+            adminBookingData = {
+              booking_for_user_name: bookingForUser.value
+            }
+          }
+          
+          if (adminNotes.value) {
+            adminBookingData.admin_notes = adminNotes.value
+          }
+          
+          console.log('Admin booking data prepared:', adminBookingData)
+        }
+
+        // Create cart items array with admin booking fields
         const cartItems = []
         Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
@@ -824,20 +1090,30 @@ export default {
               const start = new Date(`2000-01-01 ${slot.start}`)
               const end = new Date(`2000-01-01 ${slot.end}`)
               const hours = (end - start) / (1000 * 60 * 60)
-              const price = court.price_per_hour * hours
+              // Use sport price instead of court price
+              const pricePerHour = selectedSport.value?.price_per_hour || 0
+              const price = pricePerHour * hours
 
-              cartItems.push({
+              const cartItem = {
                 court_id: parseInt(courtId),
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price
-              })
+              }
+
+              // Add admin booking fields to each cart item
+              if (adminBookingData) {
+                Object.assign(cartItem, adminBookingData)
+              }
+
+              cartItems.push(cartItem)
             })
           }
         })
 
         // Add items to cart first
+        console.log('Sending cart items to backend:', cartItems)
         await cartService.addToCart(cartItems)
 
         // Get the cart items that were just added
@@ -907,6 +1183,22 @@ export default {
     const submitBooking = async () => {
       submitting.value = true
       try {
+        // Prepare admin booking data if admin is booking for someone else
+        const adminBookingData = {}
+        if (isAdmin.value && bookingForUser.value) {
+          // Check if bookingForUser is an object (existing user) or string (custom name)
+          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+            adminBookingData.booking_for_user_id = bookingForUser.value.id
+            adminBookingData.booking_for_user_name = bookingForUser.value.name
+          } else {
+            adminBookingData.booking_for_user_name = bookingForUser.value
+          }
+          
+          if (adminNotes.value) {
+            adminBookingData.admin_notes = adminNotes.value
+          }
+        }
+
         // Create an array of all bookings to be created
         const bookingsToCreate = []
         Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
@@ -918,7 +1210,8 @@ export default {
             bookingsToCreate.push({
               court_id: parseInt(courtId),
               start_time: startDateTime,
-              end_time: endDateTime
+              end_time: endDateTime,
+              ...adminBookingData
             })
           })
         })
@@ -965,6 +1258,9 @@ export default {
       gcashReferenceNumber.value = ''
       proofOfPayment.value = null
       proofPreview.value = null
+      // Reset admin fields
+      bookingForUser.value = null
+      adminNotes.value = ''
     }
 
     const fetchSports = async () => {
@@ -980,6 +1276,41 @@ export default {
         courts.value = await courtService.getCourts()
       } catch (error) {
         console.error('Failed to fetch courts:', error)
+      }
+    }
+
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
+          const userData = JSON.parse(localStorage.getItem('user') || '{}')
+          currentUser.value = userData
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error)
+        currentUser.value = null
+      }
+    }
+
+    const fetchUsers = async () => {
+      try {
+        const response = await api.get('/admin/users')
+        
+        if (response.data.success && response.data.data) {
+          userNames.value = response.data.data.map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          }))
+        } else {
+          console.error('Failed to fetch users:', response.data.message)
+          userNames.value = []
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error)
+        console.error('Error details:', error.response?.data)
+        userNames.value = []
       }
     }
 
@@ -1004,7 +1335,6 @@ export default {
               light: '#ffffff'
             }
           })
-          console.log('GCash QR code generated successfully')
         } catch (error) {
           console.error('Failed to generate GCash QR code:', error)
         }
@@ -1021,10 +1351,23 @@ export default {
       }
     })
 
+    // Watch for step changes to generate QR code on step 3
+    watch(step, async (newStep) => {
+      if (newStep === 3) {
+        // Generate QR code when reaching confirmation step
+        await nextTick()
+        setTimeout(() => {
+          generateGCashQR()
+        }, 100)
+      }
+    })
+
     watch(() => props.isOpen, (newValue) => {
       if (newValue) {
         fetchSports()
         fetchCourts()
+        fetchCurrentUser()
+        fetchUsers()
       } else {
         resetForm()
       }
@@ -1034,6 +1377,8 @@ export default {
       if (props.isOpen) {
         fetchSports()
         fetchCourts()
+        fetchCurrentUser()
+        fetchUsers()
       }
     })
 
@@ -1058,6 +1403,8 @@ export default {
       canProceed,
       totalBookings,
       getSportIcon,
+      getSportColor,
+      getCourtSports,
       selectSport,
       toggleTimeSlot,
       isTimeSlotSelected,
@@ -1072,7 +1419,12 @@ export default {
       handleImageError,
       addToCart,
       submitBookingWithGCash,
-      submitBooking
+      submitBooking,
+      // Admin fields
+      isAdmin,
+      bookingForUser,
+      adminNotes,
+      userNames
     }
   }
 }
@@ -1637,6 +1989,7 @@ export default {
 }
 
 @media (max-width: 600px) {
+  /* Mobile content optimizations - keeping modal height */
   .v-card-text {
     padding: 12px !important;
   }
@@ -1706,6 +2059,58 @@ export default {
 
   .dialog-actions .v-btn {
     width: 100% !important;
+  }
+
+  /* Additional mobile content optimizations */
+  .sport-card .v-card-text,
+  .court-card .v-card-text {
+    padding: 12px !important;
+  }
+
+  .booking-summary .summary-item {
+    padding: 8px !important;
+  }
+
+  .payment-options .v-radio-group {
+    margin-top: 8px !important;
+  }
+
+  /* Better touch targets */
+  .time-slot-card {
+    min-height: 60px !important;
+  }
+
+  .sport-card {
+    min-height: 120px !important;
+  }
+}
+
+/* Tablet optimizations - better content layout */
+@media (min-width: 601px) and (max-width: 768px) {
+  .booking-dialog {
+    max-width: 95vw !important;
+  }
+
+  .v-card-text {
+    padding: 20px !important;
+  }
+
+  .dialog-header {
+    padding: 20px !important;
+  }
+
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+
+  .sport-card,
+  .court-card {
+    min-height: 180px !important;
+  }
+
+  .step-content {
+    padding: 20px !important;
   }
 }
 

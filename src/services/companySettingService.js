@@ -29,6 +29,35 @@ export const companySettingService = {
         const payload = new FormData()
         payload.append('company_name', settingsData.company_name)
         payload.append('company_logo', settingsData.company_logo)
+        
+        // Add theme settings if present
+        if (settingsData.theme_primary_color) {
+          payload.append('theme_primary_color', settingsData.theme_primary_color)
+        }
+        if (settingsData.theme_secondary_color) {
+          payload.append('theme_secondary_color', settingsData.theme_secondary_color)
+        }
+        if (settingsData.theme_background_color) {
+          payload.append('theme_background_color', settingsData.theme_background_color)
+        }
+        if (settingsData.theme_mode) {
+          payload.append('theme_mode', settingsData.theme_mode)
+        }
+        
+        // Add dashboard settings if present
+        if (settingsData.dashboard_welcome_message !== undefined) {
+          payload.append('dashboard_welcome_message', settingsData.dashboard_welcome_message)
+        }
+        if (settingsData.dashboard_announcement !== undefined) {
+          payload.append('dashboard_announcement', settingsData.dashboard_announcement)
+        }
+        if (settingsData.dashboard_show_stats !== undefined) {
+          payload.append('dashboard_show_stats', settingsData.dashboard_show_stats ? '1' : '0')
+        }
+        if (settingsData.dashboard_show_recent_bookings !== undefined) {
+          payload.append('dashboard_show_recent_bookings', settingsData.dashboard_show_recent_bookings ? '1' : '0')
+        }
+        
         // Laravel doesn't support file uploads with PUT, use POST with _method override
         payload.append('_method', 'PUT')
 

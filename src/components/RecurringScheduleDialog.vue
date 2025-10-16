@@ -1,5 +1,5 @@
 <template>
-  <v-dialog :model-value="isOpen" @update:model-value="$emit('update:isOpen', $event)" max-width="800" persistent>
+  <v-dialog :model-value="isOpen" @update:model-value="$emit('update:isOpen', $event)" max-width="800" persistent fullscreen-on-mobile>
     <v-card class="recurring-dialog-card">
       <div class="dialog-header">
         <div class="header-badge">
@@ -28,8 +28,6 @@
                 prepend-inner-icon="mdi-format-title"
                 :rules="[v => !!v || 'Title is required']"
                 required
-                @blur="console.log('Title field blurred, value:', form.title)"
-                @input="console.log('Title field input, value:', form.title)"
               ></v-text-field>
             </v-col>
 
@@ -456,7 +454,6 @@ export default {
     }
 
     const resetForm = () => {
-      console.log('resetForm called - clearing all form data')
       // Update individual properties instead of reassigning the entire object
       form.value.title = ''
       form.value.description = ''
@@ -473,11 +470,9 @@ export default {
       form.value.auto_approve = false
       form.value.notes = ''
       formInitialized.value = true
-      console.log('Form reset complete:', form.value)
     }
 
     const populateForm = (schedule) => {
-      console.log('populateForm called with schedule:', schedule)
       // Update individual properties instead of reassigning the entire object
       form.value.title = schedule.title || ''
       form.value.description = schedule.description || ''
@@ -494,7 +489,6 @@ export default {
       form.value.auto_approve = schedule.auto_approve || false
       form.value.notes = schedule.notes || ''
       formInitialized.value = true
-      console.log('Form populated:', form.value)
       
       // If editing a weekly_multiple_times or yearly_multiple_times schedule and no day_specific_times, add one
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(schedule.recurrence_type) && (!schedule.day_specific_times || schedule.day_specific_times.length === 0)) {
@@ -586,19 +580,14 @@ export default {
 
     // Only populate form when dialog opens - prevent multiple initializations
     watch(() => props.isOpen, (isOpen, wasOpen) => {
-      console.log('Dialog watcher triggered - isOpen:', isOpen, 'wasOpen:', wasOpen, 'formInitialized:', formInitialized.value)
       if (isOpen && !wasOpen && !formInitialized.value) {
-        console.log('Initializing form...')
         // Only populate/reset when dialog first opens and form hasn't been initialized
         if (props.schedule) {
-          console.log('Populating form with existing schedule')
           populateForm(props.schedule)
         } else {
-          console.log('Resetting form for new schedule')
           resetForm()
         }
       } else if (!isOpen) {
-        console.log('Dialog closed, resetting initialization flag')
         // Reset initialization flag when dialog closes
         formInitialized.value = false
       }

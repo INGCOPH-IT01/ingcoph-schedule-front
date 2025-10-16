@@ -10,8 +10,8 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 import StaffDashboard from '../views/StaffDashboard.vue'
 import UserManagement from '../views/UserManagement.vue'
 import UserProfile from '../views/UserProfile.vue'
-import CompanySettings from '../views/CompanySettings.vue'
 import SportsManagement from '../views/SportsManagement.vue'
+import CompanySettings from '../views/CompanySettings.vue'
 import { authService } from '../services/authService'
 
 const routes = [
@@ -38,18 +38,56 @@ const routes = [
   {
     path: '/courts',
     name: 'Courts',
-    component: Courts
+    component: Courts,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const user = await authService.getCurrentUser()
+        // Only staff and admin can access courts listing
+        if (user && (user.role === 'staff' || user.role === 'admin')) {
+          next()
+        } else {
+          next('/sports')
+        }
+      } catch (error) {
+        next('/sports')
+      }
+    }
   },
   {
     path: '/courts/:id',
     name: 'CourtDetails',
     component: CourtDetails,
-    props: true
+    props: true,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const user = await authService.getCurrentUser()
+        // Only staff and admin can access court details
+        if (user && (user.role === 'staff' || user.role === 'admin')) {
+          next()
+        } else {
+          next('/sports')
+        }
+      } catch (error) {
+        next('/sports')
+      }
+    }
   },
   {
     path: '/bookings',
     name: 'Bookings',
-    component: Bookings
+    component: Bookings,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAuthenticated = localStorage.getItem('token')
+        if (isAuthenticated) {
+          next()
+        } else {
+          next('/login')
+        }
+      } catch (error) {
+        next('/login')
+      }
+    }
   },
   {
     path: '/profile',
@@ -120,6 +158,23 @@ const routes = [
     }
   },
   {
+    path: '/admin/sports',
+    name: 'SportsManagement',
+    component: SportsManagement,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAdmin = await authService.isAdmin()
+        if (isAdmin) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
     path: '/admin/company-settings',
     name: 'CompanySettings',
     component: CompanySettings,
@@ -137,21 +192,9 @@ const routes = [
     }
   },
   {
-    path: '/admin/sports',
-    name: 'SportsManagement',
-    component: SportsManagement,
-    beforeEnter: async (to, from, next) => {
-      try {
-        const isAdmin = await authService.isAdmin()
-        if (isAdmin) {
-          next()
-        } else {
-          next('/')
-        }
-      } catch (error) {
-        next('/')
-      }
-    }
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/'
   }
 ]
 

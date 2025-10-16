@@ -8,6 +8,10 @@ export const authService = {
       console.log('Login response:', response.data)
       if (response.data.success) {
         localStorage.setItem('token', response.data.token)
+        // Store user data for WebSocket subscriptions
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+        }
         return response.data
       }
       throw new Error(response.data.message)
@@ -31,6 +35,10 @@ export const authService = {
       const response = await api.post('/register', userData)
       if (response.data.success) {
         localStorage.setItem('token', response.data.token)
+        // Store user data for WebSocket subscriptions
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+        }
         return response.data
       }
       throw new Error(response.data.message)
@@ -43,16 +51,23 @@ export const authService = {
     try {
       await api.post('/logout')
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
     } catch (error) {
       console.error('Logout error:', error)
       localStorage.removeItem('token')
+      localStorage.removeItem('user')
     }
   },
 
   async getUser() {
     try {
       const response = await api.get('/user')
-      return response.data.user
+      const user = response.data.user
+      // Store/update user data in localStorage for WebSocket
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
+      return user
     } catch (error) {
       throw new Error('Failed to get user data')
     }

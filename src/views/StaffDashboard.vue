@@ -1,16 +1,10 @@
 <template>
   <div class="staff-dashboard">
-    <!-- Modern Sports Background -->
-    <div class="sports-background">
-      <div class="sports-overlay"></div>
-      <div class="sports-pattern"></div>
-    </div>
-    
     <!-- Enhanced Header -->
     <div class="staff-header">
       <div class="header-content">
         <div class="header-badge">
-          <v-icon color="white" size="20" class="mr-2">mdi-qrcode-scan</v-icon>
+          <v-icon color="#B71C1C" size="20" class="mr-2">mdi-qrcode-scan</v-icon>
           Staff Dashboard
         </div>
         <h1 class="header-title">
@@ -418,46 +412,14 @@ export default {
 .staff-dashboard {
   min-height: 100vh;
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.sports-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  z-index: -2;
-}
-
-.sports-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: -1;
-}
-
-.sports-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
-  z-index: -1;
-}
+/* Background is now handled globally by App.vue */
 
 .staff-header {
   padding: 60px 20px 40px;
   text-align: center;
-  color: white;
+  color: #1e293b;
 }
 
 .header-content {
@@ -468,24 +430,25 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 20px;
+  color: #B71C1C;
 }
 
 .header-title {
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 800;
   margin-bottom: 16px;
-  color: white;
+  color: #1e293b;
 }
 
 .title-gradient {
-  background: linear-gradient(45deg, #ffd700, #ffed4e);
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -493,7 +456,7 @@ export default {
 
 .header-subtitle {
   font-size: clamp(1rem, 2vw, 1.2rem);
-  color: rgba(255, 255, 255, 0.9);
+  color: #64748b;
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
@@ -579,7 +542,7 @@ export default {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #1e293b;
+  color: #B71C1C;
 }
 
 .action-description {
@@ -611,7 +574,7 @@ export default {
 .bookings-title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #B71C1C;
   padding: 24px;
 }
 

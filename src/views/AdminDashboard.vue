@@ -1,11 +1,5 @@
 <template>
   <div class="admin-dashboard">
-    <!-- Modern Sports Background -->
-    <div class="sports-background">
-      <div class="sports-overlay"></div>
-      <div class="sports-pattern"></div>
-    </div>
-
     <!-- Enhanced Header -->
     <div class="dashboard-header">
       <div class="header-content">
@@ -31,7 +25,7 @@
               <v-icon color="primary" size="48">mdi-calendar-clock</v-icon>
             </div>
             <div class="stat-content">
-              <div class="stat-number">{{ stats.pending_bookings || 0 }}</div>
+              <div class="stat-number">{{ pendingTransactionsCount }}</div>
               <div class="stat-label">Pending Bookings</div>
               <div class="stat-trend">
                 <v-icon color="warning" size="16" class="mr-1">mdi-trending-up</v-icon>
@@ -48,7 +42,7 @@
               <v-icon color="success" size="48">mdi-check-circle</v-icon>
             </div>
             <div class="stat-content">
-              <div class="stat-number">{{ stats.approved_bookings || 0 }}</div>
+              <div class="stat-number">{{ approvedTransactionsCount }}</div>
               <div class="stat-label">Approved Bookings</div>
               <div class="stat-trend">
                 <v-icon color="success" size="16" class="mr-1">mdi-trending-up</v-icon>
@@ -65,7 +59,7 @@
               <v-icon color="error" size="48">mdi-close-circle</v-icon>
             </div>
             <div class="stat-content">
-              <div class="stat-number">{{ stats.rejected_bookings || 0 }}</div>
+              <div class="stat-number">{{ rejectedTransactionsCount }}</div>
               <div class="stat-label">Rejected Bookings</div>
               <div class="stat-trend">
                 <v-icon color="error" size="16" class="mr-1">mdi-trending-down</v-icon>
@@ -148,49 +142,6 @@
 
         <div class="action-card action-card-2">
           <div class="action-icon">
-            <v-icon color="success" size="48">mdi-check-all</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Approve All</h3>
-            <p class="action-description">Approve all bookings with complete payment</p>
-            <v-btn
-              class="action-btn"
-              color="success"
-              size="large"
-              @click="approveAllPending"
-              :disabled="!pendingBookings.length || pendingBookings.every(booking => getBookingPaymentStatus(booking) !== 'complete')"
-              prepend-icon="mdi-check-all"
-              elevation="4"
-            >
-              Approve All
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-
-        <div class="action-card action-card-3">
-          <div class="action-icon">
-            <v-icon color="info" size="48">mdi-chart-line</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Refresh Stats</h3>
-            <p class="action-description">Update dashboard statistics and metrics</p>
-            <v-btn
-              class="action-btn"
-              color="info"
-              size="large"
-              @click="loadStats"
-              prepend-icon="mdi-chart-line"
-              elevation="4"
-            >
-              Refresh Data
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-
-        <div class="action-card action-card-4">
-          <div class="action-icon">
             <v-icon color="warning" size="48">mdi-qrcode-scan</v-icon>
           </div>
           <div class="action-content">
@@ -205,27 +156,6 @@
               elevation="4"
             >
               Open Scanner
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-
-        <div class="action-card action-card-5">
-          <div class="action-icon">
-            <v-icon color="purple" size="48">mdi-trophy</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Sports Management</h3>
-            <p class="action-description">Manage sports types and configurations</p>
-            <v-btn
-              class="action-btn"
-              color="purple"
-              size="large"
-              @click="goToSportsManagement"
-              prepend-icon="mdi-trophy"
-              elevation="4"
-            >
-              Manage Sports
             </v-btn>
           </div>
           <div class="action-glow"></div>
@@ -969,6 +899,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
+import { courtService } from '../services/courtService'
 import { formatPrice } from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import CourtImageGallery from '../components/CourtImageGallery.vue'
@@ -989,6 +920,7 @@ export default {
     const selectedBookingId = ref(null)
     const detailsDialog = ref(false)
     const selectedBooking = ref(null)
+    const sports = ref([])
 
     // Image dialog
     const imageDialog = ref(false)
@@ -1030,6 +962,15 @@ export default {
       } catch (error) {
         console.error('Failed to load stats:', error)
         showSnackbar('Failed to load statistics', 'error')
+      }
+    }
+
+    const loadSports = async () => {
+      try {
+        sports.value = await courtService.getSports()
+      } catch (error) {
+        console.error('Failed to load sports:', error)
+        showSnackbar('Failed to load sports', 'error')
       }
     }
 
@@ -1120,50 +1061,6 @@ export default {
         showSnackbar('Failed to reject transaction', 'error')
       } finally {
         rejecting.value = false
-      }
-    }
-
-    const approveAllPending = async () => {
-      try {
-        loading.value = true
-
-        // Filter bookings that have complete payment (both payment method and proof of payment)
-        const bookingsWithCompletePayment = pendingBookings.value.filter(booking =>
-          getBookingPaymentStatus(booking) === 'complete'
-        )
-
-        if (bookingsWithCompletePayment.length === 0) {
-          showSnackbar('No bookings with complete payment found to approve', 'warning')
-          return
-        }
-
-        // Approve only bookings with complete payment
-        const promises = bookingsWithCompletePayment.map(booking =>
-          bookingService.approveBooking(booking.id)
-        )
-        await Promise.all(promises)
-
-        const totalPending = pendingBookings.value.length
-        const approvedCount = bookingsWithCompletePayment.length
-        const skippedCount = totalPending - approvedCount
-
-        let message = `Successfully approved ${approvedCount} booking${approvedCount !== 1 ? 's' : ''}`
-        if (skippedCount > 0) {
-          message += `. Skipped ${skippedCount} booking${skippedCount !== 1 ? 's' : ''} without complete payment`
-        }
-
-        showSnackbar(message, 'success')
-
-        // Dispatch event to refresh other components
-        window.dispatchEvent(new CustomEvent('booking-updated'))
-
-        await loadPendingBookings()
-        await loadStats()
-      } catch (error) {
-        console.error('Failed to approve bookings:', error)
-        showSnackbar('Failed to approve bookings', 'error')
-      } finally {
-        loading.value = false
       }
     }
 
@@ -1328,19 +1225,13 @@ export default {
       }
     }
 
-    // Computed property for sport options
+    // Computed property for sport options - using database sports
     const sportOptions = computed(() => {
-      const sports = new Set()
-      pendingBookings.value.forEach(transaction => {
-        if (transaction.cart_items && transaction.cart_items.length > 0) {
-          transaction.cart_items.forEach(item => {
-            if (item.court?.sport?.name) {
-              sports.add(item.court.sport.name)
-            }
-          })
-        }
-      })
-      return ['All Sports', ...Array.from(sports).sort()]
+      if (!sports.value || sports.value.length === 0) {
+        return ['All Sports']
+      }
+      const sportNames = sports.value.map(sport => sport.name).sort()
+      return ['All Sports', ...sportNames]
     })
 
     // Computed property to check if any filters are active
@@ -1360,6 +1251,19 @@ export default {
       dateFromFilter.value = ''
       dateToFilter.value = ''
     }
+
+    // Computed properties for transaction counts
+    const pendingTransactionsCount = computed(() => {
+      return pendingBookings.value.filter(t => (t.approval_status || 'pending') === 'pending').length
+    })
+
+    const approvedTransactionsCount = computed(() => {
+      return pendingBookings.value.filter(t => t.approval_status === 'approved').length
+    })
+
+    const rejectedTransactionsCount = computed(() => {
+      return pendingBookings.value.filter(t => t.approval_status === 'rejected').length
+    })
 
     // Computed property for filtered transactions
     const filteredTransactions = computed(() => {
@@ -1426,11 +1330,6 @@ export default {
 
     const closeQrScannerDialog = () => {
       qrScannerDialog.value = false
-    }
-
-    // Navigation functions
-    const goToSportsManagement = () => {
-      router.push({ name: 'SportsManagement' })
     }
 
     const handleImageError = (event) => {
@@ -1540,6 +1439,7 @@ export default {
 
     onMounted(() => {
       loadStats()
+      loadSports()
       loadPendingBookings()
 
       // Listen for custom events to refresh admin data
@@ -1569,7 +1469,6 @@ export default {
       openQrScanner,
       closeQrScannerDialog,
       qrScannerDialog,
-      goToSportsManagement,
       handleImageError,
       headers,
       statusFilter,
@@ -1580,13 +1479,15 @@ export default {
       sportOptions,
       hasActiveFilters,
       clearAllFilters,
+      pendingTransactionsCount,
+      approvedTransactionsCount,
+      rejectedTransactionsCount,
       filteredTransactions,
       loadStats,
       loadPendingBookings,
       approveBooking,
       showRejectDialog,
       confirmReject,
-      approveAllPending,
       exportBookings,
       formatDate,
       formatTime,
@@ -1630,40 +1531,11 @@ export default {
   z-index: 1;
 }
 
-/* Enhanced Background */
-.sports-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  z-index: -3;
-}
-
-.sports-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
-  z-index: -2;
-}
-
+/* Background elements are now handled globally by App.vue */
+.sports-background,
+.sports-overlay,
 .sports-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
-  background-size: 20px 20px;
-  z-index: -1;
+  display: none;
 }
 
 /* Dashboard Header */
@@ -1770,10 +1642,6 @@ export default {
 
 .stat-card-4:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
-}
-
-.action-card-5:hover {
-  background: linear-gradient(135deg, rgba(168, 85, 247, 0.05) 0%, rgba(168, 85, 247, 0.02) 100%);
 }
 
 .stat-icon {
@@ -1924,7 +1792,7 @@ export default {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #1e293b;
+  color: #B71C1C;
 }
 
 .action-description {

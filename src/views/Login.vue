@@ -18,7 +18,7 @@
               <h1 class="auth-title">
                 <span class="title-gradient">Welcome</span> Back
               </h1>
-              <p class="auth-subtitle">Sign in to your champion account</p>
+              <p class="auth-subtitle">Sign in to Perfect Smash</p>
             </div>
 
             <div class="auth-form">
@@ -79,7 +79,6 @@
                   :loading="loading"
                   :disabled="loading"
                   elevation="4"
-                  @click.prevent="handleLogin"
                 >
                   <v-icon class="mr-2">mdi-login</v-icon>
                   Sign In
@@ -131,13 +130,7 @@ export default {
       v => v.length >= 6 || 'Password must be at least 6 characters'
     ]
 
-    const handleLogin = async (event) => {
-      // Prevent default form submission behavior
-      if (event) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
-
+    const handleLogin = async () => {
       try {
         loading.value = true
         error.value = ''
@@ -149,24 +142,20 @@ export default {
           return
         }
         
-        console.log('Form data before login:', {
-          email: form.value.email,
-          password: form.value.password,
-          emailLength: form.value.email?.length,
-          passwordLength: form.value.password?.length
-        })
-        
         const response = await authService.login({
           email: form.value.email,
           password: form.value.password
         })
         
+        if(response.user) {
+          router.push('/')
+        }
+
         // Dispatch auth change event to update App.vue
         window.dispatchEvent(new CustomEvent('auth-changed', { 
           detail: { user: response.user } 
         }))
         
-        router.push('/')
       } catch (err) {
         console.error('Login error in component:', err)
         error.value = err.message
@@ -259,13 +248,13 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(59, 130, 246, 0.1);
+  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(183, 28, 28, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: #3b82f6;
+  color: #B71C1C;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
@@ -280,7 +269,7 @@ export default {
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -303,19 +292,19 @@ export default {
 }
 
 .auth-btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   color: white !important;
   border-radius: 12px !important;
   font-weight: 700 !important;
   text-transform: none !important;
   padding: 16px 32px !important;
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .auth-btn-primary:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.6) !important;
+  box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
 }
 
 /* Error Alert */
@@ -349,14 +338,14 @@ export default {
 }
 
 .auth-link {
-  color: #3b82f6;
+  color: #B71C1C;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s ease;
 }
 
 .auth-link:hover {
-  color: #1d4ed8;
+  color: #C62828;
   text-decoration: underline;
 }
 

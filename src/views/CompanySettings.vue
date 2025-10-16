@@ -142,6 +142,213 @@
             </v-form>
           </v-card-text>
         </v-card>
+
+        <!-- Background Colors Card -->
+        <v-card class="settings-card mt-6">
+          <v-card-title class="text-h5 pa-6 pb-4">
+            <v-icon class="mr-2" color="primary">mdi-palette</v-icon>
+            Background Colors
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-alert type="info" variant="tonal" class="mb-4">
+              <v-icon class="mr-2">mdi-information</v-icon>
+              Customize the background gradient colors for all modules. Changes apply immediately after saving.
+            </v-alert>
+
+            <v-form @submit.prevent="saveBackgroundColors">
+              <!-- Primary Background Color -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  Primary Background Color (White/Base)
+                </label>
+                <v-row align="center">
+                  <v-col cols="9">
+                    <v-text-field
+                      v-model="bgPrimaryColor"
+                      variant="outlined"
+                      density="compact"
+                      placeholder="#FFFFFF"
+                      hide-details
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="3">
+                    <input
+                      type="color"
+                      v-model="bgPrimaryColor"
+                      class="color-picker"
+                    />
+                  </v-col>
+                </v-row>
+              </div>
+
+              <!-- Secondary Background Color -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  Secondary Background Color (Light Tint)
+                </label>
+                <v-row align="center">
+                  <v-col cols="9">
+                    <v-text-field
+                      v-model="bgSecondaryColor"
+                      variant="outlined"
+                      density="compact"
+                      placeholder="#FFEBEE"
+                      hide-details
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="3">
+                    <input
+                      type="color"
+                      v-model="bgSecondaryColor"
+                      class="color-picker"
+                    />
+                  </v-col>
+                </v-row>
+              </div>
+
+              <!-- Accent Background Color -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  Accent Background Color (Center Gradient)
+                </label>
+                <v-row align="center">
+                  <v-col cols="9">
+                    <v-text-field
+                      v-model="bgAccentColor"
+                      variant="outlined"
+                      density="compact"
+                      placeholder="#FFCDD2"
+                      hide-details
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="3">
+                    <input
+                      type="color"
+                      v-model="bgAccentColor"
+                      class="color-picker"
+                    />
+                  </v-col>
+                </v-row>
+              </div>
+
+              <!-- Preview -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  <v-icon class="mr-1" size="small">mdi-eye</v-icon>
+                  Background Preview
+                  <v-chip size="x-small" color="success" class="ml-2">Live Preview</v-chip>
+                </label>
+                <v-alert type="info" density="compact" variant="tonal" class="mb-2">
+                  <small>Changes preview in real-time. Click "Save" to apply everywhere.</small>
+                </v-alert>
+                <div class="bg-preview-container">
+                  <div 
+                    class="bg-preview"
+                    :style="{
+                      background: `linear-gradient(135deg, ${bgPrimaryColor} 0%, ${bgSecondaryColor} 25%, ${bgAccentColor} 50%, ${bgSecondaryColor} 75%, ${bgPrimaryColor} 100%)`,
+                      transition: 'background 0.3s ease'
+                    }"
+                  >
+                    <div class="bg-preview-content">
+                      <h3 style="color: #B71C1C;">Sample Heading</h3>
+                      <p style="color: #64748b;">This is how your background will look across all modules</p>
+                      <v-icon size="large" color="#B71C1C" class="mt-2">mdi-badminton</v-icon>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  <v-icon class="mr-1" size="small">mdi-palette-swatch</v-icon>
+                  Quick Presets
+                </label>
+                <div class="preset-buttons">
+                  <v-btn
+                    size="small"
+                    variant="outlined"
+                    @click="applyPreset('red-white')"
+                    class="mr-2 mb-2"
+                  >
+                    Red & White
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    variant="outlined"
+                    @click="applyPreset('blue-white')"
+                    class="mr-2 mb-2"
+                  >
+                    Blue & White
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    variant="outlined"
+                    @click="applyPreset('green-white')"
+                    class="mr-2 mb-2"
+                  >
+                    Green & White
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    variant="outlined"
+                    @click="applyPreset('pure-white')"
+                    class="mr-2 mb-2"
+                  >
+                    Pure White
+                  </v-btn>
+                </div>
+              </div>
+
+              <v-alert
+                v-if="bgSuccessMessage"
+                type="success"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="bgSuccessMessage = ''"
+              >
+                {{ bgSuccessMessage }}
+              </v-alert>
+
+              <v-alert
+                v-if="bgErrorMessage"
+                type="error"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="bgErrorMessage = ''"
+              >
+                {{ bgErrorMessage }}
+              </v-alert>
+
+              <div class="d-flex justify-end gap-2">
+                <v-btn
+                  color="grey"
+                  variant="outlined"
+                  @click="resetBackgroundColors"
+                  :disabled="bgSaving"
+                >
+                  <v-icon class="mr-2">mdi-refresh</v-icon>
+                  Reset to Default
+                </v-btn>
+                <v-btn
+                  color="primary"
+                  variant="elevated"
+                  type="submit"
+                  :loading="bgSaving"
+                  :disabled="bgSaving"
+                >
+                  <v-icon class="mr-2">mdi-content-save</v-icon>
+                  Save Background Colors
+                </v-btn>
+              </div>
+            </v-form>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
@@ -177,6 +384,14 @@ export default {
     const successMessage = ref('')
     const errorMessage = ref('')
 
+    // Background colors
+    const bgPrimaryColor = ref('#FFFFFF')
+    const bgSecondaryColor = ref('#FFEBEE')
+    const bgAccentColor = ref('#FFCDD2')
+    const bgSaving = ref(false)
+    const bgSuccessMessage = ref('')
+    const bgErrorMessage = ref('')
+
     const snackbar = ref({
       show: false,
       message: '',
@@ -200,6 +415,11 @@ export default {
           currentLogoUrl.value = `${apiUrl}${settings.company_logo_url}`
           originalLogoUrl.value = currentLogoUrl.value
         }
+
+        // Load background colors
+        bgPrimaryColor.value = settings.bg_primary_color || '#FFFFFF'
+        bgSecondaryColor.value = settings.bg_secondary_color || '#FFEBEE'
+        bgAccentColor.value = settings.bg_accent_color || '#FFCDD2'
       } catch (error) {
         console.error('Failed to load settings:', error)
         errorMessage.value = 'Failed to load company settings'
@@ -319,6 +539,80 @@ export default {
       }
     }
 
+    // Background color functions
+    const saveBackgroundColors = async () => {
+      try {
+        bgSaving.value = true
+        bgSuccessMessage.value = ''
+        bgErrorMessage.value = ''
+
+        const data = {
+          bg_primary_color: bgPrimaryColor.value,
+          bg_secondary_color: bgSecondaryColor.value,
+          bg_accent_color: bgAccentColor.value,
+          company_name: companyName.value // Required field
+        }
+
+        await companySettingService.updateSettings(data)
+        bgSuccessMessage.value = 'Background colors updated successfully! Changes applied immediately.'
+        showSnackbar('Background colors saved successfully', 'success')
+
+        // Dispatch event to reload backgrounds immediately
+        window.dispatchEvent(new CustomEvent('background-colors-updated', {
+          detail: {
+            primary: bgPrimaryColor.value,
+            secondary: bgSecondaryColor.value,
+            accent: bgAccentColor.value
+          }
+        }))
+
+        // Also reload company settings to update everywhere
+        window.dispatchEvent(new CustomEvent('company-settings-updated'))
+
+      } catch (error) {
+        console.error('Failed to save background colors:', error)
+        bgErrorMessage.value = error.message || 'Failed to update background colors'
+        showSnackbar('Failed to save background colors', 'error')
+      } finally {
+        bgSaving.value = false
+      }
+    }
+
+    const resetBackgroundColors = () => {
+      bgPrimaryColor.value = '#FFFFFF'
+      bgSecondaryColor.value = '#FFEBEE'
+      bgAccentColor.value = '#FFCDD2'
+      bgSuccessMessage.value = ''
+      bgErrorMessage.value = ''
+    }
+
+    const applyPreset = (preset) => {
+      switch (preset) {
+        case 'red-white':
+          bgPrimaryColor.value = '#FFFFFF'
+          bgSecondaryColor.value = '#FFEBEE'
+          bgAccentColor.value = '#FFCDD2'
+          break
+        case 'blue-white':
+          bgPrimaryColor.value = '#FFFFFF'
+          bgSecondaryColor.value = '#E3F2FD'
+          bgAccentColor.value = '#BBDEFB'
+          break
+        case 'green-white':
+          bgPrimaryColor.value = '#FFFFFF'
+          bgSecondaryColor.value = '#E8F5E9'
+          bgAccentColor.value = '#C8E6C9'
+          break
+        case 'pure-white':
+          bgPrimaryColor.value = '#FFFFFF'
+          bgSecondaryColor.value = '#FAFAFA'
+          bgAccentColor.value = '#F5F5F5'
+          break
+      }
+      bgSuccessMessage.value = ''
+      bgErrorMessage.value = ''
+    }
+
     onMounted(() => {
       loadSettings()
     })
@@ -342,7 +636,17 @@ export default {
       showSnackbar,
       handleFileChange,
       clearLogo,
-      removeLogo
+      removeLogo,
+      // Background colors
+      bgPrimaryColor,
+      bgSecondaryColor,
+      bgAccentColor,
+      bgSaving,
+      bgSuccessMessage,
+      bgErrorMessage,
+      saveBackgroundColors,
+      resetBackgroundColors,
+      applyPreset
     }
   }
 }
@@ -379,7 +683,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFEBEE 25%, #FFCDD2 50%, #FFEBEE 75%, #FFFFFF 100%);
   z-index: -3;
 }
 
@@ -389,10 +693,10 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(198, 40, 40, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(211, 47, 47, 0.05) 0%, transparent 50%);
   z-index: -2;
 }
 
@@ -402,8 +706,8 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(183, 28, 28, 0.03) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
 }
@@ -475,6 +779,49 @@ export default {
 
 /* Utility Classes */
 .gap-2 {
+  gap: 8px;
+}
+
+/* Background Color Settings */
+.color-picker {
+  width: 100%;
+  height: 48px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.color-picker:hover {
+  border-color: #B71C1C;
+  transform: scale(1.05);
+}
+
+.bg-preview-container {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.bg-preview {
+  min-height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+}
+
+.bg-preview-content {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

@@ -13,12 +13,12 @@
             <div class="auth-header">
               <div class="header-badge">
                 <v-icon color="white" size="20" class="mr-2">mdi-account-plus</v-icon>
-                Join Champions
+                Join Perfect Smash
               </div>
               <h1 class="auth-title">
                 <span class="title-gradient">Create</span> Account
               </h1>
-              <p class="auth-subtitle">Join our champion court scheduling system</p>
+              <p class="auth-subtitle">Join Perfect Smash court booking system</p>
             </div>
 
             <div class="auth-form">
@@ -312,13 +312,13 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(16, 185, 129, 0.1);
+  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(183, 28, 28, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: #10b981;
+  color: #B71C1C;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
@@ -333,7 +333,7 @@ export default {
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -356,19 +356,19 @@ export default {
 }
 
 .auth-btn-primary {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   color: white !important;
   border-radius: 12px !important;
   font-weight: 700 !important;
   text-transform: none !important;
   padding: 16px 32px !important;
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4) !important;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .auth-btn-primary:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
 }
 
 /* Error Alert */
@@ -396,14 +396,14 @@ export default {
 }
 
 .terms-link {
-  color: #3b82f6;
+  color: #B71C1C;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s ease;
 }
 
 .terms-link:hover {
-  color: #1d4ed8;
+  color: #C62828;
   text-decoration: underline;
 }
 
@@ -420,14 +420,14 @@ export default {
 }
 
 .auth-link {
-  color: #3b82f6;
+  color: #B71C1C;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.3s ease;
 }
 
 .auth-link:hover {
-  color: #1d4ed8;
+  color: #C62828;
   text-decoration: underline;
 }
 

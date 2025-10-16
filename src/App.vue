@@ -1,5 +1,8 @@
 <template>
   <v-app>
+    <!-- Dynamic Global Background -->
+    <div class="global-background" :style="backgroundStyle"></div>
+    
     <v-app-bar class="excel-app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
       <v-toolbar-title class="excel-app-title d-flex align-center" @click="router.push({ name: 'Home' })" style="cursor: pointer;">
@@ -101,7 +104,9 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Courts - Only show for admin/staff users -->
           <v-list-item
+            v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-stadium"
             title="Courts"
             value="courts"
@@ -117,6 +122,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Admin Panel - Only for admin users -->
           <v-list-item
             v-if="isAuthenticated && isAdmin"
             prepend-icon="mdi-shield-account"
@@ -126,6 +132,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- User Management - Only for admin users -->
           <v-list-item
             v-if="isAuthenticated && isAdmin"
             prepend-icon="mdi-account-group"
@@ -135,6 +142,17 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Sports Management - Only for admin users -->
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-tennis-ball"
+            title="Sports Management"
+            value="sports-management"
+            :to="{ name: 'SportsManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <!-- Company Settings - Only for admin users -->
           <v-list-item
             v-if="isAuthenticated && isAdmin"
             prepend-icon="mdi-cog"
@@ -144,6 +162,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Staff Scanner - Only for staff/admin users -->
           <v-list-item
             v-if="isAuthenticated && (isStaff || isAdmin)"
             prepend-icon="mdi-qrcode-scan"
@@ -211,11 +230,20 @@ export default {
     const bookingDialogOpen = ref(false)
     const cartDialogOpen = ref(false)
     const cartCount = ref(0)
-    const companyName = ref('Multi-Sport Court Booking')
+    const companyName = ref('Perfect Smash')
     const companyLogo = ref(null)
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
     const isStaff = computed(() => user.value?.role === 'staff')
+
+    // Background colors
+    const bgPrimaryColor = ref('#FFFFFF')
+    const bgSecondaryColor = ref('#FFEBEE')
+    const bgAccentColor = ref('#FFCDD2')
+
+    const backgroundStyle = computed(() => ({
+      background: `linear-gradient(135deg, ${bgPrimaryColor.value} 0%, ${bgSecondaryColor.value} 25%, ${bgAccentColor.value} 50%, ${bgSecondaryColor.value} 75%, ${bgPrimaryColor.value} 100%)`
+    }))
 
     const checkAuth = async () => {
       try {
@@ -282,12 +310,10 @@ export default {
     const handleBookingCreated = () => {
       // Update cart count when booking is created (added to cart)
       updateCartCount()
-      console.log('Booking created successfully')
     }
 
     const handleCheckoutComplete = () => {
       updateCartCount()
-      console.log('Checkout completed successfully')
     }
 
     const updateCartCount = async () => {
@@ -318,19 +344,39 @@ export default {
         } else {
           companyLogo.value = null
         }
+
+        // Load background colors
+        if (settings.bg_primary_color) {
+          bgPrimaryColor.value = settings.bg_primary_color
+        }
+        if (settings.bg_secondary_color) {
+          bgSecondaryColor.value = settings.bg_secondary_color
+        }
+        if (settings.bg_accent_color) {
+          bgAccentColor.value = settings.bg_accent_color
+        }
       } catch (error) {
         console.error('Failed to load company settings:', error)
-        // Keep default name and logo if loading fails
+        // Keep default name, logo, and colors if loading fails
       }
+    }
+
+    const updateBackgroundColors = (colors) => {
+      if (colors.primary) bgPrimaryColor.value = colors.primary
+      if (colors.secondary) bgSecondaryColor.value = colors.secondary
+      if (colors.accent) bgAccentColor.value = colors.accent
     }
 
     onMounted(() => {
       updateCartCount()
-      // Update cart count every 5 seconds
-      setInterval(updateCartCount, 5000)
       checkAuth()
       loadCompanySettings()
 
+      
+      // Update cart count every 30 seconds (for expiration detection)
+      // This helps notify users when cart items expire
+      setInterval(updateCartCount, 30000) // 30 seconds instead of 5
+      
       // Listen for custom event from child components
       window.addEventListener('open-booking-dialog', openBookingDialog)
       window.addEventListener('cart-updated', updateCartCount)
@@ -345,11 +391,15 @@ export default {
 
       // Listen for company settings updates
       window.addEventListener('company-settings-updated', loadCompanySettings)
+
+      // Listen for background color updates
+      window.addEventListener('background-colors-updated', (event) => {
+        updateBackgroundColors(event.detail)
+      })
     })
 
     // Watch for route changes to ensure components re-initialize
     watch(() => route.path, (newPath, oldPath) => {
-      console.log('Route changed from', oldPath, 'to', newPath)
       // Force re-render by dispatching a custom event
       window.dispatchEvent(new CustomEvent('route-changed', {
         detail: { newPath, oldPath }
@@ -376,13 +426,25 @@ export default {
       handleBookingCreated,
       handleCheckoutComplete,
       handleCourtsClick,
-      handleBookingsClick
+      handleBookingsClick,
+      backgroundStyle
     }
   }
 }
 </script>
 
 <style scoped>
+/* Dynamic Global Background */
+.global-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  transition: background 0.5s ease;
+}
+
 /* Modern Sports Theme - Dynamic Athletic Design */
 .excel-sidebar {
   background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%) !important;
@@ -412,7 +474,7 @@ export default {
   left: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  background: linear-gradient(180deg, #B71C1C 0%, #C62828 100%);
   transform: scaleY(0);
   transition: transform 0.3s ease;
   border-radius: 0 4px 4px 0;
@@ -429,7 +491,7 @@ export default {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.08), transparent);
+  background: linear-gradient(90deg, transparent, rgba(183, 28, 28, 0.08), transparent);
   transition: left 0.6s ease;
 }
 
@@ -438,23 +500,23 @@ export default {
 }
 
 .excel-nav-item:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
-  color: #1e40af !important;
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%) !important;
+  color: #b71c1c !important;
   transform: translateX(6px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.15);
 }
 
 .excel-nav-item.v-list-item--active {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   color: #ffffff !important;
   font-weight: 600 !important;
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 16px rgba(183, 28, 28, 0.3);
   transform: translateX(6px);
 }
 
 .excel-nav-item.v-list-item--active::before {
   transform: scaleY(1);
-  background: linear-gradient(180deg, #ffffff 0%, #e0e7ff 100%);
+  background: linear-gradient(180deg, #ffffff 0%, #ffcdd2 100%);
 }
 
 /* Icon styling */
@@ -487,7 +549,7 @@ export default {
 }
 
 .excel-app-title {
-  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #5F6368 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -497,14 +559,14 @@ export default {
 }
 
 .company-logo-avatar {
-  border: 2px solid rgba(59, 130, 246, 0.2);
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  border: 2px solid rgba(183, 28, 28, 0.2);
+  box-shadow: 0 2px 8px rgba(183, 28, 28, 0.15);
   transition: all 0.3s ease;
 }
 
 .company-logo-avatar:hover {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.25);
 }
 
 .excel-notification-btn,
@@ -515,7 +577,7 @@ export default {
 
 .excel-notification-btn:hover,
 .excel-profile-btn:hover {
-  color: #3b82f6 !important;
+  color: #B71C1C !important;
   transform: scale(1.1);
 }
 
@@ -533,9 +595,9 @@ export default {
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(95, 99, 104, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(198, 40, 40, 0.05) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -653,14 +715,14 @@ export default {
   bottom: 24px !important;
   right: 24px !important;
   z-index: 1000;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .excel-fab:hover {
   transform: translateY(-4px) scale(1.05) !important;
-  box-shadow: 0 12px 35px rgba(16, 185, 129, 0.6) !important;
+  box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
 }
 
 /* Sports-themed scrollbar */
@@ -675,13 +737,212 @@ export default {
 }
 
 :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(180deg, #B71C1C 0%, #C62828 100%);
   border-radius: 4px;
   border: 2px solid #f1f5f9;
 }
 
 :deep(.v-navigation-drawer__content)::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  background: linear-gradient(180deg, #C62828 0%, #D32F2F 100%);
   border-color: #e2e8f0;
+}
+
+/* Global Light Red Background */
+:deep(.v-main) {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F5 25%, #FFF0F0 50%, #FFF5F5 75%, #FFFFFF 100%) !important;
+  position: relative;
+}
+
+:deep(.v-main)::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(239, 83, 80, 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(244, 67, 54, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(239, 83, 80, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+:deep(.v-main)::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(circle at 2px 2px, rgba(239, 83, 80, 0.02) 1px, transparent 0);
+  background-size: 30px 30px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Global Dialog Theme - Light Red & White */
+:deep(.v-dialog .v-card) {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F8 50%, #FFFFFF 100%) !important;
+  border: 1px solid rgba(239, 83, 80, 0.1) !important;
+  box-shadow: 0 12px 48px rgba(183, 28, 28, 0.12) !important;
+}
+
+:deep(.v-dialog .v-card-title) {
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%) !important;
+  color: #B71C1C !important;
+  border-bottom: 2px solid rgba(183, 28, 28, 0.1) !important;
+  font-weight: 700 !important;
+}
+
+:deep(.v-dialog .v-card-text) {
+  color: #1e293b !important;
+}
+
+:deep(.v-overlay) {
+  background: rgba(183, 28, 28, 0.08) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Dialog Buttons */
+:deep(.v-dialog .v-btn) {
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0.5px !important;
+}
+
+:deep(.v-dialog .v-btn.bg-primary),
+:deep(.v-dialog .v-btn[color="primary"]) {
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3) !important;
+}
+
+:deep(.v-dialog .v-btn.bg-primary):hover,
+:deep(.v-dialog .v-btn[color="primary"]:hover) {
+  box-shadow: 0 6px 16px rgba(183, 28, 28, 0.4) !important;
+  transform: translateY(-2px);
+}
+
+/* Form Fields in Dialogs */
+:deep(.v-dialog .v-text-field .v-field) {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(239, 83, 80, 0.1) !important;
+}
+
+:deep(.v-dialog .v-text-field .v-field:focus-within) {
+  border-color: #B71C1C !important;
+  box-shadow: 0 0 0 3px rgba(183, 28, 28, 0.1) !important;
+}
+
+:deep(.v-dialog .v-select .v-field),
+:deep(.v-dialog .v-textarea .v-field) {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border: 1px solid rgba(239, 83, 80, 0.1) !important;
+}
+
+/* Dialog Close Button */
+:deep(.v-dialog .v-btn--icon) {
+  background: rgba(183, 28, 28, 0.05) !important;
+}
+
+:deep(.v-dialog .v-btn--icon):hover {
+  background: rgba(183, 28, 28, 0.1) !important;
+}
+
+/* Snackbar Theme */
+:deep(.v-snackbar .v-snackbar__wrapper) {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F8 100%) !important;
+  border: 1px solid rgba(239, 83, 80, 0.2) !important;
+  box-shadow: 0 8px 24px rgba(183, 28, 28, 0.15) !important;
+  color: #1e293b !important;
+}
+
+:deep(.v-snackbar.v-snackbar--variant-flat) {
+  background: transparent !important;
+}
+
+/* Menu Theme */
+:deep(.v-menu .v-list) {
+  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F8 100%) !important;
+  border: 1px solid rgba(239, 83, 80, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(183, 28, 28, 0.12) !important;
+}
+
+:deep(.v-menu .v-list-item:hover) {
+  background: rgba(183, 28, 28, 0.05) !important;
+}
+
+:deep(.v-menu .v-list-item--active) {
+  background: rgba(183, 28, 28, 0.1) !important;
+  color: #B71C1C !important;
+}
+
+/* Tooltip Theme */
+:deep(.v-tooltip .v-overlay__content) {
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3) !important;
+}
+
+/* Data Table Theme */
+:deep(.v-data-table) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(239, 83, 80, 0.1) !important;
+}
+
+:deep(.v-data-table .v-data-table__thead) {
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%) !important;
+}
+
+:deep(.v-data-table .v-data-table-header th) {
+  color: #B71C1C !important;
+  font-weight: 700 !important;
+}
+
+:deep(.v-data-table .v-data-table__tr:hover) {
+  background: rgba(183, 28, 28, 0.03) !important;
+}
+
+/* Card Theme */
+:deep(.v-card) {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 1px solid rgba(239, 83, 80, 0.08) !important;
+}
+
+:deep(.v-card:hover) {
+  border-color: rgba(239, 83, 80, 0.15) !important;
+}
+
+/* Chip Theme */
+:deep(.v-chip) {
+  font-weight: 600 !important;
+}
+
+:deep(.v-chip.bg-primary),
+:deep(.v-chip[color="primary"]) {
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
+}
+
+/* Progress Circular/Linear Theme */
+:deep(.v-progress-circular) {
+  color: #B71C1C !important;
+}
+
+:deep(.v-progress-linear) {
+  background: rgba(183, 28, 28, 0.1) !important;
+}
+
+:deep(.v-progress-linear .v-progress-linear__determinate) {
+  background: linear-gradient(90deg, #B71C1C 0%, #D32F2F 100%) !important;
+}
+
+/* Divider Theme */
+:deep(.v-divider) {
+  border-color: rgba(239, 83, 80, 0.1) !important;
+}
+
+/* Badge Theme */
+:deep(.v-badge .v-badge__badge) {
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
 }
 </style>

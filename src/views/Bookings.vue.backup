@@ -2085,8 +2085,6 @@ export default {
         loading.value = true
 
         // Fetch cart transactions
-        console.log('🛒 Fetching cart transactions...')
-
         try {
           const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart-transactions`, {
             headers: {
@@ -2097,8 +2095,6 @@ export default {
 
           if (cartResponse.ok) {
             const transactionsData = await cartResponse.json()
-            console.log('✅ Cart transactions received:', transactionsData.length)
-            console.log('📋 Transactions data:', transactionsData)
 
             // Store transactions directly
             transactions.value = transactionsData
@@ -2149,8 +2145,6 @@ export default {
 
             // Set bookings to cart transactions
             bookings.value = transactionBookings
-            console.log('📦 Displaying', bookings.value.length, 'cart transactions')
-            console.log('🗓️ Sample transaction:', transactionBookings[0])
           } else {
             console.error('❌ Failed to fetch cart items')
             bookings.value = []
@@ -2715,15 +2709,10 @@ export default {
     }
 
     const testEditDialog = () => {
-      console.log('Testing edit dialog...')
       editDialog.value = true
-      console.log('Edit dialog state:', editDialog.value)
     }
 
     const forcePopulateForm = () => {
-      console.log('Force populating form...')
-      console.log('Current editingBooking:', editingBooking.value)
-
       if (editingBooking.value) {
         // Simple form population
         editForm.court_id = editingBooking.value.court_id || 1
@@ -2740,8 +2729,6 @@ export default {
         editForm.payment_method = editingBooking.value.payment_method || ''
         editForm.gcash_amount = ''
         editForm.proof_of_payment = null
-
-        console.log('Form force populated:', editForm)
       }
     }
 
@@ -3071,12 +3058,10 @@ export default {
           user.value = null
         }
       } else {
-        console.log('Bookings - No token found, user not authenticated')
         user.value = null
       }
 
       // Always try to fetch bookings regardless of auth status
-      console.log('Bookings - Attempting to fetch bookings...')
       await fetchBookings()
 
       authLoading.value = false
@@ -3101,7 +3086,6 @@ export default {
     // Watch for route changes to refresh data when navigating to this page
     watch(() => route.path, (newPath) => {
       if (newPath === '/bookings' && user.value) {
-        console.log('Bookings - Route changed to /bookings, refreshing data...')
         fetchBookings()
       }
     })

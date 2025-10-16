@@ -107,8 +107,29 @@
 
               <!-- Availability Tab -->
               <v-window-item value="availability">
-                <v-card-text>
+                <v-card-text class="pa-6">
+                  <!-- Date Selection with Quick Actions -->
                   <div class="mb-4">
+                    <div class="d-flex align-center justify-space-between mb-3">
+                      <h4 class="text-subtitle-1 font-weight-bold">Select Date</h4>
+                      <div class="d-flex gap-2">
+                        <v-btn 
+                          size="small" 
+                          variant="outlined"
+                          @click="setToday"
+                          :color="isToday(selectedDate) ? 'primary' : 'default'"
+                        >
+                          Today
+                        </v-btn>
+                        <v-btn 
+                          size="small" 
+                          variant="outlined"
+                          @click="setTomorrow"
+                        >
+                          Tomorrow
+                        </v-btn>
+                      </div>
+                    </div>
                     <v-text-field
                       v-model="selectedDate"
                       type="date"
@@ -117,35 +138,69 @@
                       prepend-inner-icon="mdi-calendar"
                       :min="new Date().toISOString().split('T')[0]"
                       @update:model-value="fetchAvailability"
+                      density="comfortable"
                     ></v-text-field>
                   </div>
 
-                  <v-progress-linear v-if="loadingAvailability" indeterminate color="primary"></v-progress-linear>
+                  <v-progress-linear v-if="loadingAvailability" indeterminate color="primary" class="mb-4"></v-progress-linear>
 
                   <div v-else-if="availableSlots.length > 0">
-                    <h4 class="mb-3">Available Time Slots</h4>
-                    <v-row>
-                      <v-col
+                    <!-- Availability Summary -->
+                    <v-alert 
+                      type="info" 
+                      variant="tonal" 
+                      class="mb-4"
+                      density="compact"
+                    >
+                      <div class="d-flex align-center">
+                        <v-icon class="mr-2">mdi-information</v-icon>
+                        <div>
+                          <strong>{{ getAvailableCount() }}</strong> available slots out of <strong>{{ availableSlots.length }}</strong> total slots
+                        </div>
+                      </div>
+                    </v-alert>
+
+                    <!-- Time Slots Grid - Booking Dialog Pattern -->
+                    <h4 class="mb-3 d-flex align-center">
+                      <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
+                      Available Time Slots
+                    </h4>
+                    <div class="time-slots-grid">
+                      <v-card
                         v-for="(slot, index) in availableSlots"
                         :key="index"
-                        cols="6"
-                        sm="4"
-                        md="3"
+                        :class="['time-slot-card', {
+                          'unavailable': !slot.available,
+                          'selected': false
+                        }]"
+                        @click="handleSlotClick(slot)"
                       >
-                        <v-chip
-                          :color="slot.available ? 'success' : 'error'"
-                          variant="flat"
-                          size="large"
-                          class="availability-chip"
-                          block
-                        >
-                          <v-icon start size="small">
-                            {{ slot.available ? 'mdi-check-circle' : 'mdi-close-circle' }}
-                          </v-icon>
-                          {{ formatTimeSlot(slot.start) }} - {{ formatTimeSlot(slot.end) }}
-                        </v-chip>
-                      </v-col>
-                    </v-row>
+                        <v-card-text class="text-center pa-3">
+                          <div class="text-body-2 font-weight-bold">{{ formatTimeSlot(slot.start) }}</div>
+                          <div class="text-caption">to</div>
+                          <div class="text-body-2 font-weight-bold">{{ formatTimeSlot(slot.end) }}</div>
+                          <v-chip
+                            :color="slot.available ? 'success' : 'error'"
+                            size="x-small"
+                            class="mt-2"
+                          >
+                            {{ slot.available ? 'Available' : 'Booked' }}
+                          </v-chip>
+                        </v-card-text>
+                      </v-card>
+                    </div>
+
+                    <!-- Legend -->
+                    <div class="mt-4 d-flex gap-4 justify-center flex-wrap">
+                      <div class="d-flex align-center">
+                        <v-chip color="success" size="x-small" class="mr-2" variant="flat"></v-chip>
+                        <span class="text-caption">Available</span>
+                      </div>
+                      <div class="d-flex align-center">
+                        <v-chip color="grey" size="x-small" class="mr-2" variant="flat"></v-chip>
+                        <span class="text-caption">Booked</span>
+                      </div>
+                    </div>
                   </div>
 
                   <div v-else class="text-center py-8">
@@ -302,6 +357,182 @@
         </v-col>
       </v-row>
     </div>
+
+    <!-- Booking Details Dialog -->
+    <v-dialog
+      v-model="bookingDetailsDialog"
+      max-width="700px"
+      class="booking-details-dialog"
+      persistent
+    >
+      <v-card v-if="selectedBookingSlot" class="booking-details-dialog">
+        <v-card-title class="text-h5 dialog-title">
+          <div class="d-flex align-center">
+            <v-icon class="mr-2">mdi-calendar-clock</v-icon>
+            Time Slot Details
+          </div>
+          <v-btn icon="mdi-close" variant="text" @click="bookingDetailsDialog = false"></v-btn>
+        </v-card-title>
+
+        <v-card-text>
+          <v-row>
+            <v-col cols="12" md="6">
+              <div class="detail-section">
+                <h4 class="detail-label">Court Information</h4>
+                <div class="detail-content">
+                  <div class="detail-item">
+                    <strong>Court:</strong> {{ court.name || 'Unknown' }}
+                  </div>
+                  <div class="detail-item">
+                    <strong>Sport:</strong> {{ court.sport?.name || 'N/A' }}
+                  </div>
+                  <div class="detail-item">
+                    <strong>Price:</strong> ₱{{ formatPrice(selectedBookingSlot.price) }}/hour
+                  </div>
+                </div>
+              </div>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <div class="detail-section">
+                <h4 class="detail-label">Slot Information</h4>
+                <div class="detail-content">
+                  <div class="detail-item">
+                    <strong>Status:</strong>
+                    <v-chip
+                      :color="selectedBookingSlot.available ? 'success' : 'error'"
+                      variant="tonal"
+                      size="small"
+                      class="ml-2"
+                    >
+                      {{ selectedBookingSlot.available ? 'Available' : 'Booked' }}
+                    </v-chip>
+                  </div>
+                  <div class="detail-item" v-if="!selectedBookingSlot.available && selectedBookingSlot.type">
+                    <strong>Type:</strong>
+                    <v-chip
+                      :color="getBookingTypeColor(selectedBookingSlot.type)"
+                      variant="tonal"
+                      size="small"
+                      class="ml-2"
+                    >
+                      {{ getBookingTypeLabel(selectedBookingSlot.type) }}
+                    </v-chip>
+                  </div>
+                  <div class="detail-item">
+                    <strong>Duration:</strong> {{ formatDuration(selectedBookingSlot.duration_hours) }} hour(s)
+                  </div>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12">
+              <div class="detail-section">
+                <h4 class="detail-label">Date & Time</h4>
+                <div class="detail-content">
+                  <div class="detail-item">
+                    <strong>Date:</strong> {{ formatDate(selectedDate) }}
+                  </div>
+                  <div class="detail-item">
+                    <strong>Time Slot:</strong>
+                    <div class="time-slots-detail-list mt-2">
+                      <v-chip
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        class="mr-2 mb-2"
+                      >
+                        <v-icon start size="small">mdi-clock-outline</v-icon>
+                        {{ formatTimeSlot(selectedBookingSlot.start) }} - {{ formatTimeSlot(selectedBookingSlot.end) }}
+                        <span class="ml-2 font-weight-bold">₱{{ formatPrice(selectedBookingSlot.price) }}</span>
+                      </v-chip>
+                    </div>
+                    <div class="mt-2">
+                      <strong>Duration:</strong> {{ formatDuration(selectedBookingSlot.duration_hours) }} hours
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+
+            <v-col cols="12" md="6">
+              <div class="detail-section">
+                <h4 class="detail-label">Status & Payment</h4>
+                <div class="detail-content">
+                  <div class="detail-item">
+                    <strong>Status:</strong>
+                    <v-chip
+                      :color="selectedBookingSlot.available ? 'success' : 'error'"
+                      variant="tonal"
+                      size="small"
+                      class="ml-2"
+                    >
+                      {{ selectedBookingSlot.available ? 'Available' : 'Booked' }}
+                    </v-chip>
+                  </div>
+                  <div class="detail-item" v-if="!selectedBookingSlot.available && selectedBookingSlot.status">
+                    <strong>Payment:</strong>
+                    <v-chip
+                      :color="selectedBookingSlot.status === 'paid' ? 'success' : 'warning'"
+                      variant="tonal"
+                      size="small"
+                      class="ml-2"
+                    >
+                      {{ selectedBookingSlot.status }}
+                    </v-chip>
+                  </div>
+                  <div class="detail-item">
+                    <strong>Total Amount:</strong>
+                    <span class="ml-2 text-h6 text-success font-weight-bold">
+                      ₱{{ formatPrice(selectedBookingSlot.price) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+
+          <!-- Additional Info for Booked Slots -->
+          <v-row v-if="!selectedBookingSlot.available && selectedBookingSlot.type">
+            <v-col cols="12">
+              <div class="detail-section">
+                <h4 class="detail-label">
+                  <v-icon class="mr-2" :color="getBookingTypeColor(selectedBookingSlot.type)">
+                    {{ getBookingTypeIcon(selectedBookingSlot.type) }}
+                  </v-icon>
+                  Booking Type Information
+                </h4>
+                <div class="detail-content">
+                  <v-alert
+                    :type="selectedBookingSlot.type === 'booking' ? 'info' : 'warning'"
+                    variant="tonal"
+                    class="mb-0"
+                  >
+                    <div class="text-body-2">
+                      <strong>{{ getBookingTypeLabel(selectedBookingSlot.type) }}</strong><br>
+                      {{ getBookingTypeDescription(selectedBookingSlot.type) }}
+                    </div>
+                  </v-alert>
+                </div>
+              </div>
+            </v-col>
+          </v-row>
+        </v-card-text>
+
+        <v-card-actions v-if="selectedBookingSlot.available">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="primary"
+            @click="bookTimeSlot(selectedBookingSlot)"
+          >
+            <v-icon start>mdi-calendar-plus</v-icon>
+            Book Now
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -329,6 +560,10 @@ export default {
     // Recent Bookings
     const recentBookings = ref([])
     const loadingBookings = ref(false)
+
+    // Booking details dialog
+    const bookingDetailsDialog = ref(false)
+    const selectedBookingSlot = ref(null)
 
     const getSportColor = (sportName) => {
       const colors = {
@@ -384,17 +619,13 @@ export default {
 
     const fetchRecentBookings = async () => {
       if (!court.value) {
-        console.log('No court data available yet')
         return
       }
 
       try {
         loadingBookings.value = true
-        console.log('Fetching recent bookings for court:', court.value.id)
         const response = await api.get(`/courts/${court.value.id}/recent-bookings`)
-        console.log('Recent bookings response:', response.data)
         recentBookings.value = response.data.data || response.data
-        console.log('Recent bookings:', recentBookings.value)
       } catch (err) {
         console.error('Error fetching recent bookings:', err)
         console.error('Error details:', err.response?.data)
@@ -498,12 +729,110 @@ export default {
       router.push('/bookings')
     }
 
+    const setToday = () => {
+      selectedDate.value = new Date().toISOString().split('T')[0]
+    }
+
+    const setTomorrow = () => {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      selectedDate.value = tomorrow.toISOString().split('T')[0]
+    }
+
+    const isToday = (date) => {
+      if (!date) return false
+      const today = new Date().toISOString().split('T')[0]
+      return date === today
+    }
+
+    const getAvailableCount = () => {
+      return availableSlots.value.filter(slot => slot.available).length
+    }
+
+    const bookTimeSlot = (slot) => {
+      bookingDetailsDialog.value = false
+      // Navigate to bookings page with pre-selected court and time
+      router.push({
+        path: '/bookings',
+        query: {
+          courtId: court.value.id,
+          date: selectedDate.value,
+          start: slot.start,
+          end: slot.end
+        }
+      })
+    }
+
+    const handleSlotClick = (slot) => {
+      selectedBookingSlot.value = slot
+      bookingDetailsDialog.value = true
+    }
+
+    const getBookingTypeColor = (type) => {
+      const colors = {
+        'booking': 'primary',
+        'paid': 'success',
+        'in_cart': 'warning'
+      }
+      return colors[type] || 'grey'
+    }
+
+    const getBookingTypeIcon = (type) => {
+      const icons = {
+        'booking': 'mdi-calendar-check',
+        'paid': 'mdi-cash-check',
+        'in_cart': 'mdi-cart'
+      }
+      return icons[type] || 'mdi-information'
+    }
+
+    const getBookingTypeLabel = (type) => {
+      const labels = {
+        'booking': 'Confirmed Booking',
+        'paid': 'Paid Booking',
+        'in_cart': 'In Cart'
+      }
+      return labels[type] || 'Booked'
+    }
+
+    const getBookingTypeDescription = (type) => {
+      const descriptions = {
+        'booking': 'This time slot has a confirmed booking',
+        'paid': 'This time slot has been paid for and confirmed',
+        'in_cart': 'This time slot is temporarily reserved in someone\'s cart'
+      }
+      return descriptions[type] || 'This time slot is not available'
+    }
+
+    const formatDate = (date) => {
+      if (!date) return ''
+      const d = new Date(date)
+      return d.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })
+    }
+
+    const formatPrice = (price) => {
+      const numPrice = Math.abs(parseFloat(price || 0))
+      return numPrice.toFixed(2)
+    }
+
+    const formatDuration = (hours) => {
+      const numHours = Math.abs(parseFloat(hours || 1))
+      return numHours
+    }
+
     onMounted(async () => {
       await fetchCourtDetails()
       // Fetch bookings after court is loaded
       if (court.value) {
         await fetchRecentBookings()
       }
+      // Set today's date by default
+      setToday()
     })
 
     return {
@@ -527,7 +856,22 @@ export default {
       getStatusColor,
       getStatusIcon,
       getAmenitiesArray,
-      bookCourt
+      bookCourt,
+      setToday,
+      setTomorrow,
+      isToday,
+      getAvailableCount,
+      bookTimeSlot,
+      handleSlotClick,
+      bookingDetailsDialog,
+      selectedBookingSlot,
+      getBookingTypeColor,
+      getBookingTypeIcon,
+      getBookingTypeLabel,
+      getBookingTypeDescription,
+      formatDate,
+      formatPrice,
+      formatDuration
     }
   }
 }
@@ -577,7 +921,7 @@ export default {
 .court-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #B71C1C;
   margin: 0;
 }
 
@@ -641,7 +985,7 @@ export default {
 
 .info-value {
   font-size: 1rem;
-  color: #1e293b;
+  color: #B71C1C;
   font-weight: 500;
 }
 
@@ -687,5 +1031,191 @@ export default {
   .no-image {
     height: 300px;
   }
+}
+
+/* Time Slots Grid - Matching Booking Dialog */
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.time-slot-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: #ffffff !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.time-slot-card .v-card-text {
+  color: #1f2937 !important;
+}
+
+.time-slot-card:hover:not(.unavailable) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #90caf9;
+  background: #f8fafc !important;
+}
+
+.time-slot-card.selected {
+  border-color: #1976d2 !important;
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.15) 0%, rgba(21, 101, 192, 0.1) 100%) !important;
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3) !important;
+  transform: scale(1.05);
+}
+
+.time-slot-card.unavailable {
+  opacity: 0.8;
+  cursor: pointer;
+  background: #fff3f3 !important;
+  border-color: #ffcdd2;
+}
+
+.time-slot-card.unavailable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+  border-color: #ef5350;
+}
+
+/* Legacy styles for backward compatibility */
+.time-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.time-slot-card-court {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  background: #ffffff !important;
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.time-slot-card-court .v-card-text {
+  color: #1f2937 !important;
+  padding: 16px 12px !important;
+}
+
+.time-slot-card-court:hover:not(.unavailable) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: #90caf9;
+  background: #f8fafc !important;
+}
+
+.time-slot-card-court.unavailable {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f8f9fa !important;
+}
+
+.time-slot-card-court.unavailable .time-range-text {
+  color: #6b7280 !important;
+}
+
+.time-slot-card-court.unavailable .status-text {
+  color: #9ca3af !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .time-slots-grid-enhanced {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  
+  .time-slot-card-enhanced .v-card-text {
+    padding: 16px 12px !important;
+  }
+  
+  .time-range-text {
+    font-size: 14px;
+  }
+  
+  .time-divider {
+    font-size: 10px;
+  }
+  
+  .status-text {
+    font-size: 11px;
+  }
+  
+  .price-tag {
+    font-size: 12px;
+  }
+
+  /* Legacy grid responsive */
+  .time-slots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+  
+  .time-slot-card-court .v-card-text {
+    padding: 12px 8px !important;
+  }
+}
+
+/* Booking Details Dialog - Matching Bookings.vue Pattern */
+.booking-details-dialog .dialog-title {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white !important;
+  padding: 20px 24px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.booking-details-dialog .dialog-title .v-icon {
+  color: white !important;
+}
+
+.booking-details-dialog .dialog-title .v-btn {
+  color: white !important;
+}
+
+.booking-details-dialog .detail-section {
+  margin-bottom: 20px;
+}
+
+.booking-details-dialog .detail-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+.booking-details-dialog .detail-content {
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+}
+
+.booking-details-dialog .detail-item {
+  margin-bottom: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.booking-details-dialog .detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.booking-details-dialog .time-slots-detail-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 </style>

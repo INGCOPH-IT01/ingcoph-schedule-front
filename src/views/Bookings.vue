@@ -1,16 +1,10 @@
 <template>
   <div class="bookings-container">
-    <!-- Modern Sports Background -->
-    <div class="sports-background">
-      <div class="sports-overlay"></div>
-      <div class="sports-pattern"></div>
-    </div>
-
     <!-- Enhanced Header -->
     <div class="bookings-header">
       <div class="header-content">
         <div class="header-badge">
-          <v-icon color="white" size="20" class="mr-2">mdi-receipt-text-check</v-icon>
+          <v-icon color="#B71C1C" size="20" class="mr-2">mdi-receipt-text-check</v-icon>
           Transaction Management
         </div>
         <h1 class="header-title">
@@ -239,14 +233,27 @@
                           </div>
                         </div>
 
-                        <!-- Booked By -->
-                        <div class="detail-row-compact">
+                        <!-- Booked By / Booked For -->
+                        <div class="detail-row-compact" :class="{ 'admin-booking-highlight': getFirstCartItemBookingForName(booking) }">
                           <div class="detail-icon-compact user-icon">
                             <v-icon color="white" size="16">mdi-account</v-icon>
                           </div>
                           <div class="detail-content-compact">
-                            <div class="detail-label-compact">Booked by</div>
-                            <div class="detail-value-compact">{{ booking.user?.name || 'Unknown' }}</div>
+                            <div class="detail-label-compact">
+                              {{ getFirstCartItemBookingForName(booking) ? 'Booked For' : 'User' }}
+                            </div>
+                            <div class="detail-value-compact">
+                              {{ getFirstCartItemBookingForName(booking) || booking.user?.name || 'Unknown' }}
+                              <v-chip 
+                                v-if="getFirstCartItemBookingForName(booking)" 
+                                size="x-small" 
+                                color="info" 
+                                variant="outlined" 
+                                class="ml-1"
+                              >
+                                Admin
+                              </v-chip>
+                            </div>
                           </div>
                         </div>
 
@@ -695,8 +702,21 @@
               <div class="detail-section">
                 <h4 class="detail-label">Booking Information</h4>
                 <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>User:</strong> {{ selectedBooking.user?.name || 'Unknown' }}
+                  <div 
+                    class="detail-item" 
+                    :class="{ 'admin-booking-highlight': getFirstCartItemBookingForName(selectedBooking) }"
+                  >
+                    <strong>{{ getFirstCartItemBookingForName(selectedBooking) ? 'Booked For:' : 'User:' }}</strong> 
+                    {{ getFirstCartItemBookingForName(selectedBooking) || selectedBooking.user?.name || 'Unknown' }}
+                    <v-chip 
+                      v-if="getFirstCartItemBookingForName(selectedBooking)" 
+                      size="x-small" 
+                      color="info" 
+                      variant="outlined" 
+                      class="ml-2"
+                    >
+                      Admin Booking
+                    </v-chip>
                   </div>
                   <div class="detail-item">
                     <strong>Status:</strong>
@@ -2272,11 +2292,9 @@ export default {
         loading.value = true
 
         // Fetch cart transactions
-        console.log('🔄 fetchBookings started...')
         try {
           // Add cache-busting parameter to ensure fresh data
           const timestamp = new Date().getTime()
-          console.log('📡 Fetching from API with timestamp:', timestamp)
           const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart-transactions?_=${timestamp}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -2285,11 +2303,8 @@ export default {
             }
           })
 
-          console.log('📡 Response status:', cartResponse.status)
-
           if (cartResponse.ok) {
             const transactionsData = await cartResponse.json()
-            console.log('📦 Received transactions:', transactionsData.length, transactionsData)
 
             // Store transactions directly
             transactions.value = transactionsData
@@ -2434,6 +2449,14 @@ export default {
       })
 
       return totalHours.toFixed(1)
+    }
+
+    // Get booking_for_user_name from the first cart item if it exists
+    const getFirstCartItemBookingForName = (booking) => {
+      if (booking.cart_items && booking.cart_items.length > 0) {
+        return booking.cart_items[0].booking_for_user_name || null
+      }
+      return null
     }
 
     const formatDateTime = (dateTime) => {
@@ -3113,18 +3136,11 @@ export default {
     }
 
     const onBookingCreated = async () => {
-      console.log('🎉 onBookingCreated called!')
-      console.log('📊 Current bookings count:', bookings.value.length)
-
       // Delay to ensure backend has fully processed the transaction
       await new Promise(resolve => setTimeout(resolve, 1500))
 
-      console.log('⏳ Delay complete, fetching bookings...')
-
       // Refresh bookings list
       await fetchBookings()
-
-      console.log('✅ Fetch complete! New bookings count:', bookings.value.length)
 
       // Dispatch cart-updated event only (booking-created would cause duplicate refresh)
       window.dispatchEvent(new CustomEvent('cart-updated'))
@@ -3192,8 +3208,6 @@ export default {
 
     const editBooking = async (booking) => {
       try {
-        console.log('🔧 Edit booking clicked:', booking)
-
         // Set flag to prevent watchers from triggering
         isInitializingEdit.value = true
 
@@ -3212,15 +3226,12 @@ export default {
           originalItems: JSON.parse(JSON.stringify(booking.cart_items || []))
         }
 
-        console.log('🔧 Edit item populated:', editItem.value)
-
         globalEditDialog.value = true
 
         // Wait for dialog to render, then load available slots
         await nextTick()
 
         if (editItem.value.court_id && editItem.value.booking_date) {
-          console.log('🔧 Calling fetchEditAvailableSlots...')
           await fetchEditAvailableSlots()
 
           // Mark user's own booked slots as available so they can be deselected
@@ -3243,33 +3254,22 @@ export default {
               if (slotIndex !== -1) {
                 // Mark own slot as available and ensure price is set
                 const slot = editAvailableSlots.value[slotIndex]
-                console.log('🔍 Before marking - slot.price:', slot.price)
-                console.log('🔍 Before marking - slot keys:', Object.keys(slot))
 
                 slot.available = true
 
                 // Recalculate price if missing, invalid, or negative
                 const currentPrice = parseFloat(slot.price)
                 if (!slot.price || isNaN(currentPrice) || currentPrice < 0) {
-                  console.log('⚠️ Price is missing/invalid/negative, recalculating...', currentPrice)
                   const court = courts.value.find(c => c.id === editItem.value.court_id)
                   if (court) {
                     const start = new Date(`2000-01-01 ${slot.start}`)
                     const end = new Date(`2000-01-01 ${slot.end}`)
                     const hours = (end - start) / (1000 * 60 * 60)
                     slot.price = (court.price_per_hour * hours).toFixed(2)
-                    console.log('💰 Recalculated price for own slot:', slot.price)
-                    console.log('💰 Court price_per_hour:', court.price_per_hour)
-                    console.log('💰 Hours:', hours)
                   } else {
                     console.error('❌ Court not found for recalculation')
                   }
-                } else {
-                  console.log('✅ Price already exists:', slot.price)
                 }
-
-                console.log('🔓 After marking - slot.price:', slot.price)
-                console.log('🔓 Marked own slot as available:', slot)
               } else {
                 // If slot not in list, add it (shouldn't happen, but just in case)
                 const court = courts.value.find(c => c.id === editItem.value.court_id)
@@ -3284,8 +3284,6 @@ export default {
                     available: true,
                     price: (court.price_per_hour * hours).toFixed(2)
                   })
-
-                  console.log('➕ Added missing own slot:', cartItem.start_time, '-', cartItem.end_time)
                 }
               }
             })
@@ -3299,8 +3297,6 @@ export default {
               if (!seenKeys.has(key)) {
                 seenKeys.add(key)
                 uniqueSlots.push(slot)
-              } else {
-                console.log('🗑️ Removed duplicate slot:', slot)
               }
             })
 
@@ -3334,12 +3330,7 @@ export default {
               )
 
               if (matchingSlot) {
-                console.log('🔍 Pre-selecting slot, checking price...')
-                console.log('   - matchingSlot.price:', matchingSlot.price)
-                console.log('   - matchingSlot keys:', Object.keys(matchingSlot))
-
                 editSelectedSlots.value.push(matchingSlot)
-                console.log('✅ Pre-selected slot:', matchingSlot)
               } else {
                 console.warn('⚠️ Could not find matching slot for:', cartItem, {
                   looking_for: `${normalizedStart} - ${normalizedEnd}`,
@@ -3354,11 +3345,7 @@ export default {
               const timeB = new Date(`2000-01-01 ${b.start}`)
               return timeA - timeB
             })
-
-            console.log('🔧 Pre-selected slots:', editSelectedSlots.value)
           }
-        } else {
-          console.warn('🔧 Not fetching slots - missing court_id or booking_date')
         }
 
         // Clear flag after initialization is complete
@@ -3376,16 +3363,11 @@ export default {
 
     const fetchEditAvailableSlots = async () => {
       if (!editItem.value.court_id || !editItem.value.booking_date) {
-        console.log('⚠️ Missing court_id or booking_date:', {
-          court_id: editItem.value.court_id,
-          booking_date: editItem.value.booking_date
-        })
         return
       }
 
       loadingSlotsEdit.value = true
       const url = `${import.meta.env.VITE_API_URL}/api/courts/${editItem.value.court_id}/available-slots?date=${editItem.value.booking_date}`
-      console.log('📡 Fetching available slots from:', url)
 
       try {
         const response = await fetch(url, {
@@ -3395,15 +3377,11 @@ export default {
           }
         })
 
-        console.log('📡 Response status:', response.status)
-
         if (response.ok) {
           const data = await response.json()
-          console.log('📡 Response data:', data)
 
           // API returns data in data.data, not data.slots
           let slots = data.data || data.slots || []
-          console.log('📡 Raw slots from API:', slots.length, slots)
 
           // Deduplicate immediately after fetching
           const uniqueSlots = []
@@ -3414,13 +3392,10 @@ export default {
             if (!seenKeys.has(key)) {
               seenKeys.add(key)
               uniqueSlots.push(slot)
-            } else {
-              console.log('🗑️ API returned duplicate, removing:', slot)
             }
           })
 
           editAvailableSlots.value = uniqueSlots
-          console.log('✅ Available slots loaded (deduplicated):', editAvailableSlots.value.length)
         } else {
           const errorText = await response.text()
           console.error('❌ API Error:', response.status, errorText)
@@ -3451,11 +3426,8 @@ export default {
     }
 
     const selectEditTimeSlot = (slot) => {
-      console.log('🖱️ Clicked slot:', JSON.parse(JSON.stringify(slot)))
-
       // Allow selection if it's available or the user's own slot
       if (!canSelectEditSlot(slot)) {
-        console.log('❌ Slot not selectable')
         return
       }
 
@@ -3463,40 +3435,29 @@ export default {
 
       if (index > -1) {
         // Deselect if already selected
-        console.log('➖ Deselecting slot at index:', index)
         editSelectedSlots.value.splice(index, 1)
       } else {
         // Validate and ensure price exists before adding
-        console.log('➕ Adding new slot, checking price...')
-        console.log('   - Original slot.price:', slot.price)
-
         let validSlot = { ...slot }
 
         // If price is missing, invalid, or negative, calculate it
         const currentPrice = parseFloat(validSlot.price)
         if (!validSlot.price || isNaN(currentPrice) || currentPrice < 0) {
-          console.log('⚠️ Price missing/invalid/negative, calculating...', currentPrice)
           const court = courts.value.find(c => c.id === editItem.value.court_id)
-          console.log('   - Court found:', court ? court.id : 'NOT FOUND')
 
           if (court) {
             const start = new Date(`2000-01-01 ${slot.start}`)
             const end = new Date(`2000-01-01 ${slot.end}`)
             const hours = (end - start) / (1000 * 60 * 60)
             validSlot.price = (court.price_per_hour * hours).toFixed(2)
-            console.log('💰 Calculated price for slot:', validSlot.price)
-            console.log('💰 Full valid slot:', JSON.parse(JSON.stringify(validSlot)))
           } else {
             console.error('❌ Court not found for price calculation, court_id:', editItem.value.court_id)
             console.error('❌ Available courts:', courts.value.map(c => c.id))
             return
           }
-        } else {
-          console.log('✅ Slot already has valid price:', validSlot.price)
         }
 
         // Add to selection with validated price
-        console.log('➕ Adding slot to selection:', JSON.parse(JSON.stringify(validSlot)))
         editSelectedSlots.value.push(validSlot)
       }
 
@@ -3561,14 +3522,11 @@ export default {
       updatingBooking.value = true
       try {
         // Delete old cart items (skip if already completed/not found)
-        console.log('🗑️ Deleting old cart items:', editItem.value.originalItems.map(i => i.id))
         for (const item of editItem.value.originalItems) {
           try {
             await cartService.removeFromCart(item.id)
-            console.log('✅ Deleted cart item:', item.id)
           } catch (deleteError) {
             // Cart item might already be completed or not found - that's ok, continue
-            console.log('⚠️ Cart item already processed or not found:', item.id)
           }
         }
 
@@ -3585,25 +3543,17 @@ export default {
         }
 
         // Add new cart items for each selected slot
-        console.log('📋 All selected slots before mapping:', JSON.parse(JSON.stringify(editSelectedSlots.value)))
-
         const cartItems = editSelectedSlots.value.map((slot, index) => {
-          console.log(`📍 Processing slot ${index}:`, JSON.parse(JSON.stringify(slot)))
-          console.log(`   - slot.price:`, slot.price)
-          console.log(`   - typeof slot.price:`, typeof slot.price)
-
           let price = parseFloat(slot.price)
 
           // If price is negative or invalid, recalculate from court
           if (isNaN(price) || price < 0) {
-            console.warn('⚠️ Invalid price detected, recalculating from court...')
             const court = courts.value.find(c => c.id === editItem.value.court_id)
             if (court) {
               const start = new Date(`2000-01-01 ${slot.start}`)
               const end = new Date(`2000-01-01 ${slot.end}`)
               const hours = (end - start) / (1000 * 60 * 60)
               price = parseFloat((court.price_per_hour * hours).toFixed(2))
-              console.log('💰 Recalculated price:', price, 'from', court.price_per_hour, 'x', hours)
             } else {
               console.error('❌ Court not found for price calculation')
               throw new Error(`Cannot calculate price for slot ${slot.start}-${slot.end}`)
@@ -3624,9 +3574,6 @@ export default {
             price: price
           }
         })
-
-        console.log('💾 Saving cart items:', cartItems)
-        console.log('💾 Selected slots:', editSelectedSlots.value)
 
         await cartService.addToCart(cartItems)
 
@@ -3672,11 +3619,9 @@ export default {
     // Watch for court and date changes (but not during initial load)
     watch(() => editItem.value.court_id, () => {
       if (isInitializingEdit.value) {
-        console.log('👀 Court changed during init, skipping fetch...')
         return
       }
       if (editItem.value.court_id && editItem.value.booking_date) {
-        console.log('👀 Court changed, fetching slots...')
         editSelectedSlots.value = [] // Clear selections when court changes
         fetchEditAvailableSlots()
       }
@@ -3684,11 +3629,9 @@ export default {
 
     watch(() => editItem.value.booking_date, () => {
       if (isInitializingEdit.value) {
-        console.log('👀 Date changed during init, skipping fetch...')
         return
       }
       if (editItem.value.court_id && editItem.value.booking_date) {
-        console.log('👀 Date changed, fetching slots...')
         editSelectedSlots.value = [] // Clear selections when date changes
         fetchEditAvailableSlots()
       }
@@ -4161,6 +4104,7 @@ export default {
       formatTime,
       formatTimeSlot,
       calculateTotalDuration,
+      getFirstCartItemBookingForName,
       formatDateTime,
       getDuration,
       getTransactionDateGroups,
@@ -4279,48 +4223,13 @@ export default {
 <style scoped>
 /* Modern Sports Bookings Theme */
 .bookings-container {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   min-height: 100vh;
   padding: 32px;
   position: relative;
   z-index: 1;
 }
 
-/* Enhanced Background */
-.sports-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  z-index: -3;
-}
-
-.sports-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
-  z-index: -2;
-}
-
-.sports-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
-  background-size: 20px 20px;
-  z-index: -1;
-}
+/* Background is now handled globally by App.vue */
 
 /* Bookings Header */
 .bookings-header {
@@ -4338,13 +4247,13 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(183, 28, 28, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: white;
+  color: #B71C1C;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
@@ -4355,11 +4264,11 @@ export default {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 24px;
-  color: white;
+  color: #1e293b;
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -4367,7 +4276,7 @@ export default {
 
 .header-subtitle {
   font-size: clamp(1.1rem, 2vw, 1.3rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: #64748b;
   max-width: 600px;
   margin: 0 auto 32px;
   line-height: 1.6;
@@ -4380,19 +4289,19 @@ export default {
 }
 
 .header-btn-primary {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
   color: white !important;
   border-radius: 12px !important;
   font-weight: 700 !important;
   text-transform: none !important;
   padding: 16px 32px !important;
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .header-btn-primary:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.6) !important;
+  box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
 }
 
 /* Authentication Section */
@@ -4653,16 +4562,16 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 8px 12px;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%);
   border-radius: 8px;
   margin-bottom: 12px;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid #B71C1C;
 }
 
 .booking-date-text {
   font-size: 12px;
   font-weight: 700;
-  color: #1e40af;
+  color: #B71C1C;
   letter-spacing: 0.3px;
 }
 
@@ -4674,7 +4583,7 @@ export default {
 .court-name-compact {
   font-size: 14px;
   font-weight: 700;
-  color: #1e293b;
+  color: #B71C1C;
   margin: 0;
   line-height: 1.2;
 }
@@ -4688,7 +4597,7 @@ export default {
 
 .time-slot-display {
   font-weight: 600;
-  color: #1e293b;
+  color: #B71C1C;
 }
 
 .booking-details-compact {
@@ -4716,8 +4625,8 @@ export default {
 }
 
 .detail-row-compact:hover {
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  border-left-color: #3b82f6;
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%);
+  border-left-color: #B71C1C;
 }
 
 .detail-icon-compact {
@@ -4731,8 +4640,8 @@ export default {
 }
 
 .time-icon {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3);
 }
 
 .user-icon {
@@ -4772,7 +4681,7 @@ export default {
 .detail-value-compact {
   font-size: 12px;
   font-weight: 600;
-  color: #1e293b;
+  color: #B71C1C;
   line-height: 1.3;
 }
 
@@ -4794,6 +4703,14 @@ export default {
   border-radius: 8px;
   border-left: 4px solid #ef4444;
   margin-top: 16px;
+}
+
+.admin-booking-highlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left: 3px solid #3b82f6;
+  padding-left: 8px;
+  border-radius: 6px;
+  margin: 4px 0;
 }
 
 .rejection-label {
@@ -5233,7 +5150,7 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -5266,7 +5183,7 @@ export default {
 }
 
 .dialog-title {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
   color: #ffffff !important;
 }
 
@@ -5298,11 +5215,21 @@ export default {
   color: #374151 !important;
   display: flex;
   align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.detail-item.admin-booking-highlight {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-left: 3px solid #3b82f6;
+  padding-left: 12px;
 }
 
 .detail-item strong {
   color: #1f2937 !important;
   font-weight: 600;
+  margin-right: 6px;
 }
 
 .time-slots-detail-list {
