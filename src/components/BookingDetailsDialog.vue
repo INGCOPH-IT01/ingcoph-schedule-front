@@ -404,7 +404,7 @@
     </v-card>
 
     <!-- Proof of Payment Dialog -->
-    <v-dialog v-model="imageDialog" max-width="800">
+    <v-dialog v-model="imageDialog" max-width="800" @update:model-value="onImageDialogClose">
       <v-card>
         <v-card-title class="text-h5 dialog-title">
           <div class="d-flex align-center">
@@ -497,6 +497,11 @@ export default {
     const userRole = ref(null)
 
     const closeDialog = () => {
+      // Clean up blob URL if it exists
+      if (selectedImageUrl.value && selectedImageUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(selectedImageUrl.value)
+        selectedImageUrl.value = ''
+      }
       emit('update:isOpen', false)
       emit('close')
     }
@@ -700,10 +705,29 @@ export default {
     }
 
     // Proof of payment viewing
-    const viewProofOfPayment = () => {
+    const viewProofOfPayment = async () => {
       if (props.booking?.proof_of_payment) {
-        selectedImageUrl.value = `${import.meta.env.VITE_API_URL}/storage/${props.booking.proof_of_payment}`
-        imageDialog.value = true
+        try {
+          // Determine the correct endpoint based on whether this is a transaction or booking
+          const endpoint = isTransaction.value
+            ? `/cart-transactions/${props.booking.id}/proof-of-payment`
+            : `/bookings/${props.booking.id}/proof-of-payment`
+
+          // Import api service
+          const { default: api } = await import('../services/api')
+
+          // Fetch the image as a blob with authentication
+          const response = await api.get(endpoint, {
+            responseType: 'blob'
+          })
+
+          // Create a blob URL from the response
+          const imageBlob = new Blob([response.data], { type: response.headers['content-type'] })
+          selectedImageUrl.value = URL.createObjectURL(imageBlob)
+          imageDialog.value = true
+        } catch (error) {
+          console.error('Failed to load proof of payment:', error)
+        }
       }
     }
 
@@ -715,6 +739,14 @@ export default {
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
+      }
+    }
+
+    const onImageDialogClose = (value) => {
+      if (!value && selectedImageUrl.value && selectedImageUrl.value.startsWith('blob:')) {
+        // Clean up blob URL when dialog is closed
+        URL.revokeObjectURL(selectedImageUrl.value)
+        selectedImageUrl.value = ''
       }
     }
 
@@ -777,6 +809,7 @@ export default {
       handleAttendanceUpdate,
       viewProofOfPayment,
       downloadImage,
+      onImageDialogClose,
       handleImageError,
       // Payment status helpers
       getPaymentStatusColor,
