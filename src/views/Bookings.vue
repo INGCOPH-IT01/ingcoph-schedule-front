@@ -504,7 +504,7 @@
             </td>
             <td class="excel-cell">
               <v-chip
-                :color="getStatusColor(item.status)"
+                :color="statusService.getStatusColor(item.status)"
                 variant="tonal"
                 size="small"
                 class="excel-status-chip"
@@ -721,7 +721,7 @@
                   <div class="detail-item">
                     <strong>Status:</strong>
                     <v-chip
-                      :color="getStatusColor(selectedBooking.status)"
+                      :color="statusService.getStatusColor(selectedBooking.status)"
                       variant="tonal"
                       size="small"
                       class="ml-2"
@@ -782,7 +782,7 @@
                   <div class="detail-item">
                     <strong>Status:</strong>
                     <v-chip
-                      :color="getStatusColor(selectedBooking.approval_status || selectedBooking.status)"
+                      :color="statusService.getStatusColor(selectedBooking.approval_status || selectedBooking.status)"
                       variant="tonal"
                       size="small"
                       class="ml-2"
@@ -1111,7 +1111,7 @@
                   <div class="info-item">
                     <strong>Status:</strong>
                     <v-chip
-                      :color="getStatusColor(editingBooking.status)"
+                      :color="statusService.getStatusColor(editingBooking.status)"
                       variant="tonal"
                       size="small"
                       class="ml-2"
@@ -1176,7 +1176,7 @@
                   <div class="detail-item mb-2">
                     <strong>Status:</strong>
                     <v-chip
-                      :color="getStatusColor(editingBooking.status)"
+                      :color="statusService.getStatusColor(editingBooking.status)"
                       variant="tonal"
                       size="small"
                       class="ml-2"
@@ -1845,6 +1845,7 @@ import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import { bookingService } from '../services/bookingService'
 import { sportService } from '../services/sportService'
+import { statusService } from '../services/statusService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
@@ -2571,26 +2572,6 @@ export default {
       }
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        in_cart: 'purple',
-        pending: 'warning',
-        approved: 'success',
-        rejected: 'error',
-        cancelled: 'error',
-        completed: 'info'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const getStatusIcon = (status) => {
-      const icons = {
-        pending: 'mdi-clock-alert',
-        approved: 'mdi-check-circle',
-        rejected: 'mdi-close-circle'
-      }
-      return icons[status] || 'mdi-help-circle'
-    }
 
     const formatRecurrenceType = (type) => {
       const types = {
@@ -4068,8 +4049,7 @@ export default {
       getGroupedTimeDisplay,
       calculateCartItemDuration,
       expanded,
-      getStatusColor,
-      getStatusIcon,
+      statusService,
       formatRecurrenceType,
       generateBookings,
       editRecurringSchedule,

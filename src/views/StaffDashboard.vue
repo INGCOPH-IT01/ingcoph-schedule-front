@@ -194,7 +194,7 @@
 
             <template v-slot:[`item.status`]="{ item }">
               <v-chip
-                :color="getStatusColor(item.status)"
+                :color="statusService.getStatusColor(item.status)"
                 variant="tonal"
                 size="small"
               >
@@ -273,7 +273,7 @@
               <div class="detail-item mb-3">
                 <strong>Status:</strong>
                 <v-chip
-                  :color="getStatusColor(selectedBooking.status)"
+                  :color="statusService.getStatusColor(selectedBooking.status)"
                   variant="tonal"
                   size="small"
                   class="ml-2"
@@ -328,6 +328,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { bookingService } from '../services/bookingService'
 import { courtService } from '../services/courtService'
+import { statusService } from '../services/statusService'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import CourtImageGallery from '../components/CourtImageGallery.vue'
@@ -523,17 +524,6 @@ export default {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        pending: 'warning',
-        approved: 'success',
-        checked_in: 'info',
-        rejected: 'error',
-        cancelled: 'error',
-        completed: 'info'
-      }
-      return colors[status] || 'grey'
-    }
 
     const showSnackbar = (message, color = 'success') => {
       snackbar.value = {
@@ -589,7 +579,7 @@ export default {
       viewBooking,
       formatDate,
       formatTime,
-      getStatusColor,
+      statusService,
       showSnackbar,
       handleImageError
     }

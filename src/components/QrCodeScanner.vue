@@ -6,7 +6,7 @@
         Court Check-In Scanner
       </v-card-title>
       <v-divider></v-divider>
-      
+
       <v-card-text class="pa-6">
         <div class="scanner-section">
           <div class="scanner-instructions mb-4">
@@ -39,7 +39,7 @@
                 </div>
               </QrcodeStream>
             </div>
-            
+
             <!-- Camera Controls -->
             <div class="camera-controls mt-4">
               <v-btn
@@ -154,9 +154,9 @@
                     <strong>Time:</strong> {{ formatTime(result.booking.start_time) }} - {{ formatTime(result.booking.end_time) }}
                   </div>
                   <div class="detail-item mb-3">
-                    <strong>Status:</strong> 
-                    <v-chip 
-                      :color="getStatusColor(result.booking.status)"
+                    <strong>Status:</strong>
+                    <v-chip
+                      :color="statusService.getStatusColor(result.booking.status)"
                       variant="tonal"
                       size="small"
                       class="ml-2"
@@ -169,7 +169,7 @@
                   </div>
                 </v-col>
               </v-row>
-              
+
               <!-- Court Images Gallery -->
               <v-row v-if="result.booking.court?.images && result.booking.court.images.length > 0">
                 <v-col cols="12">
@@ -178,7 +178,7 @@
                     <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
                     Court Images
                   </h4>
-                  <CourtImageGallery 
+                  <CourtImageGallery
                     :images="result.booking.court.images"
                     :court-name="result.booking.court.name"
                     size="large"
@@ -190,7 +190,7 @@
           </v-card>
         </div>
       </v-card-text>
-      
+
       <v-card-actions class="pa-6">
         <v-spacer></v-spacer>
         <v-btn
@@ -216,6 +216,7 @@
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { QrcodeStream } from 'vue-qrcode-reader'
+import { statusService } from '../services/statusService'
 import CourtImageGallery from './CourtImageGallery.vue'
 import api from '../services/api'
 
@@ -239,13 +240,13 @@ export default {
     const startCamera = async () => {
       startingCamera.value = true
       cameraError.value = ''
-      
+
       try {
         // Request camera permission
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
             facingMode: 'environment' // Use back camera by default
-          } 
+          }
         })
         cameraActive.value = true
         camera.value = 'auto'
@@ -279,7 +280,7 @@ export default {
         const qrCode = detectedCodes[0].rawValue
         scanResult.value = qrCode
         manualQrCode.value = qrCode
-        
+
         // Automatically validate the detected QR code
         await validateQrCode(qrCode)
       }
@@ -289,17 +290,17 @@ export default {
       detectedCodes.forEach((detectedCode) => {
         const { boundingBox } = detectedCode
         const { x, y, width, height } = boundingBox
-        
+
         // Draw bounding box
         ctx.strokeStyle = '#00ff00'
         ctx.lineWidth = 2
         ctx.strokeRect(x, y, width, height)
-        
+
         // Draw corner markers
         const cornerSize = 20
         ctx.strokeStyle = '#00ff00'
         ctx.lineWidth = 4
-        
+
         // Top-left corner
         ctx.beginPath()
         ctx.moveTo(x, y)
@@ -307,7 +308,7 @@ export default {
         ctx.moveTo(x, y)
         ctx.lineTo(x, y + cornerSize)
         ctx.stroke()
-        
+
         // Top-right corner
         ctx.beginPath()
         ctx.moveTo(x + width, y)
@@ -315,7 +316,7 @@ export default {
         ctx.moveTo(x + width, y)
         ctx.lineTo(x + width, y + cornerSize)
         ctx.stroke()
-        
+
         // Bottom-left corner
         ctx.beginPath()
         ctx.moveTo(x, y + height)
@@ -323,7 +324,7 @@ export default {
         ctx.moveTo(x, y + height)
         ctx.lineTo(x, y + height - cornerSize)
         ctx.stroke()
-        
+
         // Bottom-right corner
         ctx.beginPath()
         ctx.moveTo(x + width, y + height)
@@ -381,17 +382,6 @@ export default {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        pending: 'orange',
-        approved: 'blue',
-        checked_in: 'green',
-        rejected: 'red',
-        cancelled: 'grey',
-        completed: 'success'
-      }
-      return colors[status] || 'grey'
-    }
 
     const closeScanner = () => {
       stopCamera()
@@ -429,7 +419,7 @@ export default {
       validateQrCode,
       formatDate,
       formatTime,
-      getStatusColor,
+      statusService,
       closeScanner,
       resetScanner
     }

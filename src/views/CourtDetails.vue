@@ -224,8 +224,8 @@
                         @click="isAdminOrStaff ? viewBookingDetailsDialog(booking) : null"
                       >
                         <template v-slot:prepend>
-                          <v-avatar :color="getStatusColor(booking.approval_status)">
-                            <v-icon color="white">{{ getStatusIcon(booking.approval_status) }}</v-icon>
+                          <v-avatar :color="statusService.getStatusColor(booking.approval_status)">
+                            <v-icon color="white">{{ statusService.getStatusIcon(booking.approval_status) }}</v-icon>
                           </v-avatar>
                         </template>
 
@@ -253,7 +253,7 @@
                         <template v-slot:append>
                           <div class="d-flex align-center gap-2">
                             <v-chip
-                              :color="getStatusColor(booking.approval_status)"
+                              :color="statusService.getStatusColor(booking.approval_status)"
                               size="small"
                               variant="flat"
                             >
@@ -554,6 +554,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
 import { sportService } from '../services/sportService'
+import { statusService } from '../services/statusService'
 import api from '../services/api'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 
@@ -690,27 +691,6 @@ export default {
       return booking.total_price || '0.00'
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        'pending': 'orange',
-        'approved': 'success',
-        'rejected': 'error',
-        'completed': 'blue',
-        'cancelled': 'grey'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const getStatusIcon = (status) => {
-      const icons = {
-        'pending': 'mdi-clock-outline',
-        'approved': 'mdi-check-circle',
-        'rejected': 'mdi-close-circle',
-        'completed': 'mdi-check-all',
-        'cancelled': 'mdi-cancel'
-      }
-      return icons[status] || 'mdi-help-circle'
-    }
 
     const getAmenitiesArray = (amenities) => {
       if (!amenities) return []
@@ -870,9 +850,8 @@ export default {
       getBookingDate,
       getBookingTimeRange,
       getBookingPrice,
-      getStatusColor,
-      getStatusIcon,
       getAmenitiesArray,
+      statusService,
       bookCourt,
       setToday,
       setTomorrow,

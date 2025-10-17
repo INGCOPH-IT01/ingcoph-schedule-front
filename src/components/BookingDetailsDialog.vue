@@ -456,6 +456,7 @@
 import { computed, ref } from 'vue'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
+import { statusService } from '../services/statusService'
 import CourtImageGallery from './CourtImageGallery.vue'
 
 export default {
@@ -565,19 +566,6 @@ export default {
       return formatPrice(booking.total_price || 0)
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        'pending': 'orange',
-        'approved': 'success',
-        'rejected': 'error',
-        'completed': 'blue',
-        'cancelled': 'grey',
-        'confirmed': 'success',
-        'warning': 'warning',
-        'info': 'info'
-      }
-      return colors[status?.toLowerCase()] || 'grey'
-    }
 
     // Payment status helper functions
     const getBookingPaymentStatus = (booking) => {
@@ -754,7 +742,7 @@ export default {
     })
 
     const statusColor = computed(() => {
-      return getStatusColor(bookingStatus.value)
+      return statusService.getStatusColor(bookingStatus.value)
     })
 
     return {
@@ -792,7 +780,8 @@ export default {
       bookingStatus,
       statusColor,
       // Services
-      sportService
+      sportService,
+      statusService
     }
   }
 }

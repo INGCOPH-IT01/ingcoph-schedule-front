@@ -4,7 +4,7 @@
     <div class="badminton-background">
       <div class="badminton-overlay"></div>
     </div>
-    
+
     <!-- Excel-like Header -->
     <div class="excel-header">
       <div class="excel-title-section">
@@ -108,25 +108,25 @@
               <div class="excel-time">{{ formatTime(item.start_time) }}</div>
             </div>
           </template>
-          
+
           <template #item.end_time="{ item }">
             <div class="excel-time">{{ formatTime(item.end_time) }}</div>
           </template>
-          
+
           <template #item.status="{ item }">
-            <v-chip 
-              :color="getStatusColor(item.status)" 
-              variant="tonal" 
+            <v-chip
+              :color="statusService.getStatusColor(item.status)"
+              variant="tonal"
               size="small"
             >
               {{ item.status?.charAt(0).toUpperCase() + item.status?.slice(1) }}
             </v-chip>
           </template>
-          
+
           <template #item.total_price="{ item }">
             <span class="excel-price">₱{{ (parseFloat(item.total_price) || 0).toFixed(2) }}</span>
           </template>
-          
+
           <template #item.actions="{ item }">
             <div class="excel-actions">
               <v-btn
@@ -176,10 +176,10 @@
                 <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hour(s)
               </div>
               <div class="info-item">
-                <strong>Status:</strong> 
-                <v-chip 
-                  :color="getStatusColor(selectedBooking.status)" 
-                  variant="tonal" 
+                <strong>Status:</strong>
+                <v-chip
+                  :color="statusService.getStatusColor(selectedBooking.status)"
+                  variant="tonal"
                   size="small"
                 >
                   {{ selectedBooking.status?.charAt(0).toUpperCase() + selectedBooking.status?.slice(1) }}
@@ -190,7 +190,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <v-row v-if="selectedBooking.notes">
             <v-col cols="12">
               <div class="info-item">
@@ -250,6 +250,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
+import { statusService } from '../services/statusService'
 
 export default {
   name: 'Bookings',
@@ -263,20 +264,20 @@ export default {
     const authLoading = ref(true)
     const isAuthenticated = ref(false)
     const user = ref(null)
-    
+
     // Dialog states
     const viewDialog = ref(false)
     const editDialog = ref(false)
     const selectedBooking = ref(null)
     const editingBooking = ref(null)
-    
+
     // Snackbar
     const snackbar = ref({
       show: false,
       message: '',
       color: 'success'
     })
-    
+
     // Table headers
     const headers = [
       { title: 'Court', key: 'court.name', sortable: true, width: '15%' },
@@ -286,7 +287,7 @@ export default {
       { title: 'Total Price', key: 'total_price', sortable: true, width: '15%' },
       { title: 'Actions', key: 'actions', sortable: false, width: '20%' }
     ]
-    
+
     // Status options
     const statusOptions = [
       { title: 'All Statuses', value: '' },
@@ -295,13 +296,13 @@ export default {
       { title: 'Cancelled', value: 'cancelled' },
       { title: 'Completed', value: 'completed' }
     ]
-    
+
     // Computed properties
     const filteredBookings = computed(() => {
       if (!statusFilter.value) return bookings.value
       return bookings.value.filter(booking => booking.status === statusFilter.value)
     })
-    
+
     // Methods
     const checkAuth = async () => {
       try {
@@ -323,7 +324,7 @@ export default {
         authLoading.value = false
       }
     }
-    
+
     const fetchBookings = async () => {
       try {
         loading.value = true
@@ -335,27 +336,27 @@ export default {
         loading.value = false
       }
     }
-    
+
     const viewBooking = (booking) => {
       selectedBooking.value = booking
       viewDialog.value = true
     }
-    
+
     const editBooking = (booking) => {
       editingBooking.value = booking
       editDialog.value = true
     }
-    
+
     const closeEditDialog = () => {
       editDialog.value = false
       editingBooking.value = null
     }
-    
+
     const openBookingDialog = () => {
       // This would open the booking dialog
       showSnackbar('Booking dialog would open here', 'info')
     }
-    
+
     const showSnackbar = (message, color = 'success') => {
       snackbar.value = {
         show: true,
@@ -363,7 +364,7 @@ export default {
         color
       }
     }
-    
+
     // Utility functions
     const formatDate = (dateString) => {
       if (!dateString) return 'N/A'
@@ -374,7 +375,7 @@ export default {
         day: 'numeric'
       })
     }
-    
+
     const formatTime = (dateString) => {
       if (!dateString) return 'N/A'
       const date = new Date(dateString)
@@ -384,7 +385,7 @@ export default {
         hour12: true
       })
     }
-    
+
     const getDuration = (startTime, endTime) => {
       if (!startTime || !endTime) return 0
       const start = new Date(startTime)
@@ -392,29 +393,19 @@ export default {
       const diffMs = end - start
       return Math.round(diffMs / (1000 * 60 * 60) * 10) / 10
     }
-    
-    const getStatusColor = (status) => {
-      const colors = {
-        pending: 'orange',
-        confirmed: 'green',
-        cancelled: 'red',
-        completed: 'blue'
-      }
-      return colors[status] || 'grey'
-    }
-    
+
     // Lifecycle
     onMounted(() => {
       checkAuth()
     })
-    
+
     // Watch for route changes
     watch(() => route.path, (newPath) => {
       if (newPath === '/bookings' && user.value) {
         fetchBookings()
       }
     })
-    
+
     return {
       // Data
       bookings,
@@ -432,10 +423,10 @@ export default {
       snackbar,
       headers,
       statusOptions,
-      
+
       // Computed
       filteredBookings,
-      
+
       // Methods
       fetchBookings,
       viewBooking,
@@ -446,7 +437,7 @@ export default {
       formatDate,
       formatTime,
       getDuration,
-      getStatusColor
+      statusService
     }
   }
 }

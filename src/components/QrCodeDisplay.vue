@@ -6,7 +6,7 @@
         Your Court Access QR Code
       </v-card-title>
       <v-divider></v-divider>
-      
+
       <v-card-text class="pa-6 text-center">
         <div v-if="loading" class="loading-section">
           <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
@@ -82,9 +82,9 @@
                     <strong>Duration:</strong> {{ getDuration(booking.start_time, booking.end_time) }} hours
                   </div>
                   <div class="info-item mb-3">
-                    <strong>Status:</strong> 
-                    <v-chip 
-                      :color="getStatusColor(booking.status)"
+                    <strong>Status:</strong>
+                    <v-chip
+                      :color="statusService.getStatusColor(booking.status)"
                       variant="tonal"
                       size="small"
                       class="ml-2"
@@ -105,7 +105,7 @@
           </v-alert>
         </div>
       </v-card-text>
-      
+
       <v-card-actions class="pa-6">
         <v-spacer></v-spacer>
         <v-btn
@@ -132,6 +132,7 @@
 <script>
 import { ref, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
+import { statusService } from '../services/statusService'
 import api from '../services/api'
 
 export default {
@@ -211,17 +212,6 @@ export default {
       return Math.round((end - start) / (1000 * 60 * 60))
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        pending: 'orange',
-        approved: 'blue',
-        checked_in: 'green',
-        rejected: 'red',
-        cancelled: 'grey',
-        completed: 'success'
-      }
-      return colors[status] || 'grey'
-    }
 
     const closeDialog = () => {
       emit('close')
@@ -242,7 +232,7 @@ export default {
       formatDate,
       formatTime,
       getDuration,
-      getStatusColor,
+      statusService,
       closeDialog
     }
   }

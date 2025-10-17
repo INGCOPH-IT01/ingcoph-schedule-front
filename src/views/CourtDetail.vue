@@ -242,7 +242,7 @@
                         <template v-slot:append>
                           <div class="d-flex align-center gap-2">
                             <v-chip
-                              :color="getStatusColor(booking.status)"
+                              :color="statusService.getStatusColor(booking.status)"
                               variant="tonal"
                               size="small"
                             >
@@ -278,6 +278,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
+import { statusService } from '../services/statusService'
 import { formatPrice } from '../utils/formatters'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 
@@ -380,15 +381,6 @@ export default {
       return new Date(dateTime).toLocaleString()
     }
 
-    const getStatusColor = (status) => {
-      const colors = {
-        pending: 'warning',
-        confirmed: 'success',
-        cancelled: 'error',
-        completed: 'info'
-      }
-      return colors[status] || 'grey'
-    }
 
     const viewBookingDetailsDialog = (booking) => {
       selectedBookingForView.value = booking
@@ -423,8 +415,8 @@ export default {
       openBookingDialog,
       handleBookingSaved,
       formatDateTime,
-      getStatusColor,
       formatPrice,
+      statusService,
       // Booking view dialog
       bookingViewDialog,
       selectedBookingForView,
