@@ -64,24 +64,15 @@
                 </div>
               </div>
               <div class="hero-actions">
-              <v-btn
-                  size="x-large"
-                  class="hero-btn-primary"
-                @click="openBookingDialog"
-                prepend-icon="mdi-calendar-plus"
-                  elevation="8"
-              >
-                  Book Your Court Now
-              </v-btn>
-              <v-btn
-                  size="x-large"
-                  class="hero-btn-secondary"
-                :to="{ name: 'Courts' }"
-                prepend-icon="mdi-stadium"
-                variant="outlined"
-              >
-                  Explore Courts
-              </v-btn>
+                <v-btn
+                    size="x-large"
+                    class="hero-btn-primary"
+                  @click="openBookingDialog"
+                  prepend-icon="mdi-calendar-plus"
+                    elevation="8"
+                >
+                    Book Your Court Now
+                </v-btn>
               </div>
             </div>
           </v-col>
