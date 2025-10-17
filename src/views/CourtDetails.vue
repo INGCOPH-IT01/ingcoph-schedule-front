@@ -220,7 +220,8 @@
                       <v-list-item
                         v-for="(booking, index) in recentBookings"
                         :key="index"
-                        class="booking-item"
+                        :class="['booking-item', { 'booking-item-clickable': isAdminOrStaff }]"
+                        @click="isAdminOrStaff ? viewBookingDetailsDialog(booking) : null"
                       >
                         <template v-slot:prepend>
                           <v-avatar :color="getStatusColor(booking.approval_status)">
@@ -250,13 +251,16 @@
                         </v-list-item-subtitle>
 
                         <template v-slot:append>
-                          <v-chip
-                            :color="getStatusColor(booking.approval_status)"
-                            size="small"
-                            variant="flat"
-                          >
-                            {{ booking.approval_status }}
-                          </v-chip>
+                          <div class="d-flex align-center gap-2">
+                            <v-chip
+                              :color="getStatusColor(booking.approval_status)"
+                              size="small"
+                              variant="flat"
+                            >
+                              {{ booking.approval_status }}
+                            </v-chip>
+                            <v-icon v-if="isAdminOrStaff" size="small" color="primary">mdi-chevron-right</v-icon>
+                          </div>
                         </template>
                       </v-list-item>
                     </v-list>
@@ -533,17 +537,30 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Booking Details View Dialog (for admin/staff) -->
+    <BookingDetailsDialog
+      v-model:is-open="bookingViewDialog"
+      :booking="selectedBookingForView"
+      :court-name="court?.name"
+      @close="bookingViewDialog = false"
+    />
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
+import { authService } from '../services/authService'
 import api from '../services/api'
+import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 
 export default {
   name: 'CourtDetails',
+  components: {
+    BookingDetailsDialog
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
@@ -564,6 +581,16 @@ export default {
     // Booking details dialog
     const bookingDetailsDialog = ref(false)
     const selectedBookingSlot = ref(null)
+
+    // Booking view dialog for admin/staff
+    const bookingViewDialog = ref(false)
+    const selectedBookingForView = ref(null)
+    const userRole = ref(null)
+
+    // Computed property to check if user is admin or staff
+    const isAdminOrStaff = computed(() => {
+      return userRole.value === 'admin' || userRole.value === 'staff'
+    })
 
     const getSportColor = (sportName) => {
       const colors = {
@@ -831,7 +858,22 @@ export default {
       return numHours
     }
 
+    const viewBookingDetailsDialog = (booking) => {
+      selectedBookingForView.value = booking
+      bookingViewDialog.value = true
+    }
+
+    const checkUserRole = async () => {
+      try {
+        userRole.value = await authService.getUserRole()
+      } catch (error) {
+        console.error('Failed to get user role:', error)
+        userRole.value = 'user'
+      }
+    }
+
     onMounted(async () => {
+      await checkUserRole()
       await fetchCourtDetails()
       // Fetch bookings after court is loaded
       if (court.value) {
@@ -877,7 +919,12 @@ export default {
       getBookingTypeDescription,
       formatDate,
       formatPrice,
-      formatDuration
+      formatDuration,
+      // Booking view dialog
+      bookingViewDialog,
+      selectedBookingForView,
+      viewBookingDetailsDialog,
+      isAdminOrStaff
     }
   }
 }
@@ -1018,6 +1065,16 @@ export default {
 
 .booking-item:last-child {
   border-bottom: none;
+}
+
+.booking-item-clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.booking-item-clickable:hover {
+  background-color: #f8fafc !important;
+  transform: translateX(4px);
 }
 
 /* Responsive */
@@ -1224,4 +1281,5 @@ export default {
   flex-wrap: wrap;
   gap: 8px;
 }
+
 </style>

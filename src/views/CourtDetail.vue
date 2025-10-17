@@ -227,7 +227,8 @@
                       <v-list-item
                         v-for="booking in recentBookings"
                         :key="booking.id"
-                        class="mb-2"
+                        :class="['mb-2', 'booking-item', { 'booking-item-clickable': isAdminOrStaff }]"
+                        @click="isAdminOrStaff ? viewBookingDetailsDialog(booking) : null"
                       >
                         <template v-slot:prepend>
                           <v-avatar color="primary" size="40">
@@ -239,13 +240,16 @@
                           {{ formatDateTime(booking.start_time) }} - {{ formatDateTime(booking.end_time) }}
                         </v-list-item-subtitle>
                         <template v-slot:append>
-                          <v-chip
-                            :color="getStatusColor(booking.status)"
-                            variant="tonal"
-                            size="small"
-                          >
-                            {{ booking.status }}
-                          </v-chip>
+                          <div class="d-flex align-center gap-2">
+                            <v-chip
+                              :color="getStatusColor(booking.status)"
+                              variant="tonal"
+                              size="small"
+                            >
+                              {{ booking.status }}
+                            </v-chip>
+                            <v-icon v-if="isAdminOrStaff" size="small" color="primary">mdi-chevron-right</v-icon>
+                          </div>
                         </template>
                       </v-list-item>
                     </v-list>
@@ -257,6 +261,14 @@
         </v-card>
       </v-col>
     </v-row>
+
+    <!-- Booking Details View Dialog (for admin/staff) -->
+    <BookingDetailsDialog
+      v-model:is-open="bookingViewDialog"
+      :booking="selectedBookingForView"
+      :court-name="court?.name"
+      @close="bookingViewDialog = false"
+    />
     </div>
   </div>
 </template>
@@ -265,9 +277,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { courtService } from '../services/courtService'
+import { authService } from '../services/authService'
 import { formatPrice } from '../utils/formatters'
+import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
+
 export default {
   name: 'CourtDetail',
+  components: {
+    BookingDetailsDialog
+  },
   setup() {
     const route = useRoute()
     const court = ref(null)
@@ -278,6 +296,16 @@ export default {
     const availableSlots = ref([])
     const availabilityLoading = ref(false)
     const recentBookings = ref([])
+
+    // Booking view dialog for admin/staff
+    const bookingViewDialog = ref(false)
+    const selectedBookingForView = ref(null)
+    const userRole = ref(null)
+
+    // Computed property to check if user is admin or staff
+    const isAdminOrStaff = computed(() => {
+      return userRole.value === 'admin' || userRole.value === 'staff'
+    })
 
     const loadCourtDetails = async () => {
       try {
@@ -362,7 +390,22 @@ export default {
       return colors[status] || 'grey'
     }
 
-    onMounted(() => {
+    const viewBookingDetailsDialog = (booking) => {
+      selectedBookingForView.value = booking
+      bookingViewDialog.value = true
+    }
+
+    const checkUserRole = async () => {
+      try {
+        userRole.value = await authService.getUserRole()
+      } catch (error) {
+        console.error('Failed to get user role:', error)
+        userRole.value = 'user'
+      }
+    }
+
+    onMounted(async () => {
+      await checkUserRole()
       loadCourtDetails()
       loadRecentBookings()
     })
@@ -381,7 +424,12 @@ export default {
       handleBookingSaved,
       formatDateTime,
       getStatusColor,
-      formatPrice
+      formatPrice,
+      // Booking view dialog
+      bookingViewDialog,
+      selectedBookingForView,
+      viewBookingDetailsDialog,
+      isAdminOrStaff
     }
   }
 }
@@ -583,5 +631,16 @@ export default {
   .error-card {
     padding: 24px 16px;
   }
+}
+
+/* Booking Item Clickable Styles */
+.booking-item-clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.booking-item-clickable:hover {
+  background-color: #f8fafc !important;
+  transform: translateX(4px);
 }
 </style>

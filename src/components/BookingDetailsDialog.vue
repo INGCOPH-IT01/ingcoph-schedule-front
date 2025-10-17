@@ -2,307 +2,156 @@
   <v-dialog
     :model-value="isOpen"
     @update:model-value="$emit('update:isOpen', $event)"
-    max-width="900px"
+    max-width="800px"
+    class="booking-view-dialog"
     persistent
-    fullscreen-on-mobile
   >
-    <v-card class="booking-details-dialog-card">
-      <div class="dialog-header">
-        <div class="header-badge">
-          <v-icon color="white" size="20" class="mr-2">mdi-calendar-text</v-icon>
-          Booking Information
+    <v-card v-if="booking">
+      <v-card-title class="text-h5 dialog-title">
+        <div class="d-flex align-center">
+          <v-icon class="mr-2">mdi-calendar-check</v-icon>
+          Booking Details
         </div>
-        <h2 class="dialog-title">
-          <span class="title-gradient">Booking</span> Details
-        </h2>
-        <p class="dialog-subtitle">
-          Comprehensive information about your court reservation
-        </p>
-      </div>
-      <v-divider class="dialog-divider"></v-divider>
+        <v-btn icon="mdi-close" variant="text" @click="closeDialog"></v-btn>
+      </v-card-title>
 
-      <v-card-text v-if="booking" class="pa-6">
-        <!-- Booking Status Header -->
-        <div class="status-header mb-6">
-          <v-chip
-            :color="getStatusColor(booking.status)"
-            variant="tonal"
-            size="large"
-            class="status-chip"
-          >
-            <v-icon :icon="getStatusIcon(booking.status)" class="mr-2"></v-icon>
-            {{ booking.status.toUpperCase() }}
-          </v-chip>
-          <div class="booking-id">
-            <span class="label">Booking ID:</span>
-            <span class="value">#{{ booking.id }}</span>
-          </div>
+      <v-card-text class="pa-6">
+        <!-- User Information -->
+        <div class="detail-section mb-4">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-account</v-icon>
+            Customer Information
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div class="detail-row">
+              <span class="detail-label">Name:</span>
+              <span class="detail-value">{{ booking.user?.name || 'N/A' }}</span>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Email:</span>
+              <span class="detail-value">{{ booking.user?.email || 'N/A' }}</span>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Phone:</span>
+              <span class="detail-value">{{ booking.user?.phone || 'N/A' }}</span>
+            </div>
+          </v-card>
         </div>
 
-        <!-- Main Information Grid -->
-        <v-row>
-          <!-- Court Information -->
-          <v-col cols="12" md="6">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                Court Information
-              </h3>
-              <div class="info-card">
-                <div class="info-item">
-                  <span class="label">Court Name:</span>
-                  <span class="value">{{ booking.court?.name || 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Sport:</span>
-                  <span class="value">{{ booking.court?.sport?.name || 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Location:</span>
-                  <span class="value">{{ booking.court?.location || 'N/A' }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Price per Hour:</span>
-                  <span class="value">{{ formatPrice(booking.court?.sport?.price_per_hour || 0) }}</span>
-                </div>
-              </div>
+        <!-- Booking Information -->
+        <div class="detail-section mb-4">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
+            Booking Information
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div class="detail-row">
+              <span class="detail-label">Booking ID:</span>
+              <span class="detail-value">#{{ booking.id }}</span>
             </div>
-          </v-col>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Court:</span>
+              <span class="detail-value">{{ courtName || 'N/A' }}</span>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">{{ formattedDate }}</span>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">{{ formattedTimeRange }}</span>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Status:</span>
+              <v-chip
+                :color="statusColor"
+                size="small"
+                variant="flat"
+              >
+                {{ bookingStatus }}
+              </v-chip>
+            </div>
+          </v-card>
+        </div>
 
-          <!-- Booking Details -->
-          <v-col cols="12" md="6">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
-                Booking Details
-              </h3>
-              <div class="info-card">
-                <!-- User/Customer Information -->
-                <div
-                  class="info-item"
-                  :class="{ 'highlight-item': booking.booking_for_user_name }"
-                >
-                  <span class="label">
-                    <v-icon size="small" color="primary" class="mr-1">mdi-account</v-icon>
-                    {{ booking.booking_for_user_name ? 'Booked For:' : 'User:' }}
-                  </span>
-                  <span class="value">
-                    {{ booking.booking_for_user_name || booking.user?.name || 'N/A' }}
-                    <v-chip
-                      v-if="booking.booking_for_user_name"
-                      size="x-small"
-                      color="info"
-                      variant="outlined"
-                      class="ml-2"
-                    >
-                      Admin Booking
-                    </v-chip>
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Date:</span>
-                  <span class="value">{{ formatDate(booking.start_time) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Time:</span>
-                  <span class="value">{{ formatTime(booking.start_time) }} - {{ formatTime(booking.end_time) }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Duration:</span>
-                  <span class="value">{{ getDuration(booking.start_time, booking.end_time) }} hour(s)</span>
-                </div>
-                <div class="info-item">
-                  <span class="label">Total Price:</span>
-                  <span class="value price-highlight">{{ formatPrice(booking.total_price) }}</span>
-                </div>
-              </div>
-            </div>
-          </v-col>
-        </v-row>
-
-        <!-- Court Images Gallery -->
-        <v-row v-if="booking.court?.images && booking.court.images.length > 0" class="mt-4">
-          <v-col cols="12">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
-                Court Images
-              </h3>
-              <div class="info-card">
-                <CourtImageGallery
-                  :images="booking.court.images"
-                  :court-name="booking.court.name"
-                  size="large"
-                  @image-error="handleImageError"
-                />
-              </div>
-            </div>
-          </v-col>
-        </v-row>
+        <!-- Time Slots Details (if available) -->
+        <div class="detail-section mb-4" v-if="booking.cart_items && booking.cart_items.length > 0">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
+            Time Slots
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <v-list dense>
+              <v-list-item
+                v-for="(item, index) in booking.cart_items"
+                :key="index"
+                class="px-0"
+              >
+                <v-list-item-title>
+                  <div class="d-flex justify-space-between align-center">
+                    <span>
+                      <v-icon size="small" class="mr-2">mdi-clock-outline</v-icon>
+                      {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
+                    </span>
+                    <span class="font-weight-bold">₱{{ formatPrice(item.price) }}</span>
+                  </div>
+                </v-list-item-title>
+                <v-divider v-if="index < booking.cart_items.length - 1" class="my-2"></v-divider>
+              </v-list-item>
+            </v-list>
+          </v-card>
+        </div>
 
         <!-- Payment Information -->
-        <v-row v-if="booking.payment_method || booking.proof_of_payment" class="mt-4">
-          <v-col cols="12">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-credit-card</v-icon>
-                Payment Information
-              </h3>
-              <div class="info-card">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="info-item">
-                      <span class="label">Payment Method:</span>
-                      <span class="value">{{ formatPaymentMethod(booking.payment_method) }}</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="info-item">
-                      <span class="label">Payment Status:</span>
-                      <span class="value">
-                        <v-chip
-                          :color="getPaymentStatusColor(booking)"
-                          variant="tonal"
-                          size="small"
-                        >
-                          <v-icon :icon="getPaymentStatusIcon(booking)" size="small" class="mr-1"></v-icon>
-                          {{ getPaymentStatusText(booking) }}
-                        </v-chip>
-                      </span>
-                    </div>
-                  </v-col>
-                </v-row>
-
-                <!-- Proof of Payment -->
-                <div v-if="booking.proof_of_payment" class="proof-section mt-4">
-                  <div class="info-item">
-                    <span class="label">Proof of Payment:</span>
-                    <div class="proof-actions">
-                      <v-btn
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                        prepend-icon="mdi-eye"
-                        @click="viewProofOfPayment"
-                      >
-                        View Proof
-                      </v-btn>
-                      <v-btn
-                        color="success"
-                        variant="outlined"
-                        size="small"
-                        prepend-icon="mdi-download"
-                        @click="downloadProof"
-                      >
-                        Download
-                      </v-btn>
-                    </div>
-                  </div>
-                </div>
-              </div>
+        <div class="detail-section mb-4">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-cash</v-icon>
+            Payment Information
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div class="detail-row">
+              <span class="detail-label">Payment Method:</span>
+              <span class="detail-value">{{ booking.payment_method || 'N/A' }}</span>
             </div>
-          </v-col>
-        </v-row>
-
-        <!-- Frequency Information -->
-        <v-row v-if="booking.frequency_type && booking.frequency_type !== 'once'" class="mt-4">
-          <v-col cols="12">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-repeat</v-icon>
-                Recurring Schedule
-              </h3>
-              <div class="info-card">
-                <v-row>
-                  <v-col cols="12" md="4">
-                    <div class="info-item">
-                      <span class="label">Frequency:</span>
-                      <span class="value">{{ formatFrequencyType(booking.frequency_type) }}</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" v-if="booking.frequency_days && booking.frequency_days.length > 0">
-                    <div class="info-item">
-                      <span class="label">Days:</span>
-                      <span class="value">{{ formatFrequencyDays(booking.frequency_days) }}</span>
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="4" v-if="booking.frequency_duration_months">
-                    <div class="info-item">
-                      <span class="label">Duration:</span>
-                      <span class="value">{{ booking.frequency_duration_months }} month(s)</span>
-                    </div>
-                  </v-col>
-                </v-row>
-              </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Total Amount:</span>
+              <span class="detail-value font-weight-bold text-h6 text-success">₱{{ totalPrice }}</span>
             </div>
-          </v-col>
-        </v-row>
-
-        <!-- Notes Section -->
-        <v-row v-if="booking.notes" class="mt-4">
-          <v-col cols="12">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
-                Additional Notes
-              </h3>
-              <div class="info-card">
-                <div class="notes-content">
-                  {{ booking.notes }}
-                </div>
-              </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Created At:</span>
+              <span class="detail-value">{{ formattedCreatedAt }}</span>
             </div>
-          </v-col>
-        </v-row>
+          </v-card>
+        </div>
 
-        <!-- Booking Timeline -->
-        <v-row class="mt-4">
-          <v-col cols="12">
-            <div class="info-section">
-              <h3 class="section-title">
-                <v-icon class="mr-2" color="primary">mdi-timeline</v-icon>
-                Booking Timeline
-              </h3>
-              <div class="info-card">
-                <div class="timeline">
-                  <div class="timeline-item">
-                    <div class="timeline-marker created"></div>
-                    <div class="timeline-content">
-                      <div class="timeline-title">Booking Created</div>
-                      <div class="timeline-date">{{ formatDateTime(booking.created_at) }}</div>
-                    </div>
-                  </div>
-                  <div class="timeline-item" v-if="booking.updated_at !== booking.created_at">
-                    <div class="timeline-marker updated"></div>
-                    <div class="timeline-content">
-                      <div class="timeline-title">Last Updated</div>
-                      <div class="timeline-date">{{ formatDateTime(booking.updated_at) }}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </v-col>
-        </v-row>
+        <!-- Notes -->
+        <div class="detail-section" v-if="booking.notes">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
+            Notes
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <p class="mb-0">{{ booking.notes }}</p>
+          </v-card>
+        </div>
       </v-card-text>
 
-      <!-- Dialog Actions -->
-      <v-card-actions class="pa-6 pt-0">
+      <v-card-actions class="pa-4">
         <v-spacer></v-spacer>
         <v-btn
-          color="grey"
-          variant="outlined"
-          @click="$emit('update:isOpen', false)"
+          color="primary"
+          variant="text"
+          @click="closeDialog"
         >
           Close
-        </v-btn>
-        <v-btn
-          v-if="booking && booking.status === 'pending'"
-          color="primary"
-          @click="editBooking"
-        >
-          <v-icon class="mr-2">mdi-pencil</v-icon>
-          Edit Booking
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -310,499 +159,215 @@
 </template>
 
 <script>
-import { computed, watch } from 'vue'
-import CourtImageGallery from './CourtImageGallery.vue'
+import { computed } from 'vue'
 
 export default {
   name: 'BookingDetailsDialog',
-  components: {
-    CourtImageGallery
-  },
   props: {
     isOpen: {
       type: Boolean,
+      required: true,
       default: false
     },
     booking: {
       type: Object,
       default: null
+    },
+    courtName: {
+      type: String,
+      default: ''
     }
   },
-  emits: ['update:isOpen', 'edit'],
+  emits: ['update:isOpen', 'close'],
   setup(props, { emit }) {
-    // Debug: Log booking data when it changes
-    watch(() => props.booking, (newBooking) => {
-      if (newBooking) {
-        console.log('=== BOOKING DETAILS ===')
-        console.log('Booking ID:', newBooking.id)
-        console.log('User:', newBooking.user)
-        console.log('booking_for_user_id:', newBooking.booking_for_user_id)
-        console.log('booking_for_user_name:', newBooking.booking_for_user_name)
-        console.log('bookingForUser:', newBooking.bookingForUser)
-        console.log('Full booking object:', newBooking)
-      }
-    }, { immediate: true })
+    const closeDialog = () => {
+      emit('update:isOpen', false)
+      emit('close')
+    }
 
-    // Format functions
+    const formatTimeSlot = (time) => {
+      if (!time) return ''
+      const [hours, minutes] = time.split(':')
+      const hour = parseInt(hours)
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const displayHour = hour % 12 || 12
+      return `${displayHour}:${minutes} ${ampm}`
+    }
+
     const formatPrice = (price) => {
-      return new Intl.NumberFormat('en-PH', {
-        style: 'currency',
-        currency: 'PHP',
-        minimumFractionDigits: 2
-      }).format(price)
+      const numPrice = Math.abs(parseFloat(price || 0))
+      return numPrice.toFixed(2)
     }
 
-    const handleImageError = (event) => {
-      // Hide the broken image and show fallback icon
-      event.target.style.display = 'none'
-      const fallback = event.target.nextElementSibling
-      if (fallback) {
-        fallback.style.display = 'inline'
-      }
-    }
-
-    const formatDate = (dateString) => {
-      if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleDateString('en-US', {
-        weekday: 'long',
+    const formatBookingDate = (date) => {
+      if (!date) return 'Unknown'
+      const d = new Date(date)
+      return d.toLocaleDateString('en-US', {
+        weekday: 'short',
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric'
       })
     }
 
-    const formatTime = (dateString) => {
-      if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
+    const formatDateTime = (dateTime) => {
+      if (!dateTime) return 'N/A'
+      return new Date(dateTime).toLocaleString()
     }
 
-    const formatDateTime = (dateString) => {
-      if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      })
-    }
-
-    const getDuration = (startTime, endTime) => {
-      if (!startTime || !endTime) return 'N/A'
-      const start = new Date(startTime)
-      const end = new Date(endTime)
-      const diffInHours = (end - start) / (1000 * 60 * 60)
-      return Math.round(diffInHours)
-    }
-
-    const formatPaymentMethod = (method) => {
-      if (!method) return 'N/A'
-      return method.charAt(0).toUpperCase() + method.slice(1).replace('_', ' ')
-    }
-
-    const formatFrequencyType = (type) => {
-      if (!type) return 'N/A'
-      const types = {
-        'once': 'One-time',
-        'daily': 'Daily',
-        'weekly': 'Weekly',
-        'monthly': 'Monthly',
-        'yearly': 'Yearly'
+    const getBookingDate = (booking) => {
+      // Get the booking date from the first cart item or created_at
+      if (booking.cart_items && booking.cart_items.length > 0) {
+        return booking.cart_items[0].booking_date
       }
-      return types[type] || type
+      return booking.created_at
     }
 
-    const formatFrequencyDays = (days) => {
-      if (!days || days.length === 0) return 'N/A'
-      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-      return days.map(day => dayNames[day]).join(', ')
+    const getBookingTimeRange = (booking) => {
+      if (booking.cart_items && booking.cart_items.length > 0) {
+        const items = booking.cart_items
+        const sortedItems = [...items].sort((a, b) => a.start_time.localeCompare(b.start_time))
+        const start = formatTimeSlot(sortedItems[0].start_time)
+        const end = formatTimeSlot(sortedItems[sortedItems.length - 1].end_time)
+        return `${start} - ${end}`
+      }
+      if (booking.start_time && booking.end_time) {
+        return `${formatDateTime(booking.start_time)} - ${formatDateTime(booking.end_time)}`
+      }
+      return 'N/A'
     }
 
-    // Status functions
+    const getTotalPrice = (booking) => {
+      if (booking.cart_items && booking.cart_items.length > 0) {
+        const total = booking.cart_items.reduce((sum, item) => {
+          return sum + parseFloat(item.price || 0)
+        }, 0)
+        return total.toFixed(2)
+      }
+      return formatPrice(booking.total_price || 0)
+    }
+
     const getStatusColor = (status) => {
       const colors = {
         'pending': 'orange',
-        'approved': 'green',
-        'cancelled': 'red',
-        'completed': 'blue'
+        'approved': 'success',
+        'rejected': 'error',
+        'completed': 'blue',
+        'cancelled': 'grey',
+        'confirmed': 'success',
+        'warning': 'warning',
+        'info': 'info'
       }
-      return colors[status] || 'grey'
+      return colors[status?.toLowerCase()] || 'grey'
     }
 
-    const getStatusIcon = (status) => {
-      const icons = {
-        'pending': 'mdi-clock-outline',
-        'approved': 'mdi-check-circle',
-        'cancelled': 'mdi-cancel',
-        'completed': 'mdi-check-all'
-      }
-      return icons[status] || 'mdi-help-circle'
-    }
+    // Computed properties
+    const formattedDate = computed(() => {
+      if (!props.booking) return ''
+      return formatBookingDate(getBookingDate(props.booking))
+    })
 
-    // Payment status functions
-    const getPaymentStatus = (booking) => {
-      if (!booking) return 'unknown'
-      if (booking.payment_method && booking.proof_of_payment) return 'complete'
-      if (booking.payment_method && !booking.proof_of_payment) return 'pending_proof'
-      if (!booking.payment_method) return 'no_payment'
-      return 'unknown'
-    }
+    const formattedTimeRange = computed(() => {
+      if (!props.booking) return ''
+      return getBookingTimeRange(props.booking)
+    })
 
-    const getPaymentStatusColor = (booking) => {
-      const status = getPaymentStatus(booking)
-      const colors = {
-        'complete': 'green',
-        'pending_proof': 'orange',
-        'no_payment': 'red',
-        'unknown': 'grey'
-      }
-      return colors[status] || 'grey'
-    }
+    const totalPrice = computed(() => {
+      if (!props.booking) return '0.00'
+      return getTotalPrice(props.booking)
+    })
 
-    const getPaymentStatusText = (booking) => {
-      const status = getPaymentStatus(booking)
-      const texts = {
-        'complete': 'Complete',
-        'pending_proof': 'Pending Proof',
-        'no_payment': 'No Payment',
-        'unknown': 'Unknown'
-      }
-      return texts[status] || 'Unknown'
-    }
+    const formattedCreatedAt = computed(() => {
+      if (!props.booking) return ''
+      return formatBookingDate(props.booking.created_at)
+    })
 
-    const getPaymentStatusIcon = (booking) => {
-      const status = getPaymentStatus(booking)
-      const icons = {
-        'complete': 'mdi-check-circle',
-        'pending_proof': 'mdi-clock-outline',
-        'no_payment': 'mdi-close-circle',
-        'unknown': 'mdi-help-circle'
-      }
-      return icons[status] || 'mdi-help-circle'
-    }
+    const bookingStatus = computed(() => {
+      if (!props.booking) return ''
+      return props.booking.approval_status || props.booking.status || 'Unknown'
+    })
 
-    // Action functions
-    const viewProofOfPayment = () => {
-      if (props.booking?.proof_of_payment) {
-        window.open(props.booking.proof_of_payment, '_blank')
-      }
-    }
-
-    const downloadProof = () => {
-      if (props.booking?.proof_of_payment) {
-        const link = document.createElement('a')
-        link.href = props.booking.proof_of_payment
-        link.download = `proof_of_payment_${props.booking.id}.jpg`
-        link.click()
-      }
-    }
-
-    const editBooking = () => {
-      emit('edit', props.booking)
-      emit('update:isOpen', false)
-    }
+    const statusColor = computed(() => {
+      return getStatusColor(bookingStatus.value)
+    })
 
     return {
+      closeDialog,
+      formatTimeSlot,
       formatPrice,
-      formatDate,
-      formatTime,
-      formatDateTime,
-      getDuration,
-      formatPaymentMethod,
-      formatFrequencyType,
-      formatFrequencyDays,
-      getStatusColor,
-      getStatusIcon,
-      handleImageError,
-      getPaymentStatusColor,
-      getPaymentStatusText,
-      getPaymentStatusIcon,
-      viewProofOfPayment,
-      downloadProof,
-      editBooking
+      formattedDate,
+      formattedTimeRange,
+      totalPrice,
+      formattedCreatedAt,
+      bookingStatus,
+      statusColor
     }
   }
 }
 </script>
 
 <style scoped>
-/* Modern Sports Booking Details Dialog Theme */
-.booking-details-dialog-card {
-  border-radius: 20px !important;
-  overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
-}
-
-.dialog-header {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  padding: 32px;
-  text-align: center;
-  position: relative;
-}
-
-.dialog-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
-  z-index: 1;
-}
-
-.header-badge {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px;
-  padding: 8px 20px;
-  margin-bottom: 16px;
-  color: white;
+/* Booking View Dialog Styles */
+.booking-view-dialog .dialog-title {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white !important;
+  padding: 20px 24px;
   font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  position: relative;
-  z-index: 2;
-}
-
-.dialog-title {
-  font-size: clamp(1.8rem, 3vw, 2.5rem);
-  font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 16px;
-  color: white;
-  position: relative;
-  z-index: 2;
-}
-
-.title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.dialog-subtitle {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-  line-height: 1.6;
-  position: relative;
-  z-index: 2;
-}
-
-.dialog-divider {
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  margin: 0 !important;
-}
-
-/* Status Header */
-.status-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.1);
 }
 
-.status-chip {
-  font-weight: 700;
-  font-size: 14px;
+.booking-view-dialog .dialog-title .v-icon {
+  color: white !important;
 }
 
-.booking-id {
-  text-align: right;
+.booking-view-dialog .dialog-title .v-btn {
+  color: white !important;
 }
 
-.booking-id .label {
-  color: #64748b;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.booking-id .value {
-  color: #1e293b;
+.booking-view-dialog .detail-section-title {
   font-size: 18px;
-  font-weight: 700;
-  margin-left: 8px;
-}
-
-/* Info Sections */
-.info-section {
-  margin-bottom: 24px;
-}
-
-.section-title {
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #e2e8f0;
 }
 
-.info-card {
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid rgba(59, 130, 246, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.info-item {
+.booking-view-dialog .detail-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 8px 0;
 }
 
-.info-item.highlight-item {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.1));
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 8px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.info-item:last-child {
-  border-bottom: none;
-}
-
-.info-item .label {
-  color: #64748b;
+.booking-view-dialog .detail-label {
   font-weight: 600;
+  color: #64748b;
   font-size: 14px;
 }
 
-.info-item .value {
-  color: #1e293b;
-  font-weight: 500;
+.booking-view-dialog .detail-value {
+  color: #1f2937;
   font-size: 14px;
   text-align: right;
 }
 
-.price-highlight {
-  color: #059669 !important;
-  font-weight: 700 !important;
-  font-size: 16px !important;
+.detail-section {
+  margin-bottom: 16px;
 }
 
-/* Proof Section */
-.proof-section {
-  padding-top: 16px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.proof-actions {
-  display: flex;
-  gap: 12px;
-}
-
-/* Notes Content */
-.notes-content {
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 16px;
-  color: #475569;
-  line-height: 1.6;
-  font-style: italic;
-}
-
-/* Timeline */
-.timeline {
-  position: relative;
-  padding-left: 24px;
-}
-
-.timeline::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, #3b82f6, #10b981);
-}
-
-.timeline-item {
-  position: relative;
-  margin-bottom: 24px;
-}
-
-.timeline-marker {
-  position: absolute;
-  left: -16px;
-  top: 4px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 3px solid white;
-  box-shadow: 0 0 0 2px #3b82f6;
-}
-
-.timeline-marker.created {
-  background: #3b82f6;
-}
-
-.timeline-marker.updated {
-  background: #10b981;
-}
-
-.timeline-content {
-  margin-left: 16px;
-}
-
-.timeline-title {
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 4px;
-}
-
-.timeline-date {
-  color: #64748b;
-  font-size: 14px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .status-header {
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-  }
-
-  .booking-id {
-    text-align: center;
-  }
-
-  .info-item {
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .booking-view-dialog .detail-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
 
-  .info-item .value {
+  .booking-view-dialog .detail-value {
     text-align: left;
-  }
-
-  .proof-actions {
-    flex-direction: column;
   }
 }
 </style>
