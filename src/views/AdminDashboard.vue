@@ -311,10 +311,6 @@
               </div>
             </template>
 
-            <template v-slot:[`item.court_name`]="{ item }">
-              <div class="font-weight-medium">{{ item.court_name }}</div>
-            </template>
-
             <template v-slot:[`item.sport_name`]="{ item }">
               <v-chip
                 :color="getSportColor(item.cart_items?.[0]?.court?.sport?.name)"
@@ -326,12 +322,6 @@
                   {{ getSportIcon(item.cart_items?.[0]?.court?.sport?.name, item.cart_items?.[0]?.court?.sport?.icon) }}
                 </v-icon>
                 {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
-              </v-chip>
-            </template>
-
-            <template v-slot:[`item.items_count`]="{ item }">
-              <v-chip color="info" size="small">
-                {{ item.items_count }} slot{{ item.items_count > 1 ? 's' : '' }}
               </v-chip>
             </template>
 
@@ -538,15 +528,12 @@ export default {
     const headers = [
       { title: 'Transaction ID', key: 'id', sortable: true },
       { title: 'User', key: 'user_name', sortable: false },
-      { title: 'Courts', key: 'court_name', sortable: false },
       { title: 'Sport', key: 'sport_name', sortable: false },
-      { title: 'Items', key: 'items_count', sortable: false },
       { title: 'Created At', key: 'created_at', sortable: true },
       { title: 'Total Price', key: 'total_price', sortable: true },
       { title: 'Payment Status', key: 'payment_status', sortable: false },
       { title: 'Approval Status', key: 'approval_status', sortable: false },
       { title: 'Attendance', key: 'attendance_status', sortable: false },
-      { title: 'Notes', key: 'notes', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false }
     ]
 
