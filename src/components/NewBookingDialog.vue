@@ -565,6 +565,10 @@ export default {
     isOpen: {
       type: Boolean,
       default: false
+    },
+    preselectedSport: {
+      type: Object,
+      default: null
     }
   },
   emits: ['close', 'booking-created'],
@@ -1310,23 +1314,44 @@ export default {
       }
     })
 
-    watch(() => props.isOpen, (newValue) => {
+    watch(() => props.isOpen, async (newValue) => {
       if (newValue) {
-        fetchSports()
-        fetchCourts()
+        await fetchSports()
+        await fetchCourts()
         fetchCurrentUser()
         fetchUsers()
+
+        // If a preselected sport is provided, select it and move to step 2
+        if (props.preselectedSport) {
+          await nextTick()
+          // Find the sport in the loaded sports list by ID
+          const sport = sports.value.find(s => s.id === props.preselectedSport.id)
+          if (sport) {
+            selectSport(sport)
+            step.value = 2
+          }
+        }
       } else {
         resetForm()
       }
     })
 
-    onMounted(() => {
+    onMounted(async () => {
       if (props.isOpen) {
-        fetchSports()
-        fetchCourts()
+        await fetchSports()
+        await fetchCourts()
         fetchCurrentUser()
         fetchUsers()
+
+        // If a preselected sport is provided, select it and move to step 2
+        if (props.preselectedSport) {
+          await nextTick()
+          const sport = sports.value.find(s => s.id === props.preselectedSport.id)
+          if (sport) {
+            selectSport(sport)
+            step.value = 2
+          }
+        }
       }
     })
 

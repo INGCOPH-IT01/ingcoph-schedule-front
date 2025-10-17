@@ -110,7 +110,7 @@
             variant="elevated"
             size="large"
             class="excel-court-btn"
-            @click="handleBookNowClick"
+            @click="handleBookNowClick(sport)"
             :disabled="!sport.is_active"
           >
             <v-icon>mdi-calendar-plus</v-icon>
@@ -121,6 +121,14 @@
       </div>
     </div>
   </div>
+
+  <!-- Booking Dialog -->
+  <NewBookingDialog
+    :is-open="bookingDialogOpen"
+    :preselected-sport="selectedSportForBooking"
+    @close="closeBookingDialog"
+    @booking-created="handleBookingCreated"
+  />
 </template>
 
 <script>
@@ -129,14 +137,20 @@ import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
+import NewBookingDialog from '../components/NewBookingDialog.vue'
 
 export default {
   name: 'Sports',
+  components: {
+    NewBookingDialog
+  },
   setup() {
     const router = useRouter()
     const sports = ref([])
     const loading = ref(true)
     const error = ref(null)
+    const bookingDialogOpen = ref(false)
+    const selectedSportForBooking = ref(null)
 
     const fetchSports = async () => {
       try {
@@ -154,14 +168,28 @@ export default {
       return formatPrice(price)
     }
 
-    const handleBookNowClick = () => {
+    const handleBookNowClick = (sport) => {
       // Check if user is authenticated
       const token = localStorage.getItem('token')
       if (!token) {
         router.push('/login')
         return
       }
-      router.push({ name: 'Courts' })
+
+      // Open booking dialog with the selected sport
+      selectedSportForBooking.value = sport
+      bookingDialogOpen.value = true
+    }
+
+    const closeBookingDialog = () => {
+      bookingDialogOpen.value = false
+      selectedSportForBooking.value = null
+    }
+
+    const handleBookingCreated = () => {
+      // Optionally refresh sports data or show a success message
+      // The dialog will close itself after booking is created
+      closeBookingDialog()
     }
 
     onMounted(async () => {
@@ -172,7 +200,11 @@ export default {
       sports,
       loading,
       error,
+      bookingDialogOpen,
+      selectedSportForBooking,
       handleBookNowClick,
+      closeBookingDialog,
+      handleBookingCreated,
       formatPriceTemplate,
       // Services
       sportService
