@@ -47,7 +47,7 @@
             size="large"
             class="sport-chip"
           >
-            <v-icon start>{{ getSportIcon(sport?.name) }}</v-icon>
+            <v-icon start>{{ getSportIcon(sport?.name, sport?.icon) }}</v-icon>
             {{ sport?.name }}
           </v-chip>
         </div>
@@ -113,16 +113,16 @@
                     <div class="d-flex align-center justify-space-between mb-3">
                       <h4 class="text-subtitle-1 font-weight-bold">Select Date</h4>
                       <div class="d-flex gap-2">
-                        <v-btn 
-                          size="small" 
+                        <v-btn
+                          size="small"
                           variant="outlined"
                           @click="setToday"
                           :color="isToday(selectedDate) ? 'primary' : 'default'"
                         >
                           Today
                         </v-btn>
-                        <v-btn 
-                          size="small" 
+                        <v-btn
+                          size="small"
                           variant="outlined"
                           @click="setTomorrow"
                         >
@@ -146,9 +146,9 @@
 
                   <div v-else-if="availableSlots.length > 0">
                     <!-- Availability Summary -->
-                    <v-alert 
-                      type="info" 
-                      variant="tonal" 
+                    <v-alert
+                      type="info"
+                      variant="tonal"
                       class="mb-4"
                       density="compact"
                     >
@@ -577,7 +577,13 @@ export default {
       return colors[sportName] || 'grey'
     }
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback MDI icons if Sport model doesn't have an icon
       const icons = {
         'Basketball': 'mdi-basketball',
         'Tennis': 'mdi-tennis',
@@ -807,11 +813,11 @@ export default {
     const formatDate = (date) => {
       if (!date) return ''
       const d = new Date(date)
-      return d.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       })
     }
 
@@ -1132,23 +1138,23 @@ export default {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 12px;
   }
-  
+
   .time-slot-card-enhanced .v-card-text {
     padding: 16px 12px !important;
   }
-  
+
   .time-range-text {
     font-size: 14px;
   }
-  
+
   .time-divider {
     font-size: 10px;
   }
-  
+
   .status-text {
     font-size: 11px;
   }
-  
+
   .price-tag {
     font-size: 12px;
   }
@@ -1158,7 +1164,7 @@ export default {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: 8px;
   }
-  
+
   .time-slot-card-court .v-card-text {
     padding: 12px 8px !important;
   }

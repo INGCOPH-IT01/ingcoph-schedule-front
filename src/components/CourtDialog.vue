@@ -57,7 +57,7 @@
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
-                    <span class="sport-icon">{{ getSportIcon(item.raw.name) }}</span>
+                    <span class="sport-icon">{{ getSportIcon(item.raw.name, item.raw.icon) }}</span>
                   </template>
                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
                   <v-list-item-subtitle>{{ item.raw.description }}</v-list-item-subtitle>
@@ -68,7 +68,7 @@
                   closable
                   size="small"
                 >
-                  <span class="sport-icon mr-1">{{ getSportIcon(item.raw.name) }}</span>
+                  <span class="sport-icon mr-1">{{ getSportIcon(item.raw.name, item.raw.icon) }}</span>
                   {{ item.raw.name }}
                 </v-chip>
               </template>
@@ -276,7 +276,13 @@ export default {
 
     const isEdit = computed(() => !!props.court)
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback emoji icons if Sport model doesn't have an icon
       const icons = {
         'Badminton': '🏸',
         'Tennis': '🎾',

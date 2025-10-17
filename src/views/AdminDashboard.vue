@@ -323,7 +323,7 @@
               >
                 <!-- Use MDI icon from sport if available, otherwise use fallback -->
                 <v-icon class="mr-1" size="small">
-                  {{ item.cart_items?.[0]?.court?.sport?.icon || getSportIcon(item.cart_items?.[0]?.court?.sport?.name) }}
+                  {{ getSportIcon(item.cart_items?.[0]?.court?.sport?.name, item.cart_items?.[0]?.court?.sport?.icon) }}
                 </v-icon>
                 {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
               </v-chip>
@@ -540,7 +540,7 @@
                   >
                     <template v-slot:prepend>
                       <v-avatar :color="getSportColor(item.court?.sport?.name)" size="40">
-                        <v-icon color="white">{{ item.court?.sport?.icon || getSportIcon(item.court?.sport?.name) }}</v-icon>
+                        <v-icon color="white">{{ getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}</v-icon>
                       </v-avatar>
                     </template>
                     <v-list-item-title class="font-weight-bold">
@@ -1354,7 +1354,13 @@ export default {
       return colors[sportName] || 'grey'
     }
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback MDI icons if Sport model doesn't have an icon
       const icons = {
         'Basketball': 'mdi-basketball',
         'Badminton': 'mdi-badminton',

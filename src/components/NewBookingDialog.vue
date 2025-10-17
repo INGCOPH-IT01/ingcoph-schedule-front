@@ -66,7 +66,7 @@
                       mdi-check-circle
                     </v-icon>
                     <v-card-text class="text-center pa-4">
-                      <div class="sport-icon-large">{{ getSportIcon(sport.name) }}</div>
+                      <div class="sport-icon-large">{{ getSportIcon(sport.name, sport.icon) }}</div>
                       <h4 class="text-h6 mt-2">{{ sport.name }}</h4>
                       <p class="text-caption text-grey">{{ sport.description }}</p>
                     </v-card-text>
@@ -101,7 +101,7 @@
                 <v-card-text class="pa-4">
                   <div class="d-flex align-center justify-space-between">
                     <div class="d-flex align-center">
-                      <v-icon size="32" class="mr-3">{{ getSportIcon(selectedSport.name) }}</v-icon>
+                      <v-icon size="32" class="mr-3">{{ getSportIcon(selectedSport.name, selectedSport.icon) }}</v-icon>
                       <div>
                         <h4 class="text-h6">{{ selectedSport.name }} Courts</h4>
                         <p class="text-caption mb-0">{{ selectedSport.description }}</p>
@@ -131,10 +131,10 @@
 
               <!-- Time Slots Grid for Each Court (Filtered by Sport) -->
               <div v-if="selectedDate">
-                <v-alert 
-                  v-if="filteredCourts.length === 0" 
-                  type="warning" 
-                  variant="tonal" 
+                <v-alert
+                  v-if="filteredCourts.length === 0"
+                  type="warning"
+                  variant="tonal"
                   class="mb-4"
                 >
                   <div class="d-flex align-center">
@@ -160,15 +160,15 @@
                         </h4>
                         <div class="d-flex flex-wrap ml-2">
                           <!-- Show all sports this court supports -->
-                          <v-chip 
-                            v-for="sport in getCourtSports(court)" 
+                          <v-chip
+                            v-for="sport in getCourtSports(court)"
                             :key="sport.id"
-                            :color="getSportColor(sport.name)" 
-                            size="small" 
+                            :color="getSportColor(sport.name)"
+                            size="small"
                             class="mr-1 mb-1"
                             :variant="sport.id === selectedSport.id ? 'elevated' : 'outlined'"
                           >
-                            <v-icon start size="small">{{ getSportIcon(sport.name) }}</v-icon>
+                            <v-icon start size="small">{{ getSportIcon(sport.name, sport.icon) }}</v-icon>
                             {{ sport.name }}
                           </v-chip>
                         </div>
@@ -325,7 +325,7 @@
                     <v-icon class="mr-2" color="warning">mdi-account-cog</v-icon>
                     Admin Booking Details
                   </h4>
-                  
+
                   <v-alert type="info" variant="tonal" class="mb-4">
                     <div class="d-flex align-center">
                       <div>
@@ -356,7 +356,7 @@
                             <v-img :src="`https://ui-avatars.com/api/?name=${item.raw.name}&background=3b82f6&color=fff`"></v-img>
                           </v-avatar>
                         </template>
-                     
+
                       </v-list-item>
                     </template>
                     <template v-slot:chip="{}">
@@ -623,26 +623,26 @@ export default {
 
     const filteredCourts = computed(() => {
       if (!selectedSport.value) return []
-      
+
       return courts.value.filter(court => {
         if (!court.is_active) return false
-        
+
         // Check if court supports the selected sport
         // Handle both single sport_id and multiple sports array
         if (court.sport_id === selectedSport.value.id) {
           return true
         }
-        
+
         // Check if court has multiple sports (sports array)
         if (court.sports && Array.isArray(court.sports)) {
           return court.sports.some(sport => sport.id === selectedSport.value.id)
         }
-        
+
         // Check if court has sport_ids array
         if (court.sport_ids && Array.isArray(court.sport_ids)) {
           return court.sport_ids.includes(selectedSport.value.id)
         }
-        
+
         return false
       })
     })
@@ -661,7 +661,13 @@ export default {
     })
 
     // Methods
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback emoji icons if Sport model doesn't have an icon
       const icons = {
         'Badminton': '🏸',
         'Tennis': '🎾',
@@ -691,7 +697,7 @@ export default {
 
     const getCourtSports = (court) => {
       const sportsList = []
-      
+
       // If court has a single sport_id, find the sport object
       if (court.sport_id) {
         const sport = sports.value.find(s => s.id === court.sport_id)
@@ -699,7 +705,7 @@ export default {
           sportsList.push(sport)
         }
       }
-      
+
       // If court has multiple sports array
       if (court.sports && Array.isArray(court.sports)) {
         court.sports.forEach(sport => {
@@ -708,7 +714,7 @@ export default {
           }
         })
       }
-      
+
       // If court has sport_ids array, find corresponding sport objects
       if (court.sport_ids && Array.isArray(court.sport_ids)) {
         court.sport_ids.forEach(sportId => {
@@ -718,7 +724,7 @@ export default {
           }
         })
       }
-      
+
       return sportsList
     }
 
@@ -922,7 +928,7 @@ export default {
         console.log('isAdmin.value:', isAdmin.value)
         console.log('bookingForUser.value:', bookingForUser.value)
         console.log('adminNotes.value:', adminNotes.value)
-        
+
         let adminBookingData = null
         if (isAdmin.value && bookingForUser.value) {
           console.log('✅ Admin booking - adding fields to cart items')
@@ -937,11 +943,11 @@ export default {
               booking_for_user_name: bookingForUser.value
             }
           }
-          
+
           if (adminNotes.value) {
             adminBookingData.admin_notes = adminNotes.value
           }
-          
+
           console.log('Admin booking data for cart:', adminBookingData)
         }
 
@@ -958,12 +964,12 @@ export default {
                 end_time: slot.end,
                 price: slot.price || 0
               }
-              
+
               // Add admin booking fields to each cart item if admin is booking for someone
               if (adminBookingData) {
                 Object.assign(cartItem, adminBookingData)
               }
-              
+
               cartItems.push(cartItem)
             })
           }
@@ -1054,14 +1060,14 @@ export default {
         console.log('isAdmin.value:', isAdmin.value)
         console.log('bookingForUser.value:', bookingForUser.value)
         console.log('adminNotes.value:', adminNotes.value)
-        
+
         let adminBookingData = null
         if (isAdmin.value && bookingForUser.value) {
           console.log('✅ Admin booking conditions met!')
           console.log('Admin booking - isAdmin:', isAdmin.value)
           console.log('Admin booking - bookingForUser:', bookingForUser.value)
           console.log('Admin booking - adminNotes:', adminNotes.value)
-          
+
           // Check if bookingForUser is an object (existing user) or string (custom name)
           if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
             adminBookingData = {
@@ -1073,11 +1079,11 @@ export default {
               booking_for_user_name: bookingForUser.value
             }
           }
-          
+
           if (adminNotes.value) {
             adminBookingData.admin_notes = adminNotes.value
           }
-          
+
           console.log('Admin booking data prepared:', adminBookingData)
         }
 
@@ -1193,7 +1199,7 @@ export default {
           } else {
             adminBookingData.booking_for_user_name = bookingForUser.value
           }
-          
+
           if (adminNotes.value) {
             adminBookingData.admin_notes = adminNotes.value
           }
@@ -1295,7 +1301,7 @@ export default {
     const fetchUsers = async () => {
       try {
         const response = await api.get('/admin/users')
-        
+
         if (response.data.success && response.data.data) {
           userNames.value = response.data.data.map(user => ({
             id: user.id,

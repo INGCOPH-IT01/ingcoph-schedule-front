@@ -98,7 +98,7 @@
                 <div class="flex-grow-1">
                   <div class="d-flex align-center mb-2">
                     <v-icon v-if="group.sport" class="mr-2" :color="getSportColor(group.sport.name)">
-                      {{ getSportIcon(group.sport.name) }}
+                      {{ getSportIcon(group.sport.name, group.sport.icon) }}
                     </v-icon>
                     <h4 v-if="group.sport" class="text-subtitle-1 font-weight-bold">{{ group.sport.name }}</h4>
                     <v-chip
@@ -414,7 +414,7 @@
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
                     <v-icon :color="getSportColor(item.raw.sport?.name)">
-                      {{ getSportIcon(item.raw.sport?.name) }}
+                      {{ getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
                     </v-icon>
                   </template>
                   <template v-slot:subtitle>
@@ -1309,7 +1309,13 @@ export default {
       }
     }
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback MDI icons if Sport model doesn't have an icon
       const icons = {
         'Badminton': 'mdi-badminton',
         'Tennis': 'mdi-tennis',

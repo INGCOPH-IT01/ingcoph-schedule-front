@@ -142,7 +142,7 @@
                     size="small"
                     label
                   >
-                    <v-icon start size="small">{{ getSportIcon(sport?.name) }}</v-icon>
+                    <v-icon start size="small">{{ getSportIcon(sport?.name, sport?.icon) }}</v-icon>
                     {{ sport?.name }}
                   </v-chip>
                 </div>
@@ -206,17 +206,17 @@
                       {{ availabilityDate ? formatDateLabel(availabilityDate) : 'Today\'s' }} Availability
                     </span>
                   </div>
-                  
+
                   <div class="time-slots-preview">
-                    <v-progress-circular 
-                      v-if="loadingTimeSlots[court.id]" 
-                      indeterminate 
+                    <v-progress-circular
+                      v-if="loadingTimeSlots[court.id]"
+                      indeterminate
                       size="20"
                       width="2"
                       color="primary"
                       class="d-block mx-auto"
                     ></v-progress-circular>
-                    
+
                     <div v-else-if="courtTimeSlots[court.id] && courtTimeSlots[court.id].length > 0" class="time-slots-grid-booking-style">
                       <v-card
                         v-for="(slot, index) in courtTimeSlots[court.id]"
@@ -241,7 +241,7 @@
                         </v-card-text>
                       </v-card>
                     </div>
-                    
+
                     <div v-else class="text-caption text-center text-grey py-2">
                       No slots available
                     </div>
@@ -615,11 +615,11 @@ export default {
     const selectedCourt = ref(null)
     const isAdmin = ref(false)
     const viewMode = ref('grid') // Default to grid view
-    
+
     // Time slots state
     const courtTimeSlots = ref({})
     const loadingTimeSlots = ref({})
-    
+
     // Date filter state
     const availabilityDate = ref('')
     const minDate = computed(() => {
@@ -629,7 +629,7 @@ export default {
       const today = new Date().toISOString().split('T')[0]
       return availabilityDate.value === today
     })
-    
+
     // Booking details dialog state
     const bookingDetailsDialog = ref(false)
     const selectedBookingSlot = ref(null)
@@ -716,7 +716,13 @@ export default {
       return colors[sportName] || 'grey'
     }
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback MDI icons if Sport model doesn't have an icon
       const icons = {
         'Basketball': 'mdi-basketball',
         'Tennis': 'mdi-tennis',
@@ -806,14 +812,14 @@ export default {
       const today = new Date()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      
+
       const dateStr = date
       const todayStr = today.toISOString().split('T')[0]
       const tomorrowStr = tomorrow.toISOString().split('T')[0]
-      
+
       if (dateStr === todayStr) return 'Today\'s'
       if (dateStr === tomorrowStr) return 'Tomorrow\'s'
-      
+
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '\'s'
     }
 

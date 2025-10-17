@@ -55,7 +55,7 @@
           <div class="excel-court-icon-wrapper">
             <!-- Use MDI icon if available, otherwise fallback to emoji -->
             <v-icon v-if="sport.icon" size="48" color="white">{{ sport.icon }}</v-icon>
-            <span v-else class="excel-court-icon-emoji">{{ getSportIcon(sport.name) }}</span>
+            <span v-else class="excel-court-icon-emoji">{{ getSportIcon(sport.name, sport.icon) }}</span>
           </div>
           <v-chip
             :color="sport.is_active ? 'success' : 'error'"
@@ -102,11 +102,6 @@
               </div>
             </div>
           </div>
-
-          <div class="excel-court-time">
-            <v-icon size="small" color="info" class="mr-2">mdi-clock-outline</v-icon>
-            <span class="excel-time-text">6:00 AM - 10:00 PM</span>
-          </div>
         </div>
 
         <div class="excel-court-footer">
@@ -118,7 +113,7 @@
             @click="handleBookNowClick"
             :disabled="!sport.is_active"
           >
-            <v-icon class="mr-2">mdi-calendar-plus</v-icon>
+            <v-icon>mdi-calendar-plus</v-icon>
             Book Now - {{ formatPriceTemplate(sport.price_per_hour || 0) }}/hour
           </v-btn>
         </div>
@@ -143,7 +138,13 @@ export default {
     const loading = ref(true)
     const error = ref(null)
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback emoji icons if Sport model doesn't have an icon
       const icons = {
         'Badminton': '🏸',
         'Tennis': '🎾',
@@ -493,7 +494,7 @@ export default {
 .excel-court-btn {
   font-size: 18px !important;
   font-weight: 600 !important;
-  padding: 16px 32px !important;
+  /* padding: 16px 32px !important; */
   border-radius: 8px !important;
 }
 

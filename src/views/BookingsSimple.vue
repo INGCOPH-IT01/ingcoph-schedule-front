@@ -218,7 +218,7 @@
                       >
                         <template v-slot:prepend>
                           <v-icon :color="getSportColor(item.court?.sport?.name)">
-                            {{ getSportIcon(item.court?.sport?.name) }}
+                            {{ getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}
                           </v-icon>
                         </template>
                         <v-list-item-title>
@@ -345,7 +345,13 @@ export default {
       return colors[sportName] || 'primary'
     }
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback MDI icons if Sport model doesn't have an icon
       const icons = {
         'Basketball': 'mdi-basketball',
         'Badminton': 'mdi-badminton',

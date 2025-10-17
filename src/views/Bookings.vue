@@ -191,7 +191,7 @@
                             class="text-white mt-1"
                           >
                             <v-icon start size="x-small">
-                              {{ getSportIcon(booking.court?.sport?.name) }}
+                              {{ getSportIcon(booking.court?.sport?.name, booking.court?.sport?.icon) }}
                             </v-icon>
                             {{ booking.court?.sport?.name || 'Unknown Sport' }}
                           </v-chip>
@@ -244,11 +244,11 @@
                             </div>
                             <div class="detail-value-compact">
                               {{ getFirstCartItemBookingForName(booking) || booking.user?.name || 'Unknown' }}
-                              <v-chip 
-                                v-if="getFirstCartItemBookingForName(booking)" 
-                                size="x-small" 
-                                color="info" 
-                                variant="outlined" 
+                              <v-chip
+                                v-if="getFirstCartItemBookingForName(booking)"
+                                size="x-small"
+                                color="info"
+                                variant="outlined"
                                 class="ml-1"
                               >
                                 Admin
@@ -633,7 +633,7 @@
                               <td>
                                 <div class="d-flex align-center">
                                   <v-icon class="mr-2" size="small" :color="getSportColor(cartItem.court?.sport?.name)">
-                                    {{ getSportIcon(cartItem.court?.sport?.name) }}
+                                    {{ getSportIcon(cartItem.court?.sport?.name, cartItem.court?.sport?.icon) }}
                                   </v-icon>
                                   {{ cartItem.court?.name || 'N/A' }}
                                 </div>
@@ -702,17 +702,17 @@
               <div class="detail-section">
                 <h4 class="detail-label">Booking Information</h4>
                 <div class="detail-content">
-                  <div 
-                    class="detail-item" 
+                  <div
+                    class="detail-item"
                     :class="{ 'admin-booking-highlight': getFirstCartItemBookingForName(selectedBooking) }"
                   >
-                    <strong>{{ getFirstCartItemBookingForName(selectedBooking) ? 'Booked For:' : 'User:' }}</strong> 
+                    <strong>{{ getFirstCartItemBookingForName(selectedBooking) ? 'Booked For:' : 'User:' }}</strong>
                     {{ getFirstCartItemBookingForName(selectedBooking) || selectedBooking.user?.name || 'Unknown' }}
-                    <v-chip 
-                      v-if="getFirstCartItemBookingForName(selectedBooking)" 
-                      size="x-small" 
-                      color="info" 
-                      variant="outlined" 
+                    <v-chip
+                      v-if="getFirstCartItemBookingForName(selectedBooking)"
+                      size="x-small"
+                      color="info"
+                      variant="outlined"
                       class="ml-2"
                     >
                       Admin Booking
@@ -1719,7 +1719,7 @@
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
                     <v-icon :color="getSportColor(item.raw.sport?.name)">
-                      {{ getSportIcon(item.raw.sport?.name) }}
+                      {{ getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
                     </v-icon>
                   </template>
                   <template v-slot:subtitle>
@@ -2595,7 +2595,13 @@ export default {
       return icons[status] || 'mdi-help-circle'
     }
 
-    const getSportIcon = (sportName) => {
+    const getSportIcon = (sportName, sportIcon = null) => {
+      // Return the icon from Sport model if available
+      if (sportIcon) {
+        return sportIcon
+      }
+
+      // Fallback MDI icons if Sport model doesn't have an icon
       if (!sportName) return 'mdi-help-circle'
       const name = sportName.toLowerCase()
       const icons = {
