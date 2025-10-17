@@ -2,7 +2,7 @@
   <v-app>
     <!-- Dynamic Global Background -->
     <div class="global-background" :style="backgroundStyle"></div>
-    
+
     <v-app-bar class="excel-app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
       <v-toolbar-title class="excel-app-title d-flex align-center" @click="router.push({ name: 'Home' })" style="cursor: pointer;">
@@ -159,6 +159,16 @@
             title="Company Settings"
             value="company-settings"
             :to="{ name: 'CompanySettings' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <!-- Payment Settings - Only for admin users -->
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-cash-multiple"
+            title="Payment Settings"
+            value="payment-settings"
+            :to="{ name: 'PaymentSettings' }"
             class="excel-nav-item"
           ></v-list-item>
 
@@ -372,11 +382,11 @@ export default {
       checkAuth()
       loadCompanySettings()
 
-      
+
       // Update cart count every 30 seconds (for expiration detection)
       // This helps notify users when cart items expire
       setInterval(updateCartCount, 30000) // 30 seconds instead of 5
-      
+
       // Listen for custom event from child components
       window.addEventListener('open-booking-dialog', openBookingDialog)
       window.addEventListener('cart-updated', updateCartCount)
@@ -760,7 +770,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(239, 83, 80, 0.04) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(244, 67, 54, 0.03) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(239, 83, 80, 0.02) 0%, transparent 50%);

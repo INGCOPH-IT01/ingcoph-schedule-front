@@ -12,6 +12,7 @@ import UserManagement from '../views/UserManagement.vue'
 import UserProfile from '../views/UserProfile.vue'
 import SportsManagement from '../views/SportsManagement.vue'
 import CompanySettings from '../views/CompanySettings.vue'
+import PaymentSettings from '../views/PaymentSettings.vue'
 import { authService } from '../services/authService'
 
 const routes = [
@@ -178,6 +179,23 @@ const routes = [
     path: '/admin/company-settings',
     name: 'CompanySettings',
     component: CompanySettings,
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAdmin = await authService.isAdmin()
+        if (isAdmin) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
+    path: '/admin/payment-settings',
+    name: 'PaymentSettings',
+    component: PaymentSettings,
     beforeEnter: async (to, from, next) => {
       try {
         const isAdmin = await authService.isAdmin()

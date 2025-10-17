@@ -281,8 +281,8 @@
                     </v-avatar>
                     <div>
                       <div class="text-caption text-grey-darken-1">Send payment to</div>
-                      <div class="text-h6 font-weight-bold">0917-123-4567</div>
-                      <div class="text-body-2">Court Booking System</div>
+                      <div class="text-h6 font-weight-bold">{{ paymentSettings.payment_gcash_number }}</div>
+                      <div class="text-body-2">{{ paymentSettings.payment_gcash_name }}</div>
                     </div>
                   </div>
                   <v-alert type="info" density="compact" class="mt-2">
@@ -297,7 +297,15 @@
                       <v-icon size="20" color="success">mdi-qrcode-scan</v-icon>
                       <span class="text-caption ml-1">Scan to Pay</span>
                     </div>
-                    <canvas ref="gcashQrCanvas" class="gcash-qr-code"></canvas>
+                    <!-- Custom QR Code Image or Generated Canvas -->
+                    <v-img
+                      v-if="paymentSettings.payment_qr_code_url"
+                      :src="paymentSettings.payment_qr_code_url"
+                      class="gcash-qr-code"
+                      width="200"
+                      height="200"
+                    ></v-img>
+                    <canvas v-else ref="gcashQrCanvas" class="gcash-qr-code"></canvas>
                     <div class="text-caption text-center mt-2 text-grey-darken-1">
                       GCash QR Code
                     </div>
@@ -519,6 +527,7 @@ import { bookingService } from '../services/bookingService'
 import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
+import { paymentSettingService } from '../services/paymentSettingService'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 
@@ -543,6 +552,13 @@ export default {
     const gcashQrCanvas = ref(null)
     const timeRemaining = ref('')
     const expirationWarning = ref(false)
+
+    // Payment settings
+    const paymentSettings = ref({
+      payment_gcash_number: '0917-123-4567',
+      payment_gcash_name: 'Perfect Smash',
+      payment_instructions: 'Please send payment to our GCash number and upload proof of payment.'
+    })
 
     // Selection state
     const selectedGroups = ref([])
@@ -864,13 +880,30 @@ export default {
       }
     }
 
+    const loadPaymentSettings = async () => {
+      try {
+        const settings = await paymentSettingService.getPaymentSettings()
+        paymentSettings.value = settings
+
+        // Set the full URL for the QR code if it exists
+        if (settings.payment_qr_code_url) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          paymentSettings.value.payment_qr_code_url = `${apiUrl}${settings.payment_qr_code_url}`
+        }
+      } catch (error) {
+        console.error('Failed to load payment settings:', error)
+        // Keep default values if loading fails
+      }
+    }
+
     const generateGCashQR = async () => {
       await nextTick()
       if (gcashQrCanvas.value) {
         try {
           // GCash QR format: gcash://pay?number=09171234567&amount=1000&name=CourtBookingSystem
-          const gcashNumber = '09171234567'
-          const accountName = 'CourtBookingSystem'
+          // Remove dashes from phone number for QR code
+          const gcashNumber = paymentSettings.value.payment_gcash_number.replace(/-/g, '')
+          const accountName = paymentSettings.value.payment_gcash_name.replace(/\s+/g, '')
           const amount = totalPrice.value
 
           // Generate QR code with GCash payment link
@@ -1312,11 +1345,16 @@ export default {
     // Watch for payment dialog open to generate QR code
     watch(paymentDialog, async (newVal) => {
       if (newVal) {
-        // Generate QR code when payment dialog opens
+        // Load payment settings first
+        await loadPaymentSettings()
         await nextTick()
-        setTimeout(() => {
-          generateGCashQR()
-        }, 150)
+
+        // Only generate dynamic QR code if no custom QR code exists
+        if (!paymentSettings.value.payment_qr_code_url) {
+          setTimeout(() => {
+            generateGCashQR()
+          }, 150)
+        }
       }
     })
 
@@ -1361,7 +1399,9 @@ export default {
       isSlotSelected,
       selectTimeSlot,
       // Services
-      sportService
+      sportService,
+      // Payment settings
+      paymentSettings
     }
   }
 }
