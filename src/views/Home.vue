@@ -194,7 +194,7 @@
                       <div class="pricing-section">
                         <div class="price-display">
                           <span class="price-label">Starting from</span>
-                          <span class="price-amount">{{ formatPriceTemplate(getCourtPrice()) }}</span>
+                          <span class="price-amount">{{ formatPriceTemplate(getSportPrice()) }}</span>
                           <span class="price-unit">/hour</span>
                         </div>
                       <v-btn
@@ -328,10 +328,16 @@ export default {
       }
     }
 
-    const getCourtPrice = () => {
-      if (courts.value.length > 0 && courts.value[0].sport) {
-        // Get the first court's sport price
-        return courts.value[0].sport.price_per_hour
+    const getSportPrice = () => {
+      if (sports.value.length > 0) {
+        // Get the lowest price from all sports
+        const prices = sports.value
+          .filter(sport => sport.price_per_hour != null)
+          .map(sport => sport.price_per_hour)
+
+        if (prices.length > 0) {
+          return Math.min(...prices)
+        }
       }
       return 25 // fallback to default price
     }
@@ -397,7 +403,7 @@ export default {
       features,
       courtFeatures,
       dashboardSettings,
-      getCourtPrice,
+      getSportPrice,
       openBookingDialog,
       handleBookNowClick,
       formatPriceTemplate
