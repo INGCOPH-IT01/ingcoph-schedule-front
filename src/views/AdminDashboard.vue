@@ -424,372 +424,15 @@
     </v-row>
 
     <!-- Booking Details Dialog -->
-    <v-dialog v-model="detailsDialog" max-width="800">
-      <v-card>
-        <v-card-title class="text-h5 pa-6 pb-4">
-          <v-icon class="mr-2" color="primary">mdi-calendar-detail</v-icon>
-          Booking Details
-        </v-card-title>
-
-        <v-divider></v-divider>
-
-        <v-card-text class="pa-6" v-if="selectedBooking">
-          <!-- User Information -->
-          <v-row class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="info">mdi-account</v-icon>
-                User Information
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Name:</strong> {{ selectedBooking.user?.name || 'N/A' }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Email:</strong> {{ selectedBooking.user?.email || 'N/A' }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>User ID:</strong> #{{ selectedBooking.user?.id || 'N/A' }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Booking ID:</strong> #{{ selectedBooking.id }}
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Court Images Gallery -->
-          <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0" class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
-                Court Images
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <CourtImageGallery
-                  :images="selectedBooking.court.images"
-                  :court-name="selectedBooking.court.name"
-                  size="large"
-                  @image-error="handleImageError"
-                />
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Transaction Details (for cart transactions) -->
-          <v-row v-if="selectedBooking.isTransaction" class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="warning">mdi-receipt-text</v-icon>
-                Transaction Details
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Transaction ID:</strong> #{{ selectedBooking.id }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Created:</strong> {{ formatDate(selectedBooking.created_at) }} at {{ formatTime(selectedBooking.created_at) }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Items Count:</strong> {{ selectedBooking.items_count }} slot{{ selectedBooking.items_count > 1 ? 's' : '' }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Approval Status:</strong>
-                      <v-chip
-                        :color="selectedBooking.approval_status === 'approved' ? 'success' : selectedBooking.approval_status === 'rejected' ? 'error' : 'warning'"
-                        variant="tonal"
-                        size="small"
-                        class="ml-2"
-                      >
-                        {{ selectedBooking.approval_status ? selectedBooking.approval_status.charAt(0).toUpperCase() + selectedBooking.approval_status.slice(1) : 'Pending' }}
-                      </v-chip>
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Total Price:</strong>
-                      <span class="text-h6 text-success">{{ formatPrice(selectedBooking.total_price ?? 0) }}</span>
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Cart Items in Transaction -->
-          <v-row v-if="selectedBooking.isTransaction && selectedBooking.cart_items" class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="info">mdi-cart</v-icon>
-                Cart Items ({{ selectedBooking.cart_items.length }})
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-list>
-                  <v-list-item
-                    v-for="item in selectedBooking.cart_items"
-                    :key="item.id"
-                    class="mb-2"
-                  >
-                    <template v-slot:prepend>
-                      <v-avatar :color="getSportColor(item.court?.sport?.name)" size="40">
-                        <v-icon color="white">{{ getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}</v-icon>
-                      </v-avatar>
-                    </template>
-                    <v-list-item-title class="font-weight-bold">
-                      {{ item.court?.name || 'Unknown Court' }}
-                    </v-list-item-title>
-                    <v-list-item-subtitle>
-                      {{ item.court?.sport?.name || 'Unknown Sport' }} •
-                      {{ formatDate(item.booking_date) }} •
-                      {{ item.start_time }} - {{ item.end_time }} •
-                      <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>
-                    </v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Booking Details (for regular bookings) -->
-          <v-row v-if="!selectedBooking.isTransaction" class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="warning">mdi-calendar-clock</v-icon>
-                Booking Details
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Date:</strong> {{ formatDate(selectedBooking.start_time) }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Start Time:</strong> {{ formatTime(selectedBooking.start_time) }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>End Time:</strong> {{ formatTime(selectedBooking.end_time) }}
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Status:</strong>
-                      <v-chip
-                        :color="getStatusColor(selectedBooking.status)"
-                        variant="tonal"
-                        size="small"
-                        class="ml-2"
-                      >
-                        {{ selectedBooking.status ? selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1) : 'Unknown' }}
-                      </v-chip>
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Total Price:</strong>
-                      <span class="text-h6 text-success">{{ formatPrice(selectedBooking.total_price ?? 0) }}</span>
-                    </div>
-                    <div class="text-body-2 mb-2" v-if="selectedBooking.notes">
-                      <strong>Notes:</strong> {{ selectedBooking.notes }}
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Frequency Booking Details -->
-          <v-row v-if="selectedBooking.frequency_type && selectedBooking.frequency_type !== 'once'" class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="primary">mdi-repeat</v-icon>
-                Frequency Booking Details
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Frequency Type:</strong>
-                      <v-chip
-                        :color="getFrequencyColor(selectedBooking.frequency_type)"
-                        variant="tonal"
-                        size="small"
-                        class="ml-2"
-                      >
-                        {{ formatFrequencyType(selectedBooking.frequency_type) }}
-                      </v-chip>
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Duration:</strong> {{ selectedBooking.frequency_duration_months || 1 }} month{{ (selectedBooking.frequency_duration_months || 1) > 1 ? 's' : '' }}
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6" v-if="selectedBooking.frequency_days && selectedBooking.frequency_days.length > 0">
-                    <div class="text-body-2 mb-2">
-                      <strong>Selected Days:</strong>
-                      <div class="mt-1">
-                        <v-chip
-                          v-for="day in selectedBooking.frequency_days"
-                          :key="day"
-                          color="primary"
-                          variant="tonal"
-                          size="small"
-                          class="mr-1 mb-1"
-                        >
-                          {{ getDayName(day) }}
-                        </v-chip>
-                      </div>
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Payment Information -->
-          <v-row class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="success">mdi-credit-card</v-icon>
-                Payment Information
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2">
-                      <strong>Payment Method:</strong>
-                      <v-chip
-                        :color="selectedBooking.payment_method ? 'success' : 'error'"
-                        variant="tonal"
-                        size="small"
-                        class="ml-2"
-                      >
-                        {{ selectedBooking.payment_method ? selectedBooking.payment_method.toUpperCase() : 'Not Set' }}
-                      </v-chip>
-                    </div>
-                    <div class="text-body-2 mb-2">
-                      <strong>Payment Status:</strong>
-                      <v-chip
-                        :color="getPaymentStatusColor(selectedBooking)"
-                        variant="tonal"
-                        size="small"
-                        class="ml-2"
-                      >
-                        {{ getPaymentStatusText(selectedBooking) }}
-                      </v-chip>
-                    </div>
-                  </v-col>
-                  <v-col cols="12" md="6">
-                    <div class="text-body-2 mb-2" v-if="selectedBooking.proof_of_payment">
-                      <strong>Proof of Payment:</strong>
-                      <div class="mt-2">
-                        <v-btn
-                          color="primary"
-                          variant="outlined"
-                          size="small"
-                          prepend-icon="mdi-eye"
-                          @click="viewProofOfPayment(selectedBooking.proof_of_payment)"
-                        >
-                          View Attachment
-                        </v-btn>
-                      </div>
-                    </div>
-                    <div class="text-body-2 mb-2" v-else>
-                      <strong>Proof of Payment:</strong>
-                      <v-chip color="error" variant="tonal" size="small" class="ml-2">
-                        Not Uploaded
-                      </v-chip>
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-
-          <!-- Attendance Status -->
-          <v-row v-if="selectedBooking.approval_status === 'approved'" class="mb-4">
-            <v-col cols="12">
-              <h4 class="text-h6 mb-3">
-                <v-icon class="mr-2" color="info">mdi-account-check</v-icon>
-                Attendance Status
-              </h4>
-              <v-card variant="outlined" class="pa-4">
-                <v-row align="center">
-                  <v-col cols="12" md="4">
-                    <div class="text-body-2 mb-2">
-                      <strong>Current Status:</strong>
-                    </div>
-                    <v-chip
-                      :color="getAttendanceColor(selectedBooking.attendance_status)"
-                      variant="tonal"
-                      size="large"
-                    >
-                      <v-icon class="mr-2">{{ getAttendanceIcon(selectedBooking.attendance_status) }}</v-icon>
-                      {{ getAttendanceLabel(selectedBooking.attendance_status) }}
-                    </v-chip>
-                  </v-col>
-                  <v-col cols="12" md="8">
-                    <div class="text-body-2 mb-3">
-                      <strong>Mark Attendance:</strong>
-                    </div>
-                    <div class="d-flex gap-2">
-                      <v-btn
-                        color="success"
-                        :variant="selectedBooking.attendance_status === 'showed_up' ? 'flat' : 'outlined'"
-                        prepend-icon="mdi-check-circle"
-                        @click="updateAttendance(selectedBooking.id, 'showed_up')"
-                        :disabled="selectedBooking.updatingAttendance"
-                      >
-                        Showed Up
-                      </v-btn>
-                      <v-btn
-                        color="error"
-                        :variant="selectedBooking.attendance_status === 'no_show' ? 'flat' : 'outlined'"
-                        prepend-icon="mdi-close-circle"
-                        @click="updateAttendance(selectedBooking.id, 'no_show')"
-                        :disabled="selectedBooking.updatingAttendance"
-                      >
-                        No Show
-                      </v-btn>
-                      <v-btn
-                        v-if="selectedBooking.attendance_status !== 'not_set'"
-                        color="grey"
-                        variant="outlined"
-                        prepend-icon="mdi-refresh"
-                        @click="updateAttendance(selectedBooking.id, 'not_set')"
-                        :disabled="selectedBooking.updatingAttendance"
-                      >
-                        Reset
-                      </v-btn>
-                    </div>
-                  </v-col>
-                </v-row>
-              </v-card>
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-6">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="grey"
-            variant="outlined"
-            @click="detailsDialog = false"
-          >
-            Close
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <BookingDetailsDialog
+      :is-open="detailsDialog"
+      @update:is-open="detailsDialog = $event"
+      :booking="selectedBooking"
+      :court-name="selectedBooking?.court_name"
+      :show-admin-features="true"
+      :show-court-images="true"
+      @attendance-updated="handleAttendanceUpdated"
+    />
 
     <!-- Reject Dialog -->
     <v-dialog v-model="rejectDialog" max-width="500">
@@ -834,50 +477,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Image Preview Dialog -->
-    <v-dialog v-model="imageDialog" max-width="800">
-      <v-card>
-        <v-card-title class="text-h5 pa-6 pb-4">
-          <v-icon class="mr-2" color="primary">mdi-image</v-icon>
-          Proof of Payment
-        </v-card-title>
-
-        <v-divider></v-divider>
-
-        <v-card-text class="pa-6">
-          <div class="text-center">
-            <img
-              :src="selectedImageUrl"
-              alt="Proof of Payment"
-              class="full-size-image"
-              style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
-            />
-          </div>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-6">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            variant="outlined"
-            @click="downloadImage"
-          >
-            <v-icon class="mr-2">mdi-download</v-icon>
-            Download
-          </v-btn>
-          <v-btn
-            color="grey"
-            variant="outlined"
-            @click="imageDialog = false"
-          >
-            Close
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
     <!-- Success/Error Snackbar -->
     <v-snackbar
       v-model="snackbar.show"
@@ -902,12 +501,12 @@ import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
 import { formatPrice } from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
-import CourtImageGallery from '../components/CourtImageGallery.vue'
+import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 export default {
   name: 'AdminDashboard',
   components: {
     QrCodeScanner,
-    CourtImageGallery
+    BookingDetailsDialog
   },
   setup() {
     const router = useRouter()
@@ -921,10 +520,6 @@ export default {
     const detailsDialog = ref(false)
     const selectedBooking = ref(null)
     const sports = ref([])
-
-    // Image dialog
-    const imageDialog = ref(false)
-    const selectedImageUrl = ref('')
 
     const snackbar = ref({
       show: false,
@@ -1153,68 +748,13 @@ export default {
       detailsDialog.value = true
     }
 
-    const viewProofOfPayment = (proofUrl) => {
-      if (proofUrl) {
-        // Open proof of payment in dialog
-        selectedImageUrl.value = `${import.meta.env.VITE_API_URL}/storage/${proofUrl}`
-        imageDialog.value = true
+    const handleAttendanceUpdated = ({ bookingId, status }) => {
+      // Update the transaction in the list
+      const transaction = pendingBookings.value.find(b => b.id === bookingId)
+      if (transaction) {
+        transaction.attendance_status = status
       }
-    }
-
-    const downloadImage = () => {
-      if (selectedImageUrl.value) {
-        const link = document.createElement('a')
-        link.href = selectedImageUrl.value
-        link.download = `proof_of_payment_${selectedBooking.value?.id || 'booking'}.jpg`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-      }
-    }
-
-    const getDuration = (startTime, endTime) => {
-      const start = new Date(startTime)
-      const end = new Date(endTime)
-      const diffInHours = (end - start) / (1000 * 60 * 60)
-      return Math.round(diffInHours)
-    }
-
-    const getStatusColor = (status) => {
-      const colors = {
-        pending: 'warning',
-        approved: 'success',
-        rejected: 'error',
-        cancelled: 'error',
-        completed: 'info'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const formatFrequencyType = (type) => {
-      const types = {
-        once: 'One-time',
-        daily: 'Daily',
-        weekly: 'Weekly',
-        monthly: 'Monthly',
-        yearly: 'Yearly'
-      }
-      return types[type] || type
-    }
-
-    const getFrequencyColor = (type) => {
-      const colors = {
-        once: 'grey',
-        daily: 'green',
-        weekly: 'blue',
-        monthly: 'orange',
-        yearly: 'red'
-      }
-      return colors[type] || 'grey'
-    }
-
-    const getDayName = (dayNumber) => {
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-      return days[dayNumber] || 'Unknown'
+      showSnackbar('Attendance status updated successfully', 'success')
     }
 
     const showSnackbar = (message, color = 'success') => {
@@ -1400,42 +940,6 @@ export default {
       return labels[status] || 'Not Set'
     }
 
-    const updateAttendance = async (transactionId, status) => {
-      try {
-        const transaction = pendingBookings.value.find(b => b.id === transactionId)
-        if (transaction) transaction.updatingAttendance = true
-
-        // Update selected booking if dialog is open
-        if (selectedBooking.value && selectedBooking.value.id === transactionId) {
-          selectedBooking.value.updatingAttendance = true
-        }
-
-        await cartService.updateAttendanceStatus(transactionId, status)
-
-        // Update the transaction in the list
-        if (transaction) {
-          transaction.attendance_status = status
-        }
-
-        // Update selected booking if dialog is open
-        if (selectedBooking.value && selectedBooking.value.id === transactionId) {
-          selectedBooking.value.attendance_status = status
-        }
-
-        showSnackbar('Attendance status updated successfully', 'success')
-      } catch (error) {
-        console.error('Failed to update attendance status:', error)
-        showSnackbar('Failed to update attendance status', 'error')
-      } finally {
-        const transaction = pendingBookings.value.find(b => b.id === transactionId)
-        if (transaction) transaction.updatingAttendance = false
-
-        // Update selected booking if dialog is open
-        if (selectedBooking.value && selectedBooking.value.id === transactionId) {
-          selectedBooking.value.updatingAttendance = false
-        }
-      }
-    }
 
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
@@ -1507,22 +1011,12 @@ export default {
       getSportIcon,
       // Booking details functions
       viewBookingDetails,
-      viewProofOfPayment,
-      getDuration,
-      getStatusColor,
-      formatFrequencyType,
-      getFrequencyColor,
-      getDayName,
-      // Image dialog
-      imageDialog,
-      selectedImageUrl,
-      downloadImage,
+      handleAttendanceUpdated,
       formatPrice,
       // Attendance status functions
       getAttendanceColor,
       getAttendanceIcon,
-      getAttendanceLabel,
-      updateAttendance
+      getAttendanceLabel
     }
   }
 }
@@ -1867,15 +1361,5 @@ export default {
   .action-card {
     padding: 20px;
   }
-}
-
-/* Court Image Styles */
-.court-image-admin {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 2px solid #e5e7eb;
-  margin-right: 12px;
 }
 </style>
