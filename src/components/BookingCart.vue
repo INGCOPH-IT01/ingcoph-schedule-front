@@ -880,33 +880,47 @@ export default {
       }
     }
 
-    const loadPaymentSettings = async () => {
+    /**
+     * Generate or load GCash QR code
+     * This function retrieves all payment details from the Payment Settings module
+     * and either displays the uploaded custom QR code or generates a dynamic one
+     */
+    const generateGCashQR = async () => {
       try {
+        // Step 1: Load all payment settings from Payment Details module
         const settings = await paymentSettingService.getPaymentSettings()
         paymentSettings.value = settings
 
-        // Set the full URL for the QR code if it exists
+        console.log('Payment settings loaded:', settings)
+
+        // Step 2: Check if custom QR code exists
         if (settings.payment_qr_code_url) {
+          // Custom QR code uploaded by admin - use it
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
           paymentSettings.value.payment_qr_code_url = `${apiUrl}${settings.payment_qr_code_url}`
-        }
-      } catch (error) {
-        console.error('Failed to load payment settings:', error)
-        // Keep default values if loading fails
-      }
-    }
 
-    const generateGCashQR = async () => {
-      await nextTick()
-      if (gcashQrCanvas.value) {
-        try {
-          // GCash QR format: gcash://pay?number=09171234567&amount=1000&name=CourtBookingSystem
-          // Remove dashes from phone number for QR code
-          const gcashNumber = paymentSettings.value.payment_gcash_number.replace(/-/g, '')
-          const accountName = paymentSettings.value.payment_gcash_name.replace(/\s+/g, '')
+          console.log('Using custom uploaded QR code:', paymentSettings.value.payment_qr_code_url)
+
+          // No need to generate canvas, v-img will display the uploaded QR
+          return
+        }
+
+        // Step 3: No custom QR code - generate dynamic QR using payment settings
+        await nextTick()
+
+        if (gcashQrCanvas.value) {
+          // Use all details from Payment Settings module
+          const gcashNumber = settings.payment_gcash_number.replace(/-/g, '')
+          const accountName = settings.payment_gcash_name.replace(/\s+/g, '')
           const amount = totalPrice.value
 
-          // Generate QR code with GCash payment link
+          console.log('Generating dynamic QR code with:', {
+            number: gcashNumber,
+            name: accountName,
+            amount: amount
+          })
+
+          // Generate QR code with GCash payment link format
           const qrData = `gcash://pay?number=${gcashNumber}&amount=${amount}&name=${accountName}`
 
           await QRCode.toCanvas(gcashQrCanvas.value, qrData, {
@@ -917,9 +931,12 @@ export default {
               light: '#ffffff'
             }
           })
-        } catch (error) {
-          console.error('Failed to generate GCash QR code:', error)
+
+          console.log('Dynamic QR code generated successfully')
         }
+      } catch (error) {
+        console.error('Failed to load payment settings or generate QR code:', error)
+        // Keep default values if loading fails
       }
     }
 
@@ -1342,19 +1359,15 @@ export default {
       }
     })
 
-    // Watch for payment dialog open to generate QR code
+    // Watch for payment dialog open to load payment details and generate/display QR code
     watch(paymentDialog, async (newVal) => {
       if (newVal) {
-        // Load payment settings first
-        await loadPaymentSettings()
+        // Generate/load QR code when payment dialog opens
+        // This function handles everything: loading payment settings, checking for custom QR, and generating dynamic QR if needed
         await nextTick()
-
-        // Only generate dynamic QR code if no custom QR code exists
-        if (!paymentSettings.value.payment_qr_code_url) {
-          setTimeout(() => {
-            generateGCashQR()
-          }, 150)
-        }
+        setTimeout(() => {
+          generateGCashQR()
+        }, 150)
       }
     })
 

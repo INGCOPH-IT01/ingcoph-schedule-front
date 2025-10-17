@@ -424,10 +424,10 @@
                           <strong>Amount to Pay:</strong> ₱{{ calculateTotalPrice() }}
                         </div>
                         <div class="text-body-2 mb-2">
-                          <strong>GCash Number:</strong> 0917-123-4567
+                          <strong>GCash Number:</strong> {{ paymentSettings.payment_gcash_number }}
                         </div>
                         <div class="text-body-2 mb-3">
-                          <strong>Account Name:</strong> Court Booking System
+                          <strong>Account Name:</strong> {{ paymentSettings.payment_gcash_name }}
                         </div>
 
                         <v-text-field
@@ -471,7 +471,15 @@
                             <v-icon size="20" color="success">mdi-qrcode-scan</v-icon>
                             <span class="text-caption ml-1">Scan to Pay</span>
                           </div>
-                          <canvas ref="gcashQrCanvas" class="gcash-qr-code"></canvas>
+                          <!-- Custom QR Code Image or Generated Canvas -->
+                          <v-img
+                            v-if="paymentSettings.payment_qr_code_url"
+                            :src="paymentSettings.payment_qr_code_url"
+                            class="gcash-qr-code"
+                            width="180"
+                            height="180"
+                          ></v-img>
+                          <canvas v-else ref="gcashQrCanvas" class="gcash-qr-code"></canvas>
                           <div class="text-caption text-center mt-2 text-grey-darken-1">
                             GCash QR Code
                           </div>
@@ -483,7 +491,7 @@
                       <div class="text-caption">
                         <strong>Instructions:</strong>
                         <ol class="pl-4 mb-0">
-                          <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to 0917-123-4567</li>
+                          <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to {{ paymentSettings.payment_gcash_number }}</li>
                           <li>Take a screenshot of your GCash payment receipt</li>
                           <li>Upload the screenshot above</li>
                           <li>Enter the reference number from your receipt</li>
@@ -555,6 +563,7 @@ import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
+import { paymentSettingService } from '../services/paymentSettingService'
 import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
@@ -604,6 +613,14 @@ export default {
     const gcashQrCanvas = ref(null)
     const proofOfPayment = ref(null)
     const proofPreview = ref(null)
+
+    // Payment settings from Payment Details module
+    const paymentSettings = ref({
+      payment_gcash_number: '0917-123-4567',
+      payment_gcash_name: 'Perfect Smash',
+      payment_instructions: 'Please send payment to our GCash number and upload proof of payment.',
+      payment_qr_code_url: null
+    })
 
     // Selections
     const selectedSport = ref(null)
@@ -1271,16 +1288,36 @@ export default {
     }
 
     // Watchers
-    // Generate GCash QR code
+    /**
+     * Generate or load GCash QR code
+     * This function retrieves all payment details from the Payment Settings module
+     * and either displays the uploaded custom QR code or generates a dynamic one
+     */
     const generateGCashQR = async () => {
-      await nextTick()
-      if (gcashQrCanvas.value) {
-        try {
-          const gcashNumber = '09171234567'
-          const accountName = 'CourtBookingSystem'
+      try {
+        // Step 1: Load all payment settings from Payment Details module
+        const settings = await paymentSettingService.getPaymentSettings()
+        paymentSettings.value = settings
+
+        // Step 2: Check if custom QR code exists
+        if (settings.payment_qr_code_url) {
+          // Custom QR code uploaded by admin - use it
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          paymentSettings.value.payment_qr_code_url = `${apiUrl}${settings.payment_qr_code_url}`
+          // No need to generate canvas, v-img will display the uploaded QR
+          return
+        }
+
+        // Step 3: No custom QR code - generate dynamic QR using payment settings
+        await nextTick()
+
+        if (gcashQrCanvas.value) {
+          // Use all details from Payment Settings module
+          const gcashNumber = settings.payment_gcash_number.replace(/-/g, '')
+          const accountName = settings.payment_gcash_name.replace(/\s+/g, '')
           const amount = calculateTotalPrice()
 
-          // Generate QR code with GCash payment link
+          // Generate QR code with GCash payment link format
           const qrData = `gcash://pay?number=${gcashNumber}&amount=${amount}&name=${accountName}`
 
           await QRCode.toCanvas(gcashQrCanvas.value, qrData, {
@@ -1291,9 +1328,10 @@ export default {
               light: '#ffffff'
             }
           })
-        } catch (error) {
-          console.error('Failed to generate GCash QR code:', error)
         }
+      } catch (error) {
+        console.error('Failed to load payment settings or generate QR code:', error)
+        // Keep default values if loading fails
       }
     }
 
@@ -1380,6 +1418,7 @@ export default {
       gcashQrCanvas,
       proofOfPayment,
       proofPreview,
+      paymentSettings,
       selectedSport,
       selectedDate,
       courtTimeSlots,
