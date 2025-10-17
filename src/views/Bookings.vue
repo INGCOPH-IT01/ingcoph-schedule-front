@@ -668,420 +668,16 @@
     </div>
 
     <!-- Booking Details Dialog -->
-    <v-dialog
-      v-model="viewDialog"
-      max-width="600px"
-      class="responsive-dialog"
-    >
-      <v-card class="booking-details-dialog">
-        <v-card-title class="text-h5 dialog-title">
-          <v-icon class="mr-2">mdi-calendar-detail</v-icon>
-          Booking Details
-        </v-card-title>
-
-        <v-card-text v-if="selectedBooking">
-          <v-row>
-            <v-col cols="12" md="6">
-              <div class="detail-section">
-                <h4 class="detail-label">Court Information</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Court:</strong> {{ selectedBooking.court?.name || 'Unknown' }}
-                  </div>
-                  <div class="detail-item">
-                    <strong>Sport:</strong> {{ selectedBooking.court?.sport?.name || 'Unknown' }}
-                  </div>
-                  <div class="detail-item">
-                    <strong>Price:</strong> ₱{{ (parseFloat(selectedBooking.court?.sport?.price_per_hour) || 0).toFixed(2) }}/hour
-                  </div>
-                </div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <div class="detail-section">
-                <h4 class="detail-label">Booking Information</h4>
-                <div class="detail-content">
-                  <div
-                    class="detail-item"
-                    :class="{ 'admin-booking-highlight': getFirstCartItemBookingForName(selectedBooking) }"
-                  >
-                    <strong>{{ getFirstCartItemBookingForName(selectedBooking) ? 'Booked For:' : 'User:' }}</strong>
-                    {{ getFirstCartItemBookingForName(selectedBooking) || selectedBooking.user?.name || 'Unknown' }}
-                    <v-chip
-                      v-if="getFirstCartItemBookingForName(selectedBooking)"
-                      size="x-small"
-                      color="info"
-                      variant="outlined"
-                      class="ml-2"
-                    >
-                      Admin Booking
-                    </v-chip>
-                  </div>
-                  <div class="detail-item">
-                    <strong>Status:</strong>
-                    <v-chip
-                      :color="statusService.getStatusColor(selectedBooking.status)"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ selectedBooking.status ? selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1) : 'Unknown' }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item">
-                    <strong>Booking ID:</strong> #{{ selectedBooking.id }}
-                  </div>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <v-row>
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">Date & Time</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Date:</strong> {{ selectedBooking.booking_date || formatDate(selectedBooking.start_time) }}
-                  </div>
-                  <div class="detail-item" v-if="selectedBooking.cart_items && selectedBooking.cart_items.length > 0">
-                    <strong>Time Slots:</strong>
-                    <div class="time-slots-detail-list mt-2">
-                      <v-chip
-                        v-for="(item, index) in selectedBooking.cart_items"
-                        :key="index"
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                        class="mr-2 mb-2"
-                      >
-                        <v-icon start size="small">mdi-clock-outline</v-icon>
-                        {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
-                        <span class="ml-2 font-weight-bold">₱{{ parseFloat(item.price).toFixed(2) }}</span>
-                      </v-chip>
-                  </div>
-                    <div class="mt-2">
-                      <strong>Total Duration:</strong> {{ calculateTotalDuration(selectedBooking.cart_items) }} hours
-                    </div>
-                  </div>
-                  <div class="detail-item" v-else>
-                    <strong>Time:</strong> {{ formatTime(selectedBooking.start_time) }} - {{ formatTime(selectedBooking.end_time) }}
-                    <div class="mt-2">
-                    <strong>Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <div class="detail-section">
-                <h4 class="detail-label">Status & Payment</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Status:</strong>
-                    <v-chip
-                      :color="statusService.getStatusColor(selectedBooking.approval_status || selectedBooking.status)"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ selectedBooking.approval_status || selectedBooking.status || 'Pending' }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item" v-if="selectedBooking.payment_status">
-                    <strong>Payment:</strong>
-                    <v-chip
-                      :color="selectedBooking.payment_status === 'paid' ? 'success' : 'warning'"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ selectedBooking.payment_status }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item" v-if="selectedBooking.total_price">
-                    <strong>Total Amount:</strong>
-                    <span class="ml-2 text-h6 text-success font-weight-bold">
-                      ₱{{ parseFloat(selectedBooking.total_price).toFixed(2) }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <!-- QR Code Section (Only for Approved Bookings) -->
-          <v-row v-if="selectedBooking.approval_status === 'approved' && selectedBooking.qr_code">
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">
-                  <v-icon class="mr-2" color="success">mdi-qrcode</v-icon>
-                  QR Code for Check-in
-                </h4>
-                <div class="detail-content text-center">
-                  <v-alert type="success" variant="tonal" class="mb-4">
-                    <div class="text-body-2">
-                      <strong>Your booking has been approved!</strong><br>
-                      Present this QR code at the venue for check-in.
-                    </div>
-                  </v-alert>
-                  <div class="qr-code-wrapper">
-                    <canvas ref="qrCanvas" class="qr-code-display" width="250" height="250"></canvas>
-                  </div>
-                  <div class="text-caption mt-2 text-grey">
-                    Transaction ID: #{{ selectedBooking.transaction_id || selectedBooking.id }}
-                  </div>
-                  <v-btn
-                    color="primary"
-                    variant="outlined"
-                    prepend-icon="mdi-download"
-                    size="small"
-                    class="mt-3"
-                    @click="downloadQrCode"
-                  >
-                    Download QR Code
-                  </v-btn>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <v-row v-if="selectedBooking.notes">
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">Notes</h4>
-                <div class="detail-content">
-                  <p class="detail-notes">{{ selectedBooking.notes }}</p>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <!-- Recurring Schedule Details -->
-          <v-row v-if="selectedBooking.status === 'recurring_schedule' && selectedBooking.recurring_schedule_data">
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">
-                  <v-icon class="mr-2" color="primary">mdi-calendar-repeat</v-icon>
-                  Recurring Schedule Details
-                </h4>
-                <div class="detail-content">
-                  <v-card variant="outlined" class="pa-4">
-                    <v-row>
-                      <v-col cols="12" md="6">
-                        <div class="mb-3">
-                          <strong>Schedule Name:</strong>
-                          <div class="text-h6 text-primary">{{ selectedBooking.recurring_schedule }}</div>
-                        </div>
-                        <div class="mb-3">
-                          <strong>Recurrence Type:</strong>
-                          <v-chip
-                            :color="getRecurrenceTypeColor(selectedBooking.recurring_schedule_data.recurrence_type)"
-                            variant="tonal"
-                            size="small"
-                            class="ml-2"
-                          >
-                            {{ formatRecurrenceType(selectedBooking.recurring_schedule_data.recurrence_type) }}
-                          </v-chip>
-                        </div>
-                        <div class="mb-3">
-                          <strong>Interval:</strong> Every {{ selectedBooking.recurring_schedule_data.recurrence_interval || 1 }}
-                          {{ getIntervalSuffix(selectedBooking.recurring_schedule_data.recurrence_type) }}
-                        </div>
-                        <div class="mb-3">
-                          <strong>Auto Approve:</strong>
-                          <v-chip
-                            :color="selectedBooking.recurring_schedule_data.auto_approve ? 'success' : 'warning'"
-                            variant="tonal"
-                            size="small"
-                            class="ml-2"
-                          >
-                            {{ selectedBooking.recurring_schedule_data.auto_approve ? 'Yes' : 'No' }}
-                          </v-chip>
-                        </div>
-                      </v-col>
-                      <v-col cols="12" md="6">
-                        <div class="mb-3">
-                          <strong>Start Date:</strong> {{ formatDate(selectedBooking.recurring_schedule_data.start_date) }}
-                        </div>
-                        <div class="mb-3">
-                          <strong>End Date:</strong> {{ formatDate(selectedBooking.recurring_schedule_data.end_date) || 'No end date' }}
-                        </div>
-                        <div class="mb-3" v-if="selectedBooking.recurring_schedule_data.max_occurrences">
-                          <strong>Max Occurrences:</strong> {{ selectedBooking.recurring_schedule_data.max_occurrences }}
-                        </div>
-                        <div class="mb-3" v-if="selectedBooking.recurring_schedule_data.description">
-                          <strong>Description:</strong> {{ selectedBooking.recurring_schedule_data.description }}
-                        </div>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Day-Specific Times -->
-                    <v-row v-if="hasDaySpecificTimes(selectedBooking.recurring_schedule_data)">
-                      <v-col cols="12">
-                        <v-divider class="my-4"></v-divider>
-                        <h5 class="text-h6 mb-3">
-                          <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
-                          Schedule Times for Each Day
-                        </h5>
-                        <v-list density="compact">
-                          <v-list-item
-                            v-for="(dayTime, index) in selectedBooking.recurring_schedule_data.day_specific_times"
-                            :key="index"
-                            class="mb-2"
-                          >
-                            <template v-slot:prepend>
-                              <v-icon color="primary">mdi-calendar-clock</v-icon>
-                            </template>
-                            <v-list-item-title>
-                              {{ getDayName(dayTime.day) }}
-                            </v-list-item-title>
-                            <v-list-item-subtitle>
-                              {{ dayTime.start_time }} - {{ dayTime.end_time }}
-                              ({{ calculateDuration(dayTime.start_time, dayTime.end_time) }}h)
-                            </v-list-item-subtitle>
-                          </v-list-item>
-                        </v-list>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Regular Recurrence Days -->
-                    <v-row v-else-if="hasRecurrenceDays(selectedBooking.recurring_schedule_data)">
-                      <v-col cols="12">
-                        <v-divider class="my-4"></v-divider>
-                        <h5 class="text-h6 mb-3">
-                          <v-icon class="mr-2" color="primary">mdi-calendar-week</v-icon>
-                          Recurring Days
-                        </h5>
-                        <div class="mb-3">
-                          <strong>Days of Week:</strong>
-                          <v-chip
-                            v-for="day in selectedBooking.recurring_schedule_data.recurrence_days"
-                            :key="day"
-                            color="primary"
-                            variant="tonal"
-                            size="small"
-                            class="ml-2"
-                          >
-                            {{ getDayName(day) }}
-                          </v-chip>
-                        </div>
-                        <div v-if="selectedBooking.recurring_schedule_data.start_time && selectedBooking.recurring_schedule_data.end_time">
-                          <strong>Time:</strong> {{ selectedBooking.recurring_schedule_data.start_time }} - {{ selectedBooking.recurring_schedule_data.end_time }}
-                          ({{ calculateDuration(selectedBooking.recurring_schedule_data.start_time, selectedBooking.recurring_schedule_data.end_time) }}h)
-                        </div>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Summary -->
-                    <v-row>
-                      <v-col cols="12">
-                        <v-divider class="my-4"></v-divider>
-                        <v-alert
-                          type="info"
-                          variant="tonal"
-                          class="mb-0"
-                        >
-                          <v-icon class="mr-2">mdi-information</v-icon>
-                          {{ getRecurringSummaryText(selectedBooking.recurring_schedule_data) }}
-                        </v-alert>
-                      </v-col>
-                    </v-row>
-                  </v-card>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <!-- Frequency Booking Details -->
-          <v-row v-if="selectedBooking.frequency_type">
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">
-                  <v-icon class="mr-2" color="primary">mdi-repeat</v-icon>
-                  Frequency Booking Details
-                </h4>
-                <div class="detail-content">
-                  <v-card variant="outlined" class="pa-4">
-                    <v-row>
-                      <v-col cols="12" md="6">
-                        <div class="mb-3">
-                          <strong>Frequency Type:</strong>
-                          <v-chip
-                            :color="getFrequencyColor(selectedBooking.frequency_type)"
-                            variant="tonal"
-                            size="small"
-                            class="ml-2"
-                          >
-                            {{ formatFrequencyType(selectedBooking.frequency_type) }}
-                          </v-chip>
-                        </div>
-                        <div class="mb-3">
-                          <strong>Duration:</strong> {{ selectedBooking.frequency_duration_months || 1 }} month{{ (selectedBooking.frequency_duration_months || 1) > 1 ? 's' : '' }}
-                        </div>
-                        <div class="mb-3">
-                          <strong>Total Price:</strong> {{ formatPriceTemplate(selectedBooking.total_price) }}
-                        </div>
-                      </v-col>
-                      <v-col cols="12" md="6">
-                        <div class="mb-3" v-if="selectedBooking.frequency_days && selectedBooking.frequency_days.length > 0">
-                          <strong>Selected Days:</strong>
-                          <div class="mt-2">
-                            <v-chip
-                              v-for="day in selectedBooking.frequency_days"
-                              :key="day"
-                              color="primary"
-                              variant="tonal"
-                              size="small"
-                              class="mr-1 mb-1"
-                            >
-                              {{ getDayName(day) }}
-                            </v-chip>
-                          </div>
-                        </div>
-                        <div class="mb-3">
-                          <strong>Session Time:</strong> {{ formatTime(selectedBooking.start_time) }} - {{ formatTime(selectedBooking.end_time) }}
-                        </div>
-                        <div class="mb-3">
-                          <strong>Session Duration:</strong> {{ getDuration(selectedBooking.start_time, selectedBooking.end_time) }} hours per session
-                        </div>
-                      </v-col>
-                    </v-row>
-
-                    <!-- Summary -->
-                    <v-row>
-                      <v-col cols="12">
-                        <v-divider class="my-4"></v-divider>
-                        <v-alert
-                          type="info"
-                          variant="tonal"
-                          class="mb-0"
-                        >
-                          {{ getFrequencyDetailsText(selectedBooking) }}
-                        </v-alert>
-                      </v-col>
-                    </v-row>
-                  </v-card>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            variant="text"
-            @click="viewDialog = false"
-          >
-            Close
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <BookingDetailsDialog
+      :is-open="viewDialog"
+      @update:is-open="viewDialog = $event"
+      :booking="selectedBooking"
+      :court-name="selectedBooking?.court?.name"
+      :show-admin-features="true"
+      :show-court-images="false"
+      @close="viewDialog = false"
+      @attendance-updated="fetchBookings"
+    />
 
     <!-- Edit Booking Dialog -->
     <v-dialog :model-value="false" max-width="500px" style="display: none;">
@@ -1848,9 +1444,9 @@ import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
+import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
-import QRCode from 'qrcode'
 import Swal from 'sweetalert2'
 import { formatPrice, formatNumber } from '../utils/formatters'
 
@@ -1859,6 +1455,7 @@ export default {
   components: {
     RecurringScheduleViewDialog,
     NewBookingDialog,
+    BookingDetailsDialog,
     QrCodeDisplay,
     QrCodeScanner
   },
@@ -1895,7 +1492,6 @@ export default {
     const recurringViewDialog = ref(false)
     const selectedRecurringSchedule = ref(null)
     const selectedBooking = ref(null)
-    const qrCanvas = ref(null)
 
     // Edit booking dialog
     const editDialog = ref(false)
@@ -3095,36 +2691,6 @@ export default {
     const viewBooking = async (booking) => {
       selectedBooking.value = booking
       viewDialog.value = true
-
-      // Generate QR code if booking is approved and has QR data
-      if (booking.approval_status === 'approved' && booking.qr_code) {
-        await nextTick()
-
-        if (qrCanvas.value) {
-          try {
-            await QRCode.toCanvas(qrCanvas.value, booking.qr_code, {
-              width: 250,
-              margin: 2,
-              color: {
-                dark: '#000000',
-                light: '#FFFFFF'
-              }
-            })
-          } catch (error) {
-            console.error('Failed to generate QR code:', error)
-          }
-        }
-      }
-    }
-
-    const downloadQrCode = () => {
-      if (qrCanvas.value) {
-        const url = qrCanvas.value.toDataURL('image/png')
-        const link = document.createElement('a')
-        link.download = `booking-qr-${selectedBooking.value.transaction_id || selectedBooking.value.id}.png`
-        link.href = url
-        link.click()
-      }
     }
 
     const testEditDialog = () => {
@@ -4063,10 +3629,8 @@ export default {
       newBookingDialog,
       generateDialogOpen,
       viewBooking,
-      downloadQrCode,
       viewDialog,
       selectedBooking,
-      qrCanvas,
       recurringViewDialog,
       selectedRecurringSchedule,
       editBooking,
