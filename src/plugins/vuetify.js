@@ -103,24 +103,22 @@ export const updateTheme = (primary, secondary, background, mode) => {
     background,
     mode
   }))
-  
+
   // Update theme colors for both light and dark modes
   if (vuetify.theme.themes.value.light) {
     vuetify.theme.themes.value.light.colors.primary = primary
     vuetify.theme.themes.value.light.colors.secondary = secondary
     vuetify.theme.themes.value.light.colors.background = background
   }
-  
+
   if (vuetify.theme.themes.value.dark) {
     vuetify.theme.themes.value.dark.colors.primary = primary
     vuetify.theme.themes.value.dark.colors.secondary = secondary
     // Dark mode keeps its own background
   }
-  
+
   // Switch theme mode
   vuetify.theme.global.name.value = mode
-  
-  console.log('Theme updated:', { primary, secondary, background, mode })
 }
 
 // Listen for theme updates from SystemSettings
@@ -130,4 +128,3 @@ window.addEventListener('theme-updated', (event) => {
 })
 
 export default vuetify
-

@@ -4,7 +4,7 @@
     <div class="badminton-background">
       <div class="badminton-overlay"></div>
     </div>
-    
+
     <!-- Excel-like Header -->
     <div class="excel-header">
       <div class="excel-title-section">
@@ -146,9 +146,9 @@
                         {{ formatTime(item.start_time) }} - {{ formatTime(item.end_time) }}
                       </div>
                       <div class="excel-frequency">
-                        <v-chip 
+                        <v-chip
                           :color="getFrequencyColor(item.frequency_type)"
-                          variant="tonal" 
+                          variant="tonal"
                           size="x-small"
                           class="mt-1"
                         >
@@ -165,9 +165,9 @@
                   </td>
             <td class="excel-cell">
               <div v-if="item.status === 'recurring_schedule'">
-                <v-chip 
-                  color="primary" 
-                  variant="tonal" 
+                <v-chip
+                  color="primary"
+                  variant="tonal"
                   size="small"
                   class="excel-duration-chip"
                 >
@@ -176,9 +176,9 @@
               </div>
               <div v-else-if="item.frequency_type">
                 <div class="excel-frequency-details">
-                  <v-chip 
-                    color="info" 
-                    variant="tonal" 
+                  <v-chip
+                    color="info"
+                    variant="tonal"
                     size="small"
                     class="excel-duration-chip mb-1"
                   >
@@ -190,9 +190,9 @@
                 </div>
               </div>
               <div v-else>
-                <v-chip 
-                  color="info" 
-                  variant="tonal" 
+                <v-chip
+                  color="info"
+                  variant="tonal"
                   size="small"
                   class="excel-duration-chip"
                 >
@@ -309,7 +309,7 @@
           <v-icon class="mr-2">mdi-calendar-detail</v-icon>
           Booking Details
         </v-card-title>
-        
+
         <v-card-text v-if="selectedBooking">
           <v-row>
             <v-col cols="12" md="6">
@@ -325,13 +325,13 @@
                 </div>
               </div>
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <div class="detail-section">
                 <h4 class="detail-label">Booking Information</h4>
                 <div class="detail-content">
                   <div class="detail-item">
-                    <strong>Status:</strong> 
+                    <strong>Status:</strong>
                     <v-chip
                       :color="getStatusColor(selectedBooking.status)"
                       variant="tonal"
@@ -348,7 +348,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <v-row>
             <v-col cols="12" md="6">
               <div class="detail-section">
@@ -366,7 +366,7 @@
                 </div>
               </div>
             </v-col>
-            
+
             <v-col cols="12" md="6">
               <div class="detail-section">
                 <h4 class="detail-label">Status</h4>
@@ -384,7 +384,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <v-row v-if="selectedBooking.notes">
             <v-col cols="12">
               <div class="detail-section">
@@ -414,7 +414,7 @@
                         </div>
                         <div class="mb-3">
                           <strong>Recurrence Type:</strong>
-                          <v-chip 
+                          <v-chip
                             :color="getRecurrenceTypeColor(selectedBooking.recurring_schedule_data.recurrence_type)"
                             variant="tonal"
                             size="small"
@@ -424,12 +424,12 @@
                           </v-chip>
                         </div>
                         <div class="mb-3">
-                          <strong>Interval:</strong> Every {{ selectedBooking.recurring_schedule_data.recurrence_interval || 1 }} 
+                          <strong>Interval:</strong> Every {{ selectedBooking.recurring_schedule_data.recurrence_interval || 1 }}
                           {{ getIntervalSuffix(selectedBooking.recurring_schedule_data.recurrence_type) }}
                         </div>
                         <div class="mb-3">
                           <strong>Auto Approve:</strong>
-                          <v-chip 
+                          <v-chip
                             :color="selectedBooking.recurring_schedule_data.auto_approve ? 'success' : 'warning'"
                             variant="tonal"
                             size="small"
@@ -546,7 +546,7 @@
                       <v-col cols="12" md="6">
                         <div class="mb-3">
                           <strong>Frequency Type:</strong>
-                          <v-chip 
+                          <v-chip
                             :color="getFrequencyColor(selectedBooking.frequency_type)"
                             variant="tonal"
                             size="small"
@@ -607,7 +607,7 @@
             </v-col>
           </v-row>
         </v-card-text>
-        
+
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn
@@ -625,7 +625,7 @@
     <v-dialog v-model="editDialog" max-width="500px">
       <v-card>
         <v-card-title>Edit Booking</v-card-title>
-        
+
         <v-card-text>
           <div v-if="editingBooking">
             <p><strong>Court ID:</strong> {{ editingBooking.court_id }}</p>
@@ -637,7 +637,7 @@
             <p>Loading booking details...</p>
           </div>
         </v-card-text>
-        
+
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="closeEditDialog">Close</v-btn>
@@ -660,7 +660,7 @@
                     <strong>Sport:</strong> {{ editingBooking.court?.sport?.name || 'Unknown' }}
                   </div>
                   <div class="info-item">
-                    <strong>Status:</strong> 
+                    <strong>Status:</strong>
                     <v-chip
                       :color="getStatusColor(editingBooking.status)"
                       variant="tonal"
@@ -726,9 +726,9 @@
                   </div>
                   <div class="detail-item mb-2">
                     <strong>Status:</strong>
-                    <v-chip 
+                    <v-chip
                       :color="getStatusColor(editingBooking.status)"
-                      variant="tonal" 
+                      variant="tonal"
                       size="small"
                       class="ml-2"
                     >
@@ -740,7 +740,7 @@
                   </div>
                 </v-col>
               </v-row>
-              
+
               <!-- Frequency Booking Details -->
               <v-row v-if="editingBooking.frequency_type && editingBooking.frequency_type !== 'once'">
                 <v-col cols="12">
@@ -753,7 +753,7 @@
                     <v-col cols="12" md="6">
                       <div class="detail-item mb-2">
                         <strong>Frequency Type:</strong>
-                        <v-chip 
+                        <v-chip
                           :color="getFrequencyColor(editingBooking.frequency_type)"
                           variant="tonal"
                           size="small"
@@ -786,7 +786,7 @@
                   </v-row>
                 </v-col>
               </v-row>
-              
+
               <!-- Notes -->
               <v-row v-if="editingBooking.notes">
                 <v-col cols="12">
@@ -829,7 +829,7 @@
                   </template>
                 </v-select>
               </v-col>
-              
+
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="editForm.value.date"
@@ -842,7 +842,7 @@
                 ></v-text-field>
               </v-col>
             </v-row>
-            
+
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
@@ -857,7 +857,7 @@
                   :disabled="!editForm.value?.court_id || !editForm.value?.date"
                 ></v-select>
               </v-col>
-              
+
               <v-col cols="12" md="6">
                 <v-select
                   v-model="editForm.value.duration"
@@ -870,8 +870,8 @@
                 ></v-select>
               </v-col>
             </v-row>
-            
-            
+
+
             <v-row>
               <v-col cols="12" md="6">
                 <v-select
@@ -884,7 +884,7 @@
                   prepend-inner-icon="mdi-flag"
                 ></v-select>
               </v-col>
-              
+
               <v-col cols="12" md="6">
                 <v-select
                   v-model="editForm.value.frequency_type"
@@ -905,7 +905,7 @@
                     <v-icon class="mr-2" color="success">mdi-credit-card</v-icon>
                     Payment Method
                   </h5>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6">
                         <v-select
@@ -919,7 +919,7 @@
                           @update:model-value="onPaymentMethodChange"
                       ></v-select>
                     </v-col>
-                    
+
                     <v-col cols="12" md="6" v-if="editForm.value?.payment_method === 'gcash'">
                       <v-text-field
                         v-model="editForm.value.gcash_amount"
@@ -942,8 +942,8 @@
                             Scan GCash QR Code to Pay
                           </h6>
                           <div class="qr-code-container mb-3">
-                            <img 
-                              src="/images/gcash-qr-code.svg" 
+                            <img
+                              src="/images/gcash-qr-code.svg"
                               alt="GCash QR Code"
                               class="qr-code-image"
                               style="max-width: 200px; height: auto;"
@@ -1014,7 +1014,7 @@
                     <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
                     Frequency Booking Details
                   </h5>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6" v-if="editForm.value && ['weekly', 'monthly', 'yearly'].includes(editForm.value.frequency_type)">
                       <v-select
@@ -1029,7 +1029,7 @@
                         prepend-inner-icon="mdi-calendar-week"
                       ></v-select>
                     </v-col>
-                    
+
                     <v-col cols="12" md="6">
                       <v-text-field
                         v-model="editForm.value.frequency_duration_months"
@@ -1042,7 +1042,7 @@
                       ></v-text-field>
                     </v-col>
                   </v-row>
-                  
+
                   <v-alert
                     type="info"
                     variant="tonal"
@@ -1057,7 +1057,7 @@
                 </v-card>
               </v-col>
             </v-row>
-            
+
             <v-row>
               <v-col cols="12">
                 <v-textarea
@@ -1069,7 +1069,7 @@
                 ></v-textarea>
               </v-col>
             </v-row>
-            
+
             <!-- Price Calculation Section -->
             <v-row v-if="selectedCourt">
               <v-col cols="12">
@@ -1078,7 +1078,7 @@
                     <v-icon class="mr-2" color="success">mdi-calculator</v-icon>
                     Price Calculation
                   </h5>
-                  
+
                   <v-row>
                     <v-col cols="12" md="6">
                       <div class="text-body-2 mb-2">
@@ -1099,14 +1099,14 @@
                         <strong>Duration:</strong> {{ editForm.value?.frequency_duration_months }} month{{ editForm.value?.frequency_duration_months > 1 ? 's' : '' }}
                       </div>
                       <div class="text-body-2 mb-2">
-                        <strong>Total Price:</strong> 
+                        <strong>Total Price:</strong>
                         <span class="text-h6 text-success">₱{{ totalPrice.toFixed(2) }}</span>
                       </div>
                     </v-col>
                   </v-row>
-                  
+
                   <v-divider class="my-3"></v-divider>
-                  
+
                   <v-alert
                     type="info"
                     variant="tonal"
@@ -1118,7 +1118,7 @@
                 </v-card>
               </v-col>
             </v-row>
-            
+
             <v-row>
               <v-col cols="12">
                 <v-alert
@@ -1136,7 +1136,7 @@
                 </v-alert>
               </v-col>
             </v-row>
-            
+
             <v-alert
               v-if="editError"
               type="error"
@@ -1146,7 +1146,7 @@
               {{ editError }}
             </v-alert>
           </v-form>
-          
+
           <!-- Loading state when editForm.value doesn't exist -->
           <div v-else>
             <div class="text-center pa-8">
@@ -1158,7 +1158,7 @@
             </div>
           </div>
         </v-card-text>
-        
+
         <v-card-actions>
           <v-spacer></v-spacer>
           <v-btn @click="testEditDialog" color="primary" variant="text">Test Dialog</v-btn>
@@ -1273,15 +1273,15 @@ export default {
         return 'Error accessing localStorage'
       }
     })
-    
+
     // View booking dialog
     const viewDialog = ref(false)
-    
+
     // Recurring schedule view dialog
     const recurringViewDialog = ref(false)
     const selectedRecurringSchedule = ref(null)
     const selectedBooking = ref(null)
-    
+
     // Edit booking dialog
     const editDialog = ref(false)
     const editingBooking = ref(null)
@@ -1307,7 +1307,7 @@ export default {
     const availableSlots = ref([])
     const selectedCourt = ref(null)
     const totalPrice = ref(0)
-    
+
     const durationOptions = [
       { title: '1 hour', value: 1 },
       { title: '2 hours', value: 2 },
@@ -1415,9 +1415,9 @@ export default {
     const fetchBookings = async () => {
       try {
         loading.value = true
-        
+
         const data = await courtService.getBookings()
-        
+
         // Process data to ensure total_price is a number
         bookings.value = (data || []).map(booking => ({
           ...booking,
@@ -1474,13 +1474,13 @@ export default {
 
     const formatRecurrenceDetails = (data) => {
       if (!data) return 'Unknown'
-      
+
       const type = data.recurrence_type
       const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-      
+
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(type) && data.day_specific_times) {
         // Show day-specific times
-        const times = data.day_specific_times.map(dayTime => 
+        const times = data.day_specific_times.map(dayTime =>
           `${dayNames[dayTime.day]} ${dayTime.start_time}-${dayTime.end_time}`
         ).join(', ')
         return times
@@ -1499,7 +1499,7 @@ export default {
 
     const getRecurringDurationText = (data) => {
       if (!data) return 'Recurring'
-      
+
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(data.recurrence_type) && data.day_specific_times) {
         // Calculate total duration for all day-specific times
         let totalHours = 0
@@ -1525,7 +1525,7 @@ export default {
 
     const getRecurringPriceText = (data) => {
       if (!data) return 'Per Session'
-      
+
       // For now, just show "Per Session" - this could be enhanced to calculate actual pricing
       return 'Per Session'
     }
@@ -1579,9 +1579,9 @@ export default {
 
     const getRecurringSummaryText = (data) => {
       if (!data) return ''
-      
+
       const type = data.recurrence_type
-      
+
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(type) && data.day_specific_times) {
         const totalHours = data.day_specific_times.reduce((total, dayTime) => {
           return total + parseFloat(calculateDuration(dayTime.start_time, dayTime.end_time))
@@ -1620,10 +1620,10 @@ export default {
 
     const getFrequencyDetailsText = (item) => {
       if (!item.frequency_type) return ''
-      
+
       const duration = item.frequency_duration_months || 1
       let details = ''
-      
+
       if (item.frequency_type === 'once') {
         // For 'once' bookings, show it as a one-time booking with frequency data
         if (item.frequency_days && item.frequency_days.length > 0) {
@@ -1634,14 +1634,14 @@ export default {
         }
         return details
       }
-      
+
       if (item.frequency_days && item.frequency_days.length > 0) {
         const dayNames = item.frequency_days.map(day => getDayName(day)).join(', ')
         details = `${formatFrequencyType(item.frequency_type)} on ${dayNames}`
       } else {
         details = formatFrequencyType(item.frequency_type)
       }
-      
+
       return `${details} for ${duration} month${duration > 1 ? 's' : ''}`
     }
 
@@ -1682,14 +1682,14 @@ export default {
 
     const cancelBooking = async (bookingId) => {
       if (!confirm('Are you sure you want to cancel this booking?')) return
-      
+
       try {
         cancelling.value = bookingId
         await courtService.updateBooking(bookingId, { status: 'cancelled' })
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-cancelled'))
-        
+
         await fetchBookings() // Refresh the list
       } catch (err) {
         alert('Failed to cancel booking: ' + err.message)
@@ -1709,15 +1709,10 @@ export default {
     }
 
     const testEditDialog = () => {
-      console.log('Testing edit dialog...')
       editDialog.value = true
-      console.log('Edit dialog state:', editDialog.value)
     }
 
     const forcePopulateForm = () => {
-      console.log('Force populating form...')
-      console.log('Current editingBooking:', editingBooking.value)
-      
       if (editingBooking.value) {
         // Simple form population
         editForm.value.court_id = editingBooking.value.court_id || 1
@@ -1734,34 +1729,27 @@ export default {
         editForm.value.payment_method = editingBooking.value.payment_method || ''
         editForm.value.gcash_amount = ''
         editForm.value.proof_of_payment = null
-        
-        console.log('Form force populated:', editForm.value)
       }
     }
 
 
     const editBooking = async (booking) => {
       try {
-        console.log('Edit booking clicked for:', booking)
-        console.log('Setting editingBooking...')
         editingBooking.value = booking
-        console.log('editingBooking set:', editingBooking.value)
-        
+
         // Load courts if not already loaded
         if (courts.value.length === 0) {
-          console.log('Loading courts...')
           await loadCourts()
         }
-        
+
         // Set selected court
         selectedCourt.value = courts.value.find(c => c.id === booking.court_id)
-        console.log('Selected court:', selectedCourt.value)
-      
+
         // Set form data with all current values
         const bookingDate = new Date(booking.start_time).toISOString().split('T')[0]
         const bookingDuration = getDuration(booking.start_time, booking.end_time)
         const bookingStartTime = new Date(booking.start_time).toISOString()
-        
+
         // Parse frequency_days if it's a string (from database JSON)
         let parsedFrequencyDays = []
         if (booking.frequency_days) {
@@ -1769,7 +1757,6 @@ export default {
             try {
               parsedFrequencyDays = JSON.parse(booking.frequency_days)
             } catch (e) {
-              console.warn('Failed to parse frequency_days:', booking.frequency_days)
               parsedFrequencyDays = []
             }
           } else if (Array.isArray(booking.frequency_days)) {
@@ -1784,7 +1771,6 @@ export default {
             try {
               parsedFrequencyTimes = JSON.parse(booking.frequency_times)
             } catch (e) {
-              console.warn('Failed to parse frequency_times:', booking.frequency_times)
               parsedFrequencyTimes = []
             }
           } else if (Array.isArray(booking.frequency_times)) {
@@ -1793,15 +1779,10 @@ export default {
         }
 
         // Update form properties individually to maintain reactivity
-        console.log('Starting form population...')
         editForm.value.court_id = booking.court_id
-        console.log('Set court_id:', editForm.value.court_id)
         editForm.value.date = bookingDate
-        console.log('Set date:', editForm.value.date)
         editForm.value.start_time = bookingStartTime
-        console.log('Set start_time:', editForm.value.start_time)
         editForm.value.duration = bookingDuration
-        console.log('Set duration:', editForm.value.duration)
         editForm.value.notes = booking.notes || ''
         editForm.value.status = booking.status || 'pending'
         editForm.value.frequency_type = booking.frequency_type || 'once'
@@ -1812,50 +1793,29 @@ export default {
         editForm.value.payment_method = booking.payment_method || ''
         editForm.value.gcash_amount = booking.payment_method === 'gcash' ? `₱${(parseFloat(booking.total_price) || 0).toFixed(2)}` : ''
         editForm.value.proof_of_payment = null
-        console.log('Form population completed')
-        
-        
+
         // Set selected court
         selectedCourt.value = courts.value.find(court => court.id === booking.court_id)
-        
+
         // Load available slots for the current date
         if (editForm.value.court_id && editForm.value.date) {
           await loadAvailableSlots()
-          
+
           // Verify that the current time slot is still available
           const currentStartTime = new Date(booking.start_time).toISOString()
           const matchingSlot = availableSlots.value.find(slot => slot.start_time === currentStartTime)
-          
+
           if (!matchingSlot && availableSlots.value.length > 0) {
             // If current slot is not available, select the first available slot
             editForm.value.start_time = availableSlots.value[0].start_time
-            console.warn('Original time slot no longer available, selected alternative')
           }
         }
-        
+
         // Calculate initial price after all form data is set
         calculatePrice()
-        
-        // Debug: Log the populated form data
-        console.log('Original booking data:', booking)
-        console.log('Edit form populated:', editForm.value)
-        console.log('editForm.value exists:', !!editForm.value)
-        console.log('editingBooking exists:', !!editingBooking.value)
-        console.log('Condition check - editingBooking && editForm.value:', !!(editingBooking.value && editForm.value))
-        console.log('Available slots:', availableSlots.value)
-        console.log('Parsed frequency_days:', parsedFrequencyDays)
-        console.log('Parsed frequency_times:', parsedFrequencyTimes)
-        
-        console.log('Opening edit dialog...')
+
         editDialog.value = true
-        console.log('Edit dialog opened:', editDialog.value)
-        
-        // Force a timeout to ensure form is populated
-        setTimeout(() => {
-          console.log('After timeout - editForm.value:', editForm.value)
-          console.log('After timeout - editingBooking.value:', editingBooking.value)
-        }, 1000)
-        
+
       } catch (error) {
         console.error('Error in editBooking:', error)
         console.error('Error details:', error.message, error.stack)
@@ -1878,14 +1838,14 @@ export default {
 
     const loadAvailableSlots = async () => {
       if (!editForm.value.court_id || !editForm.value.date) return
-      
+
       try {
         const slots = await courtService.getAvailableSlots(
-          editForm.value.court_id, 
+          editForm.value.court_id,
           editForm.value.date,
           editForm.value.duration || 1
         )
-        
+
         // If we're editing a booking, add the current booking's time slot to available slots
         if (editingBooking.value) {
           const currentStartTime = new Date(editingBooking.value.start_time).toISOString()
@@ -1895,14 +1855,14 @@ export default {
             end_time: currentEndTime,
             formatted_time: `${new Date(currentStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(currentEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
           }
-          
+
           // Check if current slot is already in the list
           const existingSlot = slots.find(slot => slot.start_time === currentStartTime)
           if (!existingSlot) {
             slots.unshift(currentSlot) // Add to beginning
           }
         }
-        
+
         availableSlots.value = slots
         calculatePrice()
       } catch (error) {
@@ -1916,7 +1876,7 @@ export default {
       editForm.value.start_time = ''
       availableSlots.value = []
       totalPrice.value = 0
-      
+
       if (editForm.value.date) {
         await loadAvailableSlots()
       }
@@ -1926,7 +1886,7 @@ export default {
       editForm.value.start_time = ''
       availableSlots.value = []
       totalPrice.value = 0
-      
+
       if (editForm.value.court_id) {
         await loadAvailableSlots()
       }
@@ -1939,7 +1899,7 @@ export default {
       }
 
       const basePrice = selectedCourt.value.price_per_hour * editForm.value.duration
-      
+
       if (editForm.value.frequency_type === 'once') {
         totalPrice.value = basePrice
       } else if (editForm.value.frequency_type === 'daily') {
@@ -1993,8 +1953,8 @@ export default {
       try {
         editLoading.value = true
         editError.value = ''
-        
-        
+
+
         if (!editForm.value.court_id || !editForm.value.date || !editForm.value.start_time) {
           editError.value = 'Please fill in all required fields'
           console.error('Validation failed:', {
@@ -2004,16 +1964,16 @@ export default {
           })
           return
         }
-        
+
         if (!selectedCourt.value) {
           editError.value = 'Please select a valid court'
           return
         }
-        
+
         // Calculate end time
         const startDateTime = new Date(editForm.value.start_time)
         const endDateTime = new Date(startDateTime.getTime() + (editForm.value.duration * 60 * 60 * 1000))
-        
+
         const updateData = {
           court_id: parseInt(editForm.value.court_id),
           start_time: startDateTime.toISOString(),
@@ -2028,10 +1988,10 @@ export default {
           frequency_end_date: editForm.value.frequency_end_date || null,
           payment_method: editForm.value.payment_method || null
         }
-        
+
         // Update booking
         await courtService.updateBooking(editingBooking.value.id, updateData)
-        
+
         // Handle proof of payment upload if provided
         if (editForm.value.proof_of_payment && editForm.value.proof_of_payment.length > 0) {
           try {
@@ -2042,17 +2002,17 @@ export default {
             showSnackbar('Failed to upload proof of payment', 'error')
           }
         }
-        
+
         // Refresh bookings list
         await fetchBookings()
-        
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
-        
+
         closeEditDialog()
       } catch (error) {
         console.error('Failed to update booking:', error)
-        
+
         // Handle validation errors specifically
         if (error.response?.status === 422 && error.response?.data?.errors) {
           const validationErrors = error.response.data.errors
@@ -2097,7 +2057,7 @@ export default {
     const checkAuth = async (retryCount = 0) => {
       try {
         const token = localStorage.getItem('token')
-        
+
         if (token) {
           const userData = await authService.getUser()
           user.value = userData
@@ -2106,18 +2066,18 @@ export default {
         return false
       } catch (error) {
         console.error('Bookings - Auth check failed:', error)
-        
+
         // If it's a network error and we haven't retried, try once more
         if (retryCount === 0 && (error.code === 'NETWORK_ERROR' || !error.response)) {
           await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second
           return checkAuth(1)
         }
-        
+
         // If it's a 401 error, the token is invalid
         if (error.response?.status === 401) {
           localStorage.removeItem('token')
         }
-        
+
         user.value = null
         return false
       }
@@ -2143,10 +2103,10 @@ export default {
 
     onMounted(async () => {
       authLoading.value = true
-      
+
       // Wait a moment for App.vue to complete its auth check
       await new Promise(resolve => setTimeout(resolve, 50))
-      
+
       // First check if we already have user data (from App.vue)
       const token = localStorage.getItem('token')
       if (token) {
@@ -2157,21 +2117,19 @@ export default {
           user.value = null
         }
       } else {
-        console.log('Bookings - No token found, user not authenticated')
         user.value = null
       }
 
       // Always try to fetch bookings regardless of auth status
-      console.log('Bookings - Attempting to fetch bookings...')
       await fetchBookings()
-      
+
       authLoading.value = false
-      
+
       // Listen for custom events to refresh bookings
       window.addEventListener('booking-created', handleBookingRefresh)
       window.addEventListener('booking-updated', handleBookingRefresh)
       window.addEventListener('booking-cancelled', handleBookingRefresh)
-      
+
       // Listen for authentication changes
       window.addEventListener('auth-changed', handleAuthChange)
     })
@@ -2187,7 +2145,6 @@ export default {
     // Watch for route changes to refresh data when navigating to this page
     watch(() => route.path, (newPath) => {
       if (newPath === '/bookings' && user.value) {
-        console.log('Bookings - Route changed to /bookings, refreshing data...')
         fetchBookings()
       }
     })
@@ -2222,14 +2179,14 @@ export default {
           editForm.value.proof_of_payment = null
           return
         }
-        
+
         // Validate file type
         if (!file.type.startsWith('image/')) {
           showSnackbar('Please upload an image file', 'error')
           editForm.value.proof_of_payment = null
           return
         }
-        
+
         showSnackbar('Proof of payment uploaded successfully!', 'success')
       }
     }
@@ -2246,7 +2203,7 @@ export default {
         const formData = new FormData()
         formData.append('proof_of_payment', file)
         formData.append('payment_method', editForm.value.payment_method)
-        
+
         const response = await fetch(`/api/bookings/${bookingId}/upload-proof`, {
           method: 'POST',
           headers: {
@@ -2254,11 +2211,11 @@ export default {
           },
           body: formData
         })
-        
+
         if (!response.ok) {
           throw new Error('Failed to upload proof of payment')
         }
-        
+
         const result = await response.json()
         return result.data
       } catch (error) {
@@ -2799,23 +2756,23 @@ export default {
   .excel-container {
     padding: 12px;
   }
-  
+
   .excel-header {
     flex-direction: column;
     gap: 16px;
     align-items: stretch;
   }
-  
+
   .excel-toolbar {
     flex-direction: column;
     gap: 12px;
     align-items: stretch;
   }
-  
+
   .excel-search {
     max-width: none;
   }
-  
+
   .excel-filters {
     justify-content: space-between;
   }

@@ -2182,7 +2182,6 @@ export default {
             const groupDate = new Date(dateStr)
 
             if (isNaN(groupDate.getTime())) {
-              console.warn('Invalid date:', dateStr)
               return
             }
 
@@ -2212,7 +2211,6 @@ export default {
           const groupDate = new Date(booking.start_time)
 
           if (isNaN(groupDate.getTime())) {
-            console.warn('Invalid date for booking:', booking)
             return
           }
 
@@ -2230,8 +2228,6 @@ export default {
 
           groups[dateKey].bookings.push(booking)
           groups[dateKey].totalPrice += parseFloat(booking.total_price || 0)
-        } else {
-          console.warn('Booking missing date:', booking)
         }
       })
 
@@ -3337,11 +3333,6 @@ export default {
 
               if (matchingSlot) {
                 editSelectedSlots.value.push(matchingSlot)
-              } else {
-                console.warn('⚠️ Could not find matching slot for:', cartItem, {
-                  looking_for: `${normalizedStart} - ${normalizedEnd}`,
-                  available: editAvailableSlots.value.map(s => `${normalizeTime(s.start)} - ${normalizeTime(s.end)}`)
-                })
               }
             })
 
@@ -3956,12 +3947,10 @@ export default {
           user.value = null
         }
       } else {
-        console.log('Bookings - No token found, user not authenticated')
         user.value = null
       }
 
       // Always try to fetch bookings regardless of auth status
-      console.log('Bookings - Attempting to fetch bookings...')
       await fetchBookings()
 
       // Load courts for edit dialog
@@ -3989,7 +3978,6 @@ export default {
     // Watch for route changes to refresh data when navigating to this page
     watch(() => route.path, (newPath) => {
       if (newPath === '/bookings' && user.value) {
-        console.log('Bookings - Route changed to /bookings, refreshing data...')
         fetchBookings()
       }
     })

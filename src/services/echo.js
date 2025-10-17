@@ -12,9 +12,8 @@ export const initializeEcho = () => {
   }
 
   const token = localStorage.getItem('token')
-  
+
   if (!token) {
-    console.warn('No auth token found, Echo not initialized')
     return null
   }
 
@@ -35,12 +34,6 @@ export const initializeEcho = () => {
     },
   })
 
-  console.log('Echo initialized with config:', {
-    wsHost: import.meta.env.VITE_REVERB_HOST || 'bschedule.m4d8q2.com',
-    wsPort: import.meta.env.VITE_REVERB_PORT || 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME || 'https') === 'https',
-  })
-
   return echo
 }
 
@@ -55,7 +48,6 @@ export const disconnectEcho = () => {
   if (echo) {
     echo.disconnect()
     echo = null
-    console.log('Echo disconnected')
   }
 }
 
@@ -70,4 +62,3 @@ export default {
   disconnectEcho,
   reconnectEcho,
 }
-

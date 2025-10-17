@@ -1983,7 +1983,6 @@ export default {
             const groupDate = new Date(dateStr)
 
             if (isNaN(groupDate.getTime())) {
-              console.warn('Invalid date:', dateStr)
               return
             }
 
@@ -2013,7 +2012,6 @@ export default {
           const groupDate = new Date(booking.start_time)
 
           if (isNaN(groupDate.getTime())) {
-            console.warn('Invalid date for booking:', booking)
             return
           }
 
@@ -2031,8 +2029,6 @@ export default {
 
           groups[dateKey].bookings.push(booking)
           groups[dateKey].totalPrice += parseFloat(booking.total_price || 0)
-        } else {
-          console.warn('Booking missing date:', booking)
         }
       })
 

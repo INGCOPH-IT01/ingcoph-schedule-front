@@ -923,15 +923,8 @@ export default {
         }
 
         // Prepare admin booking data if admin is booking for someone else
-        console.log('=== ADD TO CART - CHECKING ADMIN BOOKING ===')
-        console.log('currentUser:', currentUser.value)
-        console.log('isAdmin.value:', isAdmin.value)
-        console.log('bookingForUser.value:', bookingForUser.value)
-        console.log('adminNotes.value:', adminNotes.value)
-
         let adminBookingData = null
         if (isAdmin.value && bookingForUser.value) {
-          console.log('✅ Admin booking - adding fields to cart items')
           // Check if bookingForUser is an object (existing user) or string (custom name)
           if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
             adminBookingData = {
@@ -947,8 +940,6 @@ export default {
           if (adminNotes.value) {
             adminBookingData.admin_notes = adminNotes.value
           }
-
-          console.log('Admin booking data for cart:', adminBookingData)
         }
 
         // Create cart items from current selections
@@ -986,7 +977,6 @@ export default {
         }
 
         // Add to cart via API
-        console.log('Sending cart items with admin fields:', cartItems)
         const response = await cartService.addToCart(cartItems)
 
         // Dispatch custom events to update cart count and refresh bookings
@@ -1054,20 +1044,8 @@ export default {
         }
 
         // Prepare admin booking data if admin is booking for someone else
-        console.log('=== CHECKING ADMIN BOOKING ===')
-        console.log('currentUser:', currentUser.value)
-        console.log('currentUser.role:', currentUser.value?.role)
-        console.log('isAdmin.value:', isAdmin.value)
-        console.log('bookingForUser.value:', bookingForUser.value)
-        console.log('adminNotes.value:', adminNotes.value)
-
         let adminBookingData = null
         if (isAdmin.value && bookingForUser.value) {
-          console.log('✅ Admin booking conditions met!')
-          console.log('Admin booking - isAdmin:', isAdmin.value)
-          console.log('Admin booking - bookingForUser:', bookingForUser.value)
-          console.log('Admin booking - adminNotes:', adminNotes.value)
-
           // Check if bookingForUser is an object (existing user) or string (custom name)
           if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
             adminBookingData = {
@@ -1083,8 +1061,6 @@ export default {
           if (adminNotes.value) {
             adminBookingData.admin_notes = adminNotes.value
           }
-
-          console.log('Admin booking data prepared:', adminBookingData)
         }
 
         // Create cart items array with admin booking fields
@@ -1119,7 +1095,6 @@ export default {
         })
 
         // Add items to cart first
-        console.log('Sending cart items to backend:', cartItems)
         await cartService.addToCart(cartItems)
 
         // Get the cart items that were just added

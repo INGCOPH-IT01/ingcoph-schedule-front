@@ -3,9 +3,7 @@ import api from './api'
 export const authService = {
   async login(credentials) {
     try {
-      console.log('Attempting login with credentials:', credentials)
       const response = await api.post('/login', credentials)
-      console.log('Login response:', response.data)
       if (response.data.success) {
         localStorage.setItem('token', response.data.token)
         // Store user data for WebSocket subscriptions
@@ -16,16 +14,13 @@ export const authService = {
       }
       throw new Error(response.data.message)
     } catch (error) {
-      console.error('Login error:', error)
-      console.error('Error response:', error.response)
-      
       // Handle validation errors specifically
       if (error.response?.status === 422 && error.response?.data?.errors) {
         const validationErrors = error.response.data.errors
         const errorMessages = Object.values(validationErrors).flat()
         throw new Error('Validation failed: ' + errorMessages.join(', '))
       }
-      
+
       throw new Error(error.response?.data?.message || 'Login failed')
     }
   },
@@ -53,7 +48,6 @@ export const authService = {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
     } catch (error) {
-      console.error('Logout error:', error)
       localStorage.removeItem('token')
       localStorage.removeItem('user')
     }
@@ -79,12 +73,11 @@ export const authService = {
       if (!this.isAuthenticated()) {
         return null
       }
-      
+
       // Try to get user data from API
       const response = await api.get('/user')
       return response.data.user
     } catch (error) {
-      console.warn('Failed to get current user:', error)
       // Return a fallback user object if API fails but token exists
       if (this.isAuthenticated()) {
         return { id: 'unknown', name: 'User', role: 'user' }

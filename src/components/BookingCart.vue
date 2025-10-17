@@ -592,10 +592,6 @@ export default {
           updateExpirationTimer()
         }
 
-        if (items.length > 0) {
-          console.log('📦 First cart item:', items[0])
-          console.log('🏟️ Court info:', items[0].court)
-        }
       } catch (error) {
         console.error('❌ Failed to load cart:', error)
         console.error('Error details:', error.response?.data || error.message)
@@ -638,9 +634,7 @@ export default {
 
     // Group consecutive time slots for the same court and date
     const groupedCartItems = computed(() => {
-      console.log('Computing groupedCartItems, cartItems:', cartItems.value)
       if (!cartItems.value || cartItems.value.length === 0) {
-        console.log('No cart items to group')
         return []
       }
 
@@ -711,7 +705,6 @@ export default {
         }
       })
 
-      console.log('Grouped cart items:', groups.length, 'groups')
       return groups
     })
 
@@ -890,7 +883,6 @@ export default {
               light: '#ffffff'
             }
           })
-          console.log('GCash QR code generated successfully')
         } catch (error) {
           console.error('Failed to generate GCash QR code:', error)
         }
@@ -1029,7 +1021,6 @@ export default {
             if (slotIndex !== -1) {
               // Mark own slot as available
               availableSlots.value[slotIndex].available = true
-              console.log('🔓 Cart: Marked own slot as available:', availableSlots.value[slotIndex])
             }
           })
         }
@@ -1126,8 +1117,6 @@ export default {
           price = court.sport.price_per_hour * hours
         }
 
-        console.log('💰 Calculated price:', price, 'for slot:', editItem.value.start_time, '-', editItem.value.end_time)
-
         // Validate price
         if (isNaN(price) || price < 0) {
           await showAlert({
@@ -1205,8 +1194,6 @@ export default {
           .filter(group => selectedGroups.value.includes(group.id))
           .flatMap(group => group.originalItems)
 
-        console.log('Selected items for checkout:', selectedItems.length)
-
         // Convert proof of payment to base64
         const file = Array.isArray(proofOfPayment.value) ? proofOfPayment.value[0] : proofOfPayment.value
         const reader = new FileReader()
@@ -1218,22 +1205,12 @@ export default {
         })
 
         // Checkout via cart API with selected items only
-        console.log('Calling checkout API with data:', {
-          payment_method: 'gcash',
-          gcash_reference: gcashReference.value,
-          proof_of_payment: proofBase64 ? 'base64 data present' : 'no proof',
-          selected_items: selectedItems.map(item => item.id)
-        })
-
         const response = await cartService.checkout({
           payment_method: 'gcash',
           gcash_reference: gcashReference.value,
           proof_of_payment: proofBase64,
           selected_items: selectedItems.map(item => item.id)
         })
-
-        console.log('Checkout results:', response)
-        console.log('Bookings created:', response.bookings)
 
         showAlert({
           icon: 'success',

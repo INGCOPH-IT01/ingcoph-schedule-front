@@ -840,7 +840,6 @@ export default {
 
       // Add null/undefined checks before calling string methods
       if (!startTimeString || typeof startTimeString !== 'string') {
-        console.warn('Invalid start_time value:', startTimeString)
         return
       }
 
@@ -868,8 +867,6 @@ export default {
           // Parse slot times with null checks
           let slotStartTime = slot.start_time
           if (!slotStartTime || typeof slotStartTime !== 'string') {
-            console.warn('Invalid slot start_time:', slotStartTime)
-
             // Show alert for invalid slot data
             Swal.fire({
               title: 'Invalid Time Slot Data',
@@ -899,8 +896,6 @@ export default {
 
           let slotEndTime = slot.end_time
           if (!slotEndTime || typeof slotEndTime !== 'string') {
-            console.warn('Invalid slot end_time:', slotEndTime)
-
             // Show alert for invalid slot data
             Swal.fire({
               title: 'Invalid Time Slot Data',
@@ -1017,7 +1012,6 @@ export default {
           try {
             parsedFrequencyDays = JSON.parse(booking.frequency_days)
           } catch (e) {
-            console.warn('Failed to parse frequency_days:', booking.frequency_days)
             parsedFrequencyDays = []
           }
         } else if (Array.isArray(booking.frequency_days)) {
