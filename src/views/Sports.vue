@@ -134,7 +134,6 @@ export default {
   setup() {
     const router = useRouter()
     const sports = ref([])
-    const courts = ref([])
     const loading = ref(true)
     const error = ref(null)
 
@@ -169,31 +168,6 @@ export default {
       }
     }
 
-    const fetchCourts = async () => {
-      try {
-        courts.value = await courtService.getCourts()
-      } catch (err) {
-        console.error('Failed to fetch courts:', err)
-      }
-    }
-
-    const getCourtPrice = () => {
-      if (courts.value.length > 0 && courts.value[0].sport) {
-        // Get the first court's sport price
-        return courts.value[0].sport.price_per_hour
-      }
-      return 25 // fallback to default price
-    }
-
-    const getCourtPriceForSport = (sportId) => {
-      // Find the sport and return its price
-      const sport = sports.value.find(s => s.id === sportId)
-      if (sport && sport.price_per_hour) {
-        return sport.price_per_hour
-      }
-      return 0 // fallback to default price
-    }
-
     // Wrapper function for template use
     const formatPriceTemplate = (price) => {
       return formatPrice(price)
@@ -210,17 +184,14 @@ export default {
     }
 
     onMounted(async () => {
-      await Promise.all([fetchSports(), fetchCourts()])
+      await fetchSports()
     })
 
     return {
       sports,
-      courts,
       loading,
       error,
       getSportIcon,
-      getCourtPrice,
-      getCourtPriceForSport,
       handleBookNowClick,
       formatPriceTemplate
     }
