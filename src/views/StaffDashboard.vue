@@ -27,7 +27,7 @@
           <span class="title-gradient">Staff</span> Controls
         </h2>
       </div>
-      
+
       <div class="actions-grid">
         <div class="action-card action-card-1">
           <div class="action-icon">
@@ -49,7 +49,7 @@
           </div>
           <div class="action-glow"></div>
         </div>
-        
+
         <div class="action-card action-card-2">
           <div class="action-icon">
             <v-icon color="success" size="48">mdi-calendar-check</v-icon>
@@ -88,10 +88,80 @@
               :loading="loading"
             ></v-btn>
           </v-card-title>
-          
+
+          <!-- Filters Section -->
+          <v-card-text>
+            <v-row class="filters-section">
+              <v-col cols="12" md="3">
+                <v-select
+                  v-model="filters.court"
+                  :items="courtOptions"
+                  label="Court"
+                  prepend-inner-icon="mdi-tennis-ball"
+                  clearable
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12" md="3">
+                <v-select
+                  v-model="filters.sport"
+                  :items="sportOptions"
+                  label="Sport"
+                  prepend-inner-icon="mdi-basketball"
+                  clearable
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                ></v-select>
+              </v-col>
+
+              <v-col cols="12" md="3">
+                <v-text-field
+                  v-model="filters.dateFrom"
+                  type="date"
+                  label="Date From"
+                  prepend-inner-icon="mdi-calendar-start"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12" md="3">
+                <v-text-field
+                  v-model="filters.dateTo"
+                  type="date"
+                  label="Date To"
+                  prepend-inner-icon="mdi-calendar-end"
+                  variant="outlined"
+                  density="comfortable"
+                  hide-details
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <!-- Clear All Filters Button -->
+            <v-row v-if="hasActiveFilters" class="mt-2">
+              <v-col cols="12">
+                <v-btn
+                  variant="text"
+                  color="error"
+                  prepend-icon="mdi-filter-off"
+                  size="small"
+                  @click="clearAllFilters"
+                >
+                  Clear All Filters
+                </v-btn>
+              </v-col>
+            </v-row>
+          </v-card-text>
+
           <v-data-table
             :headers="headers"
-            :items="approvedBookings"
+            :items="filteredBookings"
             :loading="loading"
             class="excel-table"
             :item-props="itemProps"
@@ -109,17 +179,9 @@
             </template>
 
             <template v-slot:[`item.court_name`]="{ item }">
-              <div class="d-flex align-center">
-                <CourtImageGallery 
-                  :images="item.court?.images || []"
-                  :court-name="item.court?.name || 'Unknown Court'"
-                  size="small"
-                  @image-error="handleImageError"
-                />
-                <div class="ml-3">
-                  <div class="font-weight-medium">{{ item.court.name }}</div>
-                  <div class="text-caption text-grey">{{ item.court.sport.name }}</div>
-                </div>
+              <div>
+                <div class="font-weight-medium">{{ item.court.name }}</div>
+                <div class="text-caption text-grey">{{ item.court.sport.name }}</div>
               </div>
             </template>
 
@@ -131,7 +193,7 @@
             </template>
 
             <template v-slot:[`item.status`]="{ item }">
-              <v-chip 
+              <v-chip
                 :color="getStatusColor(item.status)"
                 variant="tonal"
                 size="small"
@@ -209,8 +271,8 @@
                 <strong>Time:</strong> {{ formatTime(selectedBooking.start_time) }} - {{ formatTime(selectedBooking.end_time) }}
               </div>
               <div class="detail-item mb-3">
-                <strong>Status:</strong> 
-                <v-chip 
+                <strong>Status:</strong>
+                <v-chip
                   :color="getStatusColor(selectedBooking.status)"
                   variant="tonal"
                   size="small"
@@ -224,7 +286,7 @@
               </div>
             </v-col>
           </v-row>
-          
+
           <!-- Court Images Gallery -->
           <v-row v-if="selectedBooking.court?.images && selectedBooking.court.images.length > 0">
             <v-col cols="12">
@@ -233,7 +295,7 @@
                 <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
                 Court Images
               </h4>
-              <CourtImageGallery 
+              <CourtImageGallery
                 :images="selectedBooking.court.images"
                 :court-name="selectedBooking.court.name"
                 size="large"
@@ -263,8 +325,9 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { bookingService } from '../services/bookingService'
+import { courtService } from '../services/courtService'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import CourtImageGallery from '../components/CourtImageGallery.vue'
@@ -284,11 +347,35 @@ export default {
     const qrCodeDialog = ref(false)
     const bookingDialog = ref(false)
     const selectedBooking = ref(null)
-    
+
+    // Data for filters
+    const courts = ref([])
+    const sports = ref([])
+
     const snackbar = ref({
       show: false,
       message: '',
       color: 'success'
+    })
+
+    // Get today and tomorrow dates in YYYY-MM-DD format
+    const getTodayDate = () => {
+      const today = new Date()
+      return today.toISOString().split('T')[0]
+    }
+
+    const getTomorrowDate = () => {
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      return tomorrow.toISOString().split('T')[0]
+    }
+
+    // Filters
+    const filters = ref({
+      court: null,
+      sport: null,
+      dateFrom: getTodayDate(),
+      dateTo: getTomorrowDate()
     })
 
     const headers = [
@@ -303,6 +390,70 @@ export default {
       class: 'excel-table-row'
     })
 
+    // Computed properties for filter options
+    const courtOptions = computed(() => {
+      return courts.value.map(court => ({
+        title: court.name,
+        value: court.id
+      }))
+    })
+
+    const sportOptions = computed(() => {
+      return sports.value.map(sport => ({
+        title: sport.name,
+        value: sport.id
+      }))
+    })
+
+    // Computed property to check if any filters are active
+    const hasActiveFilters = computed(() => {
+      return filters.value.court !== null ||
+             filters.value.sport !== null ||
+             filters.value.dateFrom !== getTodayDate() ||
+             filters.value.dateTo !== getTomorrowDate()
+    })
+
+    // Filtered bookings based on filter criteria
+    const filteredBookings = computed(() => {
+      let filtered = approvedBookings.value
+
+      // Filter by court
+      if (filters.value.court) {
+        filtered = filtered.filter(booking =>
+          booking.court?.id === filters.value.court
+        )
+      }
+
+      // Filter by sport
+      if (filters.value.sport) {
+        filtered = filtered.filter(booking =>
+          booking.court?.sport?.id === filters.value.sport
+        )
+      }
+
+      // Filter by date range
+      if (filters.value.dateFrom) {
+        const fromDate = new Date(filters.value.dateFrom)
+        fromDate.setHours(0, 0, 0, 0)
+        filtered = filtered.filter(booking => {
+          const bookingDate = new Date(booking.start_time)
+          bookingDate.setHours(0, 0, 0, 0)
+          return bookingDate >= fromDate
+        })
+      }
+
+      if (filters.value.dateTo) {
+        const toDate = new Date(filters.value.dateTo)
+        toDate.setHours(23, 59, 59, 999)
+        filtered = filtered.filter(booking => {
+          const bookingDate = new Date(booking.start_time)
+          return bookingDate <= toDate
+        })
+      }
+
+      return filtered
+    })
+
     const loadApprovedBookings = async () => {
       try {
         loading.value = true
@@ -314,6 +465,31 @@ export default {
       } finally {
         loading.value = false
       }
+    }
+
+    const loadCourts = async () => {
+      try {
+        courts.value = await courtService.getCourts()
+      } catch (error) {
+        console.error('Failed to load courts:', error)
+        showSnackbar('Failed to load courts', 'error')
+      }
+    }
+
+    const loadSports = async () => {
+      try {
+        sports.value = await courtService.getSports()
+      } catch (error) {
+        console.error('Failed to load sports:', error)
+        showSnackbar('Failed to load sports', 'error')
+      }
+    }
+
+    const clearAllFilters = () => {
+      filters.value.court = null
+      filters.value.sport = null
+      filters.value.dateFrom = getTodayDate()
+      filters.value.dateTo = getTomorrowDate()
     }
 
     const openQrScanner = () => {
@@ -379,6 +555,9 @@ export default {
     onMounted(() => {
       // Load approved bookings on mount
       loadApprovedBookings()
+      // Load courts and sports for filters
+      loadCourts()
+      loadSports()
     })
 
     return {
@@ -390,9 +569,19 @@ export default {
       bookingDialog,
       selectedBooking,
       snackbar,
+      courts,
+      sports,
+      filters,
+      courtOptions,
+      sportOptions,
+      hasActiveFilters,
+      filteredBookings,
       headers,
       itemProps,
       loadApprovedBookings,
+      loadCourts,
+      loadSports,
+      clearAllFilters,
       openQrScanner,
       closeQrScannerDialog,
       showQrCode,
@@ -609,5 +798,13 @@ export default {
   object-fit: cover;
   border: 2px solid #e5e7eb;
   margin-right: 12px;
+}
+
+/* Filters Section */
+.filters-section {
+  background: rgba(249, 250, 251, 0.5);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 8px;
 }
 </style>
