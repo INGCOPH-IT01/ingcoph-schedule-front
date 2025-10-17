@@ -321,8 +321,8 @@
           </v-card>
         </div>
 
-        <!-- Attendance Status (Admin only, for approved bookings) -->
-        <div class="detail-section mb-4" v-if="showAdminFeatures && (booking.approval_status === 'approved' || !isTransaction)">
+        <!-- Attendance Status (Staff/Admin only, for approved bookings) -->
+        <div class="detail-section mb-4" v-if="isStaffOrAdmin && (booking.approval_status === 'approved' || !isTransaction)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-account-check</v-icon>
             Attendance Status
@@ -453,10 +453,11 @@
 </template>
 
 <script>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
+import { authService } from '../services/authService'
 import CourtImageGallery from './CourtImageGallery.vue'
 
 export default {
@@ -493,11 +494,17 @@ export default {
     const imageDialog = ref(false)
     const selectedImageUrl = ref('')
     const updatingAttendance = ref(false)
+    const userRole = ref(null)
 
     const closeDialog = () => {
       emit('update:isOpen', false)
       emit('close')
     }
+
+    // Check if user has staff or admin role
+    const isStaffOrAdmin = computed(() => {
+      return userRole.value === 'staff' || userRole.value === 'admin'
+    })
 
     // Check if this is a transaction (cart-based) booking
     const isTransaction = computed(() => {
@@ -745,12 +752,23 @@ export default {
       return statusService.getStatusColor(bookingStatus.value)
     })
 
+    // Fetch user role on mount
+    onMounted(async () => {
+      try {
+        userRole.value = await authService.getUserRole()
+      } catch (error) {
+        console.error('Failed to fetch user role:', error)
+        userRole.value = 'user' // Default to 'user' role if fetch fails
+      }
+    })
+
     return {
       // State
       imageDialog,
       selectedImageUrl,
       updatingAttendance,
       isTransaction,
+      isStaffOrAdmin,
       // Methods
       closeDialog,
       formatTimeSlot,
