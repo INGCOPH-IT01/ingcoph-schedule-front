@@ -138,11 +138,11 @@
                     v-for="sport in (court.sports && court.sports.length > 0 ? court.sports : [court.sport])"
                     :key="sport?.id"
                     class="court-sport-badge"
-                    :color="getSportColor(sport?.name)"
+                    :color="sportService.getSportColor(sport?.name)"
                     size="small"
                     label
                   >
-                    <v-icon start size="small">{{ getSportIcon(sport?.name, sport?.icon) }}</v-icon>
+                    <v-icon start size="small">{{ sportService.getSportIcon(sport?.name, sport?.icon) }}</v-icon>
                     {{ sport?.name }}
                   </v-chip>
                 </div>
@@ -598,6 +598,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
+import { sportService } from '../services/sportService'
 import CourtDialog from '../components/CourtDialog.vue'
 
 export default {
@@ -702,36 +703,6 @@ export default {
       } catch (error) {
         isAdmin.value = false
       }
-    }
-
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Basketball': 'orange',
-        'Tennis': 'green',
-        'Badminton': 'blue',
-        'Volleyball': 'red',
-        'Football': 'teal',
-        'Soccer': 'purple'
-      }
-      return colors[sportName] || 'grey'
-    }
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      const icons = {
-        'Basketball': 'mdi-basketball',
-        'Tennis': 'mdi-tennis',
-        'Badminton': 'mdi-badminton',
-        'Volleyball': 'mdi-volleyball',
-        'Football': 'mdi-football',
-        'Soccer': 'mdi-soccer'
-      }
-      return icons[sportName] || 'mdi-stadium'
     }
 
     const getCourtOperatingHours = (court) => {
@@ -910,8 +881,6 @@ export default {
       closeDialog,
       handleCourtSaved,
       deleteCourt,
-      getSportColor,
-      getSportIcon,
       getCourtOperatingHours,
       editCourt,
       toggleCourtStatus,
@@ -939,7 +908,9 @@ export default {
       getBookingTypeDescription,
       bookFromDialog,
       formatPrice,
-      formatDuration
+      formatDuration,
+      // Services
+      sportService
     }
   }
 }

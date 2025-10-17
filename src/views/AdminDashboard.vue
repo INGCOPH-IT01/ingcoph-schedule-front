@@ -313,13 +313,13 @@
 
             <template v-slot:[`item.sport_name`]="{ item }">
               <v-chip
-                :color="getSportColor(item.cart_items?.[0]?.court?.sport?.name)"
+                :color="sportService.getSportColor(item.cart_items?.[0]?.court?.sport?.name)"
                 variant="tonal"
                 size="small"
               >
                 <!-- Use MDI icon from sport if available, otherwise use fallback -->
                 <v-icon class="mr-1" size="small">
-                  {{ getSportIcon(item.cart_items?.[0]?.court?.sport?.name, item.cart_items?.[0]?.court?.sport?.icon) }}
+                  {{ sportService.getSportIcon(item.cart_items?.[0]?.court?.sport?.name, item.cart_items?.[0]?.court?.sport?.icon) }}
                 </v-icon>
                 {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
               </v-chip>
@@ -489,6 +489,7 @@ import { useRouter } from 'vue-router'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
+import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
@@ -868,37 +869,6 @@ export default {
       }
     }
 
-    // Sport helper functions
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Basketball': 'orange',
-        'Badminton': 'blue',
-        'Tennis': 'green',
-        'Volleyball': 'purple',
-        'Table Tennis': 'red',
-        'Futsal': 'teal'
-      }
-      return colors[sportName] || 'grey'
-    }
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      const icons = {
-        'Basketball': 'mdi-basketball',
-        'Badminton': 'mdi-badminton',
-        'Tennis': 'mdi-tennis',
-        'Volleyball': 'mdi-volleyball',
-        'Table Tennis': 'mdi-table-tennis',
-        'Futsal': 'mdi-soccer'
-      }
-      return icons[sportName] || 'mdi-trophy'
-    }
-
     // Attendance status helper functions
     const getAttendanceColor = (status) => {
       const colors = {
@@ -993,9 +963,6 @@ export default {
       getPaymentStatusColor,
       getPaymentStatusText,
       getPaymentStatusIcon,
-      // Sport helper functions
-      getSportColor,
-      getSportIcon,
       // Booking details functions
       viewBookingDetails,
       handleAttendanceUpdated,
@@ -1003,7 +970,9 @@ export default {
       // Attendance status functions
       getAttendanceColor,
       getAttendanceIcon,
-      getAttendanceLabel
+      getAttendanceLabel,
+      // Services
+      sportService
     }
   }
 }

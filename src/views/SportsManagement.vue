@@ -25,7 +25,7 @@
         class="elevation-1"
       >
         <template v-slot:[`item.icon`]="{ item }">
-          <v-icon v-if="item.icon" size="32" :color="getSportColor(item.name)">
+          <v-icon v-if="item.icon" size="32" :color="sportService.getSportColor(item.name)">
             {{ item.icon }}
           </v-icon>
           <span v-else class="text-grey">No icon set</span>
@@ -130,7 +130,7 @@
               class="mb-4"
             >
               <template v-slot:append-inner>
-                <v-icon v-if="formData.icon" :color="getSportColor(formData.name)">
+                <v-icon v-if="formData.icon" :color="sportService.getSportColor(formData.name)">
                   {{ formData.icon }}
                 </v-icon>
               </template>
@@ -238,6 +238,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { courtService } from '../services/courtService'
+import { sportService } from '../services/sportService'
 
 export default {
   name: 'SportsManagement',
@@ -388,20 +389,6 @@ export default {
       }
     }
 
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Basketball': 'orange',
-        'Badminton': 'blue',
-        'Tennis': 'green',
-        'Volleyball': 'purple',
-        'Table Tennis': 'red',
-        'Futsal': 'teal',
-        'Soccer': 'green',
-        'Football': 'brown'
-      }
-      return colors[sportName] || 'primary'
-    }
-
     const showSnackbar = (message, color = 'success') => {
       snackbar.value = {
         show: true,
@@ -435,8 +422,9 @@ export default {
       saveSport,
       confirmDelete,
       deleteSport,
-      getSportColor,
-      showSnackbar
+      showSnackbar,
+      // Services
+      sportService
     }
   }
 }

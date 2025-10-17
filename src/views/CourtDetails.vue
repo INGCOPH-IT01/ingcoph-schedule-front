@@ -43,11 +43,11 @@
           <v-chip
             v-for="sport in (court.sports && court.sports.length > 0 ? court.sports : [court.sport])"
             :key="sport?.id"
-            :color="getSportColor(sport?.name)"
+            :color="sportService.getSportColor(sport?.name)"
             size="large"
             class="sport-chip"
           >
-            <v-icon start>{{ getSportIcon(sport?.name, sport?.icon) }}</v-icon>
+            <v-icon start>{{ sportService.getSportIcon(sport?.name, sport?.icon) }}</v-icon>
             {{ sport?.name }}
           </v-chip>
         </div>
@@ -553,6 +553,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
+import { sportService } from '../services/sportService'
 import api from '../services/api'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 
@@ -591,36 +592,6 @@ export default {
     const isAdminOrStaff = computed(() => {
       return userRole.value === 'admin' || userRole.value === 'staff'
     })
-
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Basketball': 'orange',
-        'Tennis': 'green',
-        'Badminton': 'blue',
-        'Volleyball': 'red',
-        'Football': 'teal',
-        'Soccer': 'purple'
-      }
-      return colors[sportName] || 'grey'
-    }
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      const icons = {
-        'Basketball': 'mdi-basketball',
-        'Tennis': 'mdi-tennis',
-        'Badminton': 'mdi-badminton',
-        'Volleyball': 'mdi-volleyball',
-        'Football': 'mdi-football',
-        'Soccer': 'mdi-soccer'
-      }
-      return icons[sportName] || 'mdi-stadium'
-    }
 
     const fetchCourtDetails = async () => {
       try {
@@ -893,8 +864,6 @@ export default {
       loadingAvailability,
       recentBookings,
       loadingBookings,
-      getSportColor,
-      getSportIcon,
       fetchAvailability,
       formatTimeSlot,
       formatBookingDate,
@@ -924,7 +893,9 @@ export default {
       bookingViewDialog,
       selectedBookingForView,
       viewBookingDetailsDialog,
-      isAdminOrStaff
+      isAdminOrStaff,
+      // Services
+      sportService
     }
   }
 }

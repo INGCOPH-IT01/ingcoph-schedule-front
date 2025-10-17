@@ -57,7 +57,7 @@
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
-                    <span class="sport-icon">{{ getSportIcon(item.raw.name, item.raw.icon) }}</span>
+                    <span class="sport-icon">{{ sportService.getSportIcon(item.raw.name, item.raw.icon) }}</span>
                   </template>
                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
                   <v-list-item-subtitle>{{ item.raw.description }}</v-list-item-subtitle>
@@ -228,6 +228,7 @@
 <script>
 import { ref, computed, watch, onMounted } from 'vue'
 import { courtService } from '../services/courtService'
+import { sportService } from '../services/sportService'
 
 export default {
   name: 'CourtDialog',
@@ -260,26 +261,6 @@ export default {
     const previewImages = ref([])
 
     const isEdit = computed(() => !!props.court)
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback emoji icons if Sport model doesn't have an icon
-      const icons = {
-        'Badminton': '🏸',
-        'Tennis': '🎾',
-        'Basketball': '🏀',
-        'Volleyball': '🏐',
-        'Football': '⚽',
-        'Soccer': '⚽',
-        'Table Tennis': '🏓',
-        'Squash': '🎾'
-      }
-      return icons[sportName] || '🏟️'
-    }
 
     const fetchSports = async () => {
       try {
@@ -415,14 +396,15 @@ export default {
       loading,
       error,
       isEdit,
-      getSportIcon,
       handleSubmit,
       closeModal,
       uploadImages,
       onImagesChange,
       removeImage,
       previewImages,
-      saveUploadedImages
+      saveUploadedImages,
+      // Services
+      sportService
     }
   }
 }

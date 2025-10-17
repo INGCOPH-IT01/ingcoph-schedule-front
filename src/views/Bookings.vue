@@ -185,13 +185,13 @@
                         <div>
                           <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
                           <v-chip
-                            :color="getSportColor(booking.court?.sport?.name)"
+                            :color="sportService.getSportColor(booking.court?.sport?.name)"
                             size="x-small"
                             variant="flat"
                             class="text-white mt-1"
                           >
                             <v-icon start size="x-small">
-                              {{ getSportIcon(booking.court?.sport?.name, booking.court?.sport?.icon) }}
+                              {{ sportService.getSportIcon(booking.court?.sport?.name, booking.court?.sport?.icon) }}
                             </v-icon>
                             {{ booking.court?.sport?.name || 'Unknown Sport' }}
                           </v-chip>
@@ -632,8 +632,8 @@
                             <tr v-for="cartItem in item.cart_transaction.cart_items" :key="cartItem.id">
                               <td>
                                 <div class="d-flex align-center">
-                                  <v-icon class="mr-2" size="small" :color="getSportColor(cartItem.court?.sport?.name)">
-                                    {{ getSportIcon(cartItem.court?.sport?.name, cartItem.court?.sport?.icon) }}
+                                  <v-icon class="mr-2" size="small" :color="sportService.getSportColor(cartItem.court?.sport?.name)">
+                                    {{ sportService.getSportIcon(cartItem.court?.sport?.name, cartItem.court?.sport?.icon) }}
                                   </v-icon>
                                   {{ cartItem.court?.name || 'N/A' }}
                                 </div>
@@ -1718,8 +1718,8 @@
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
-                    <v-icon :color="getSportColor(item.raw.sport?.name)">
-                      {{ getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
+                    <v-icon :color="sportService.getSportColor(item.raw.sport?.name)">
+                      {{ sportService.getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
                     </v-icon>
                   </template>
                   <template v-slot:subtitle>
@@ -1844,6 +1844,7 @@ import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import { bookingService } from '../services/bookingService'
+import { sportService } from '../services/sportService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
@@ -2589,44 +2590,6 @@ export default {
         rejected: 'mdi-close-circle'
       }
       return icons[status] || 'mdi-help-circle'
-    }
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      if (!sportName) return 'mdi-help-circle'
-      const name = sportName.toLowerCase()
-      const icons = {
-        basketball: 'mdi-basketball',
-        badminton: 'mdi-badminton',
-        tennis: 'mdi-tennis',
-        volleyball: 'mdi-volleyball',
-        football: 'mdi-soccer',
-        soccer: 'mdi-soccer',
-        tableTennis: 'mdi-table-tennis',
-        'table tennis': 'mdi-table-tennis'
-      }
-      return icons[name] || 'mdi-run'
-    }
-
-    const getSportColor = (sportName) => {
-      if (!sportName) return 'grey'
-      const name = sportName.toLowerCase()
-      const colors = {
-        basketball: 'orange',
-        badminton: 'green',
-        tennis: 'yellow-darken-2',
-        volleyball: 'blue',
-        football: 'black',
-        soccer: 'black',
-        tableTennis: 'red',
-        'table tennis': 'red'
-      }
-      return colors[name] || 'primary'
     }
 
     const formatRecurrenceType = (type) => {
@@ -4107,8 +4070,6 @@ export default {
       expanded,
       getStatusColor,
       getStatusIcon,
-      getSportIcon,
-      getSportColor,
       formatRecurrenceType,
       generateBookings,
       editRecurringSchedule,
@@ -4208,7 +4169,9 @@ export default {
       getPaymentStatusText,
       getPaymentStatusIcon,
       // Filter functions
-      clearFilters
+      clearFilters,
+      // Services
+      sportService
     }
   }
 }

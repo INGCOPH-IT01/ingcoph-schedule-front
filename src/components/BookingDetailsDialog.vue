@@ -162,8 +162,8 @@
                 class="mb-2"
               >
                 <template v-slot:prepend>
-                  <v-avatar :color="getSportColor(item.court?.sport?.name)" size="40">
-                    <v-icon color="white">{{ getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}</v-icon>
+                  <v-avatar :color="sportService.getSportColor(item.court?.sport?.name)" size="40">
+                    <v-icon color="white">{{ sportService.getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}</v-icon>
                   </v-avatar>
                 </template>
                 <v-list-item-title class="font-weight-bold">
@@ -455,6 +455,7 @@
 <script>
 import { computed, ref } from 'vue'
 import { cartService } from '../services/cartService'
+import { sportService } from '../services/sportService'
 import CourtImageGallery from './CourtImageGallery.vue'
 
 export default {
@@ -627,37 +628,6 @@ export default {
       return icons[status] || 'mdi-information'
     }
 
-    // Sport helper functions
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Basketball': 'orange',
-        'Badminton': 'blue',
-        'Tennis': 'green',
-        'Volleyball': 'purple',
-        'Table Tennis': 'red',
-        'Futsal': 'teal'
-      }
-      return colors[sportName] || 'grey'
-    }
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      const icons = {
-        'Basketball': 'mdi-basketball',
-        'Badminton': 'mdi-badminton',
-        'Tennis': 'mdi-tennis',
-        'Volleyball': 'mdi-volleyball',
-        'Table Tennis': 'mdi-table-tennis',
-        'Futsal': 'mdi-soccer'
-      }
-      return icons[sportName] || 'mdi-trophy'
-    }
-
     // Frequency helper functions
     const formatFrequencyType = (type) => {
       const types = {
@@ -806,9 +776,6 @@ export default {
       getPaymentStatusColor,
       getPaymentStatusText,
       getPaymentStatusIcon,
-      // Sport helpers
-      getSportColor,
-      getSportIcon,
       // Frequency helpers
       formatFrequencyType,
       getFrequencyColor,
@@ -823,7 +790,9 @@ export default {
       totalPrice,
       formattedCreatedAt,
       bookingStatus,
-      statusColor
+      statusColor,
+      // Services
+      sportService
     }
   }
 }

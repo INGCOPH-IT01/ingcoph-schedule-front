@@ -217,8 +217,8 @@
                         class="cart-item-row"
                       >
                         <template v-slot:prepend>
-                          <v-icon :color="getSportColor(item.court?.sport?.name)">
-                            {{ getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}
+                          <v-icon :color="sportService.getSportColor(item.court?.sport?.name)">
+                            {{ sportService.getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}
                           </v-icon>
                         </template>
                         <v-list-item-title>
@@ -244,6 +244,7 @@
 
 <script>
 import { ref, computed, onMounted } from 'vue'
+import { sportService } from '../services/sportService'
 
 export default {
   name: 'BookingsSimple',
@@ -333,36 +334,6 @@ export default {
       })
     }
 
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Basketball': 'orange',
-        'Badminton': 'green',
-        'Tennis': 'blue',
-        'Volleyball': 'red',
-        'Table Tennis': 'teal',
-        'Squash': 'indigo'
-      }
-      return colors[sportName] || 'primary'
-    }
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      const icons = {
-        'Basketball': 'mdi-basketball',
-        'Badminton': 'mdi-badminton',
-        'Tennis': 'mdi-tennis',
-        'Volleyball': 'mdi-volleyball',
-        'Table Tennis': 'mdi-table-tennis',
-        'Squash': 'mdi-racquetball'
-      }
-      return icons[sportName] || 'mdi-trophy'
-    }
-
     onMounted(() => {
       fetchTransactions()
     })
@@ -379,8 +350,8 @@ export default {
       toggleTransactionDetails,
       formatDateTime,
       formatDate,
-      getSportColor,
-      getSportIcon
+      // Services
+      sportService
     }
   }
 }

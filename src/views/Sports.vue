@@ -55,7 +55,7 @@
           <div class="excel-court-icon-wrapper">
             <!-- Use MDI icon if available, otherwise fallback to emoji -->
             <v-icon v-if="sport.icon" size="48" color="white">{{ sport.icon }}</v-icon>
-            <span v-else class="excel-court-icon-emoji">{{ getSportIcon(sport.name, sport.icon) }}</span>
+            <span v-else class="excel-court-icon-emoji">{{ sportService.getSportIcon(sport.name, sport.icon) }}</span>
           </div>
           <v-chip
             :color="sport.is_active ? 'success' : 'error'"
@@ -127,6 +127,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
+import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
 
 export default {
@@ -136,26 +137,6 @@ export default {
     const sports = ref([])
     const loading = ref(true)
     const error = ref(null)
-
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback emoji icons if Sport model doesn't have an icon
-      const icons = {
-        'Badminton': '🏸',
-        'Tennis': '🎾',
-        'Basketball': '🏀',
-        'Volleyball': '🏐',
-        'Football': '⚽',
-        'Soccer': '⚽',
-        'Table Tennis': '🏓',
-        'Squash': '🎾'
-      }
-      return icons[sportName] || '🏟️'
-    }
 
     const fetchSports = async () => {
       try {
@@ -191,9 +172,10 @@ export default {
       sports,
       loading,
       error,
-      getSportIcon,
       handleBookNowClick,
-      formatPriceTemplate
+      formatPriceTemplate,
+      // Services
+      sportService
     }
   }
 }

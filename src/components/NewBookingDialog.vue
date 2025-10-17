@@ -66,7 +66,7 @@
                       mdi-check-circle
                     </v-icon>
                     <v-card-text class="text-center pa-4">
-                      <div class="sport-icon-large">{{ getSportIcon(sport.name, sport.icon) }}</div>
+                      <div class="sport-icon-large"><v-icon :color="sportService.getSportColor(sport.name)">{{ sportService.getSportIcon(sport.name, sport.icon) }}</v-icon></div>
                       <h4 class="text-h6 mt-2">{{ sport.name }}</h4>
                       <p class="text-caption text-grey">{{ sport.description }}</p>
                     </v-card-text>
@@ -101,7 +101,7 @@
                 <v-card-text class="pa-4">
                   <div class="d-flex align-center justify-space-between">
                     <div class="d-flex align-center">
-                      <v-icon size="32" class="mr-3">{{ getSportIcon(selectedSport.name, selectedSport.icon) }}</v-icon>
+                      <v-icon size="32" class="mr-3">{{ sportService.getSportIcon(selectedSport.name, selectedSport.icon) }}</v-icon>
                       <div>
                         <h4 class="text-h6">{{ selectedSport.name }} Courts</h4>
                         <p class="text-caption mb-0">{{ selectedSport.description }}</p>
@@ -163,12 +163,12 @@
                           <v-chip
                             v-for="sport in getCourtSports(court)"
                             :key="sport.id"
-                            :color="getSportColor(sport.name)"
+                            :color="sportService.getSportColor(sport.name)"
                             size="small"
                             class="mr-1 mb-1"
                             :variant="sport.id === selectedSport.id ? 'elevated' : 'outlined'"
                           >
-                            <v-icon start size="small">{{ getSportIcon(sport.name, sport.icon) }}</v-icon>
+                            <v-icon start size="small">{{ sportService.getSportIcon(sport.name, sport.icon) }}</v-icon>
                             {{ sport.name }}
                           </v-chip>
                         </div>
@@ -554,6 +554,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
+import { sportService } from '../services/sportService'
 import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
@@ -661,40 +662,6 @@ export default {
     })
 
     // Methods
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback emoji icons if Sport model doesn't have an icon
-      const icons = {
-        'Badminton': '🏸',
-        'Tennis': '🎾',
-        'Basketball': '🏀',
-        'Volleyball': '🏐',
-        'Football': '⚽',
-        'Soccer': '⚽',
-        'Table Tennis': '🏓',
-        'Squash': '🎾'
-      }
-      return icons[sportName] || '🏟️'
-    }
-
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Badminton': 'blue',
-        'Tennis': 'green',
-        'Basketball': 'orange',
-        'Volleyball': 'red',
-        'Football': 'teal',
-        'Soccer': 'purple',
-        'Table Tennis': 'pink',
-        'Squash': 'indigo'
-      }
-      return colors[sportName] || 'grey'
-    }
-
     const getCourtSports = (court) => {
       const sportsList = []
 
@@ -1383,8 +1350,6 @@ export default {
       filteredCourts,
       canProceed,
       totalBookings,
-      getSportIcon,
-      getSportColor,
       getCourtSports,
       selectSport,
       toggleTimeSlot,
@@ -1405,7 +1370,9 @@ export default {
       isAdmin,
       bookingForUser,
       adminNotes,
-      userNames
+      userNames,
+      // Services
+      sportService
     }
   }
 }

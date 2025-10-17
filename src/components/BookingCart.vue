@@ -97,8 +97,8 @@
 
                 <div class="flex-grow-1">
                   <div class="d-flex align-center mb-2">
-                    <v-icon v-if="group.sport" class="mr-2" :color="getSportColor(group.sport.name)">
-                      {{ getSportIcon(group.sport.name, group.sport.icon) }}
+                    <v-icon v-if="group.sport" class="mr-2" :color="sportService.getSportColor(group.sport.name)">
+                      {{ sportService.getSportIcon(group.sport.name, group.sport.icon) }}
                     </v-icon>
                     <h4 v-if="group.sport" class="text-subtitle-1 font-weight-bold">{{ group.sport.name }}</h4>
                     <v-chip
@@ -413,8 +413,8 @@
               <template v-slot:item="{ props, item }">
                 <v-list-item v-bind="props">
                   <template v-slot:prepend>
-                    <v-icon :color="getSportColor(item.raw.sport?.name)">
-                      {{ getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
+                    <v-icon :color="sportService.getSportColor(item.raw.sport?.name)">
+                      {{ sportService.getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
                     </v-icon>
                   </template>
                   <template v-slot:subtitle>
@@ -518,6 +518,7 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { bookingService } from '../services/bookingService'
 import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
+import { sportService } from '../services/sportService'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 
@@ -1286,40 +1287,6 @@ export default {
       }
     }
 
-    const getSportIcon = (sportName, sportIcon = null) => {
-      // Return the icon from Sport model if available
-      if (sportIcon) {
-        return sportIcon
-      }
-
-      // Fallback MDI icons if Sport model doesn't have an icon
-      const icons = {
-        'Badminton': 'mdi-badminton',
-        'Tennis': 'mdi-tennis',
-        'Basketball': 'mdi-basketball',
-        'Volleyball': 'mdi-volleyball',
-        'Football': 'mdi-soccer',
-        'Soccer': 'mdi-soccer',
-        'Table Tennis': 'mdi-table-tennis',
-        'Squash': 'mdi-racquetball'
-      }
-      return icons[sportName] || 'mdi-stadium'
-    }
-
-    const getSportColor = (sportName) => {
-      const colors = {
-        'Badminton': 'blue',
-        'Tennis': 'green',
-        'Basketball': 'orange',
-        'Volleyball': 'red',
-        'Football': 'purple',
-        'Soccer': 'purple',
-        'Table Tennis': 'teal',
-        'Squash': 'indigo'
-      }
-      return colors[sportName] || 'primary'
-    }
-
     // Watch for proof of payment file change
     watch(proofOfPayment, (newFile) => {
       if (newFile && newFile.length > 0) {
@@ -1379,8 +1346,6 @@ export default {
       completePayment,
       formatDate,
       formatTimeSlot,
-      getSportIcon,
-      getSportColor,
       editDialog,
       editItem,
       editForm,
@@ -1394,7 +1359,9 @@ export default {
       saveEdit,
       fetchAvailableSlots,
       isSlotSelected,
-      selectTimeSlot
+      selectTimeSlot,
+      // Services
+      sportService
     }
   }
 }
