@@ -426,6 +426,7 @@
                   Dashboard settings coming soon! This will include dashboard widgets, display preferences, and more.
                 </v-alert>
 
+                <!-- Placeholder for future dashboard settings -->
                 <!-- Placeholder content -->
                 <v-card variant="outlined" class="pa-6 text-center">
                   <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-cog-outline</v-icon>
@@ -488,6 +489,44 @@ export default {
     const bgSaving = ref(false)
     const bgSuccessMessage = ref('')
     const bgErrorMessage = ref('')
+    
+    // Module titles
+    const moduleTitles = ref({
+      admin: {
+        text: 'Admin Panel',
+        color: '#B71C1C',
+        badgeColor: '#D32F2F',
+        subtitle: 'Manage multi-sport court bookings and oversee the entire system with professional precision'
+      },
+      courts: {
+        text: 'Manage Courts',
+        color: '#B71C1C',
+        badgeColor: '#D32F2F',
+        subtitle: 'Create, manage, and configure courts for all sports'
+      },
+      sports: {
+        text: 'Manage Sports',
+        color: '#B71C1C',
+        badgeColor: '#D32F2F',
+        subtitle: 'Configure available sports and their settings'
+      },
+      bookings: {
+        text: 'My Bookings',
+        color: '#B71C1C',
+        badgeColor: '#D32F2F',
+        subtitle: 'View and manage your court reservations'
+      },
+      users: {
+        text: 'Manage Users',
+        color: '#B71C1C',
+        badgeColor: '#D32F2F',
+        subtitle: 'Manage users, staff, and administrators'
+      }
+    })
+    const originalModuleTitles = ref(JSON.parse(JSON.stringify(moduleTitles.value)))
+    const modulesSaving = ref(false)
+    const modulesSuccessMessage = ref('')
+    const modulesErrorMessage = ref('')
 
     const snackbar = ref({
       show: false,
@@ -524,6 +563,41 @@ export default {
         originalBgPrimaryColor.value = bgPrimaryColor.value
         originalBgSecondaryColor.value = bgSecondaryColor.value
         originalBgAccentColor.value = bgAccentColor.value
+        
+        // Load module titles
+        if (settings.module_admin_text) {
+          moduleTitles.value.admin.text = settings.module_admin_text
+          moduleTitles.value.admin.color = settings.module_admin_color || '#B71C1C'
+          moduleTitles.value.admin.badgeColor = settings.module_admin_badge_color || '#D32F2F'
+          moduleTitles.value.admin.subtitle = settings.module_admin_subtitle || 'Manage multi-sport court bookings and oversee the entire system with professional precision'
+        }
+        if (settings.module_courts_text) {
+          moduleTitles.value.courts.text = settings.module_courts_text
+          moduleTitles.value.courts.color = settings.module_courts_color || '#B71C1C'
+          moduleTitles.value.courts.badgeColor = settings.module_courts_badge_color || '#D32F2F'
+          moduleTitles.value.courts.subtitle = settings.module_courts_subtitle || 'Create, manage, and configure courts for all sports'
+        }
+        if (settings.module_sports_text) {
+          moduleTitles.value.sports.text = settings.module_sports_text
+          moduleTitles.value.sports.color = settings.module_sports_color || '#B71C1C'
+          moduleTitles.value.sports.badgeColor = settings.module_sports_badge_color || '#D32F2F'
+          moduleTitles.value.sports.subtitle = settings.module_sports_subtitle || 'Configure available sports and their settings'
+        }
+        if (settings.module_bookings_text) {
+          moduleTitles.value.bookings.text = settings.module_bookings_text
+          moduleTitles.value.bookings.color = settings.module_bookings_color || '#B71C1C'
+          moduleTitles.value.bookings.badgeColor = settings.module_bookings_badge_color || '#D32F2F'
+          moduleTitles.value.bookings.subtitle = settings.module_bookings_subtitle || 'View and manage your court reservations'
+        }
+        if (settings.module_users_text) {
+          moduleTitles.value.users.text = settings.module_users_text
+          moduleTitles.value.users.color = settings.module_users_color || '#B71C1C'
+          moduleTitles.value.users.badgeColor = settings.module_users_badge_color || '#D32F2F'
+          moduleTitles.value.users.subtitle = settings.module_users_subtitle || 'Manage users, staff, and administrators'
+        }
+        
+        // Store original module titles
+        originalModuleTitles.value = JSON.parse(JSON.stringify(moduleTitles.value))
       } catch (error) {
         console.error('Failed to load settings:', error)
         errorMessage.value = 'Failed to load company settings'
@@ -702,6 +776,47 @@ export default {
       showSnackbar(`${preset.replace('-', ' & ')} preset applied`, 'info', 'mdi-palette')
     }
 
+    const saveModuleTitles = async () => {
+      try {
+        modulesSaving.value = true
+        modulesSuccessMessage.value = ''
+        modulesErrorMessage.value = ''
+
+        await companySettingService.updateModuleTitles(moduleTitles.value)
+        
+        // Update original values after successful save
+        originalModuleTitles.value = JSON.parse(JSON.stringify(moduleTitles.value))
+        
+        modulesSuccessMessage.value = 'Module titles updated successfully!'
+        
+        // Store in localStorage for immediate use
+        localStorage.setItem('moduleTitles', JSON.stringify(moduleTitles.value))
+        
+        showSnackbar('Module titles updated successfully!', 'success', 'mdi-check-circle')
+
+        // Dispatch event to update all modules
+        window.dispatchEvent(new CustomEvent('module-titles-updated', {
+          detail: moduleTitles.value
+        }))
+
+        window.dispatchEvent(new CustomEvent('company-settings-updated'))
+
+      } catch (error) {
+        console.error('Failed to save module titles:', error)
+        modulesErrorMessage.value = error.response?.data?.message || 'Failed to update module titles'
+        showSnackbar('Failed to save module titles', 'error', 'mdi-alert-circle')
+      } finally {
+        modulesSaving.value = false
+      }
+    }
+
+    const resetModuleTitles = () => {
+      moduleTitles.value = JSON.parse(JSON.stringify(originalModuleTitles.value))
+      modulesSuccessMessage.value = ''
+      modulesErrorMessage.value = ''
+      showSnackbar('Module titles reset to saved values', 'info', 'mdi-refresh')
+    }
+
     const showSnackbar = (message, color = 'success', icon = 'mdi-check-circle') => {
       snackbar.value = {
         show: true,
@@ -758,7 +873,14 @@ export default {
       bgErrorMessage,
       saveBackgroundColors,
       resetBackgroundColors,
-      applyPreset
+      applyPreset,
+      // Module titles
+      moduleTitles,
+      modulesSaving,
+      modulesSuccessMessage,
+      modulesErrorMessage,
+      saveModuleTitles,
+      resetModuleTitles
     }
   }
 }
@@ -855,6 +977,20 @@ export default {
 .color-picker:hover {
   border-color: #B71C1C;
   transform: scale(1.05);
+}
+
+.color-picker-small {
+  width: 100%;
+  height: 50px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.color-picker-small:hover {
+  border-color: #B71C1C;
+  transform: scale(1.02);
 }
 
 /* Background Preview */

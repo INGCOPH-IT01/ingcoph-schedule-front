@@ -3,12 +3,12 @@
     <!-- Enhanced Header -->
     <div class="bookings-header">
       <div class="header-content">
-        <div class="header-badge">
-          <v-icon color="#B71C1C" size="20" class="mr-2">mdi-receipt-text-check</v-icon>
-          Transaction Management
+        <div class="header-badge" :style="{ backgroundColor: badgeColor + '20', borderColor: badgeColor }">
+          <v-icon :color="badgeColor" size="20" class="mr-2">mdi-receipt-text-check</v-icon>
+          <span :style="{ color: badgeColor }">Transaction Management</span>
         </div>
         <h1 class="header-title">
-          <span class="title-gradient">My</span> Transactions
+          <span class="title-gradient" :style="{ color: titleColor }">{{ moduleTitle }}</span>
         </h1>
         <p class="header-subtitle">
           Track your booking transactions and approval status
@@ -228,7 +228,7 @@
                           <div class="detail-content-compact">
                             <div class="detail-label-compact">Price</div>
                             <div class="detail-value-compact price-value-compact">
-                              ₱{{ parseFloat(booking.price).toFixed(2) }}
+                              ₱{{ getBookingPrice(booking) }}
                             </div>
                           </div>
                         </div>
@@ -446,14 +446,14 @@
               </div>
               <div v-else-if="item.frequency_type" class="excel-price">
                 <div class="excel-frequency-price">
-                  <span class="excel-price-amount">{{ formatPriceTemplate(item.total_price) }}</span>
+                  <span class="excel-price-amount">{{ formatPriceTemplate(item.calculated_price || item.total_price) }}</span>
                   <div class="text-caption text-medium-emphasis">
                     Total for {{ item.frequency_duration_months }} month(s)
                   </div>
                 </div>
               </div>
               <div v-else class="excel-price">
-                <span class="excel-price-amount">₱{{ (parseFloat(item.total_price) || 0).toFixed(2) }}</span>
+                <span class="excel-price-amount">₱{{ (parseFloat(item.calculated_price || item.total_price) || 0).toFixed(2) }}</span>
               </div>
             </td>
             <td class="excel-cell">
@@ -1022,7 +1022,7 @@
                           <strong>Duration:</strong> {{ selectedBooking.frequency_duration_months || 1 }} month{{ (selectedBooking.frequency_duration_months || 1) > 1 ? 's' : '' }}
                         </div>
                         <div class="mb-3">
-                          <strong>Total Price:</strong> {{ formatPriceTemplate(selectedBooking.total_price) }}
+                          <strong>Total Price:</strong> {{ formatPriceTemplate(selectedBooking.calculated_price || selectedBooking.total_price) }}
                         </div>
                       </v-col>
                       <v-col cols="12" md="6">
@@ -1086,8 +1086,8 @@
     <!-- Edit Booking Dialog -->
     <v-dialog :model-value="false" max-width="500px" style="display: none;">
       <v-card>
-        <v-card-title class="text-h5">
-          <v-icon class="mr-2">mdi-pencil</v-icon>
+        <v-card-title class="text-h5" style="background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%); color: white;">
+          <v-icon class="mr-2" color="white">mdi-pencil</v-icon>
           Edit Booking
         </v-card-title>
 
@@ -1095,7 +1095,7 @@
           <!-- Show form if editForm exists, otherwise show loading -->
           <div v-if="editingBooking && editForm">
             <!-- Current Booking Data Display -->
-          <div class="current-booking-info pa-4 mb-4" style="background-color: #f3e5f5; border: 1px solid #9c27b0; border-radius: 4px;">
+          <div class="current-booking-info pa-4 mb-4" style="background-color: #FFF5F5; border: 1px solid #B71C1C; border-radius: 4px;">
               <h4 class="mb-3">
                 <v-icon class="mr-2">mdi-information</v-icon>
                 Current Booking Information
@@ -1185,7 +1185,7 @@
                     </v-chip>
                   </div>
                   <div class="detail-item mb-2">
-                    <strong>Total Price:</strong> {{ formatPriceTemplate(editingBooking.total_price) }}
+                    <strong>Total Price:</strong> {{ formatPriceTemplate(editingBooking.calculated_price || editingBooking.total_price) }}
                   </div>
                 </v-col>
               </v-row>
@@ -1376,7 +1376,7 @@
                         variant="outlined"
                         prepend-inner-icon="mdi-currency-php"
                         readonly
-                        :value="formatPriceTemplate(editingBooking?.total_price)"
+                        :value="formatPriceTemplate(editingBooking?.calculated_price || editingBooking?.total_price)"
                       ></v-text-field>
                     </v-col>
                   </v-row>
@@ -1399,7 +1399,7 @@
                             />
                           </div>
                           <p class="text-body-2 mb-2">
-                            <strong>Amount:</strong> {{ formatPriceTemplate(editingBooking?.total_price) }}
+                            <strong>Amount:</strong> {{ formatPriceTemplate(editingBooking?.calculated_price || editingBooking?.total_price) }}
                           </p>
                           <p class="text-caption">
                             Scan this QR code with your GCash app to complete payment
@@ -1695,7 +1695,7 @@
       class="responsive-dialog"
     >
       <v-card>
-        <v-card-title class="text-h5 pa-4" style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%); color: white;">
+        <v-card-title class="text-h5 pa-4" style="background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%); color: white;">
           <v-icon class="mr-2" color="white">mdi-pencil</v-icon>
           Edit Booking
         </v-card-title>
@@ -1874,6 +1874,28 @@ export default {
     const updating = ref(null)
     const newBookingDialog = ref(false)
     const generateDialogOpen = ref(false)
+
+    // Module Title Settings
+    const moduleTitle = ref('My Bookings')
+    const titleColor = ref('#B71C1C')
+    const badgeColor = ref('#D32F2F')
+
+    // Load module title from localStorage
+    const loadModuleTitles = () => {
+      const savedTitles = localStorage.getItem('moduleTitles')
+      if (savedTitles) {
+        try {
+          const titles = JSON.parse(savedTitles)
+          if (titles.bookings) {
+            moduleTitle.value = titles.bookings.text || 'My Bookings'
+            titleColor.value = titles.bookings.color || '#B71C1C'
+            badgeColor.value = titles.bookings.badgeColor || '#D32F2F'
+          }
+        } catch (error) {
+          console.error('Failed to load module titles:', error)
+        }
+      }
+    }
 
     const user = ref(null)
     const authLoading = ref(true)
@@ -2454,6 +2476,47 @@ export default {
         return booking.cart_items[0].booking_for_user_name || null
       }
       return null
+    }
+
+    // Calculate booking price from cart items or court hourly rate
+    const getBookingPrice = (booking) => {
+      const toNumber = (v) => {
+        const n = parseFloat(v)
+        return Number.isFinite(n) ? n : 0
+      }
+
+      // 1) Direct field if valid
+      if (booking && toNumber(booking.price) > 0) {
+        return toNumber(booking.price).toFixed(2)
+      }
+
+      // 2) Sum cart items (prefer item.price; else compute from duration * price_per_hour)
+      if (booking && Array.isArray(booking.cart_items) && booking.cart_items.length > 0) {
+        const total = booking.cart_items.reduce((sum, item) => {
+          const itemPrice = toNumber(item?.price)
+          if (itemPrice > 0) return sum + itemPrice
+
+          const courtRate = toNumber(item?.court?.price_per_hour)
+          const [sh, sm = '0'] = String(item?.start_time || '').split(':')
+          const [eh, em = '0'] = String(item?.end_time || '').split(':')
+          const startHour = toNumber(sh) + toNumber(sm) / 60
+          const endHour = toNumber(eh) + toNumber(em) / 60
+          const duration = Math.max(0, endHour - startHour)
+          return sum + courtRate * duration
+        }, 0)
+        return total.toFixed(2)
+      }
+
+      // 3) Fallback from booking time range and court rate
+      if (booking?.court && booking?.start_time && booking?.end_time) {
+        const start = new Date(booking.start_time)
+        const end = new Date(booking.end_time)
+        const durationHours = Math.max(0, (end - start) / (1000 * 60 * 60))
+        const rate = toNumber(booking.court.price_per_hour)
+        return (rate * durationHours).toFixed(2)
+      }
+
+      return '0.00'
     }
 
     const formatDateTime = (dateTime) => {
@@ -3919,6 +3982,9 @@ export default {
       // Load courts for edit dialog
       await loadCourts()
 
+      // Load module titles
+      loadModuleTitles()
+
       authLoading.value = false
 
       // Listen for custom events to refresh bookings
@@ -3928,6 +3994,16 @@ export default {
 
       // Listen for authentication changes
       window.addEventListener('auth-changed', handleAuthChange)
+
+      // Listen for module title updates
+      window.addEventListener('module-titles-updated', (event) => {
+        const titles = event.detail
+        if (titles.bookings) {
+          moduleTitle.value = titles.bookings.text || 'My Bookings'
+          titleColor.value = titles.bookings.color || '#B71C1C'
+          badgeColor.value = titles.bookings.badgeColor || '#D32F2F'
+        }
+      })
     })
 
     onUnmounted(() => {
@@ -3990,8 +4066,13 @@ export default {
     }
 
     const onProofOfPaymentChange = (files) => {
-      if (files && files.length > 0) {
-        const file = files[0]
+      if (!files || files.length === 0) {
+        return
+      }
+      const file = files[0]
+      if (!file) {
+        return
+      }
         if (file.size > 5000000) { // 5MB limit
           showSnackbar('File size should be less than 5 MB', 'error')
           editForm.proof_of_payment = null
@@ -3999,14 +4080,13 @@ export default {
         }
 
         // Validate file type
-        if (!file.type.startsWith('image/')) {
+        if (!file.type || !file.type.startsWith('image/')) {
           showSnackbar('Please upload an image file', 'error')
           editForm.proof_of_payment = null
           return
         }
 
         showSnackbar('Proof of payment uploaded successfully!', 'success')
-      }
     }
 
     const viewProofOfPayment = () => {
@@ -4054,6 +4134,10 @@ export default {
       authLoading,
       isAuthenticated,
       tokenStatus,
+      // Module Title
+      moduleTitle,
+      titleColor,
+      badgeColor,
       headers,
       itemProps,
       isBookingExpired,
@@ -4062,6 +4146,7 @@ export default {
       formatTimeSlot,
       calculateTotalDuration,
       getFirstCartItemBookingForName,
+      getBookingPrice,
       formatDateTime,
       getDuration,
       getTransactionDateGroups,
@@ -4204,16 +4289,14 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(183, 28, 28, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: #B71C1C;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
+  transition: all 0.3s ease;
 }
 
 .header-title {
@@ -4225,10 +4308,8 @@ export default {
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  transition: color 0.3s ease;
+  font-weight: inherit;
 }
 
 .header-subtitle {
@@ -5275,10 +5356,10 @@ export default {
 
 /* Current Booking Info Styles */
 .current-booking-info {
-  background: #f8fafc;
+  background: #FFF5F5;
   padding: 16px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(183, 28, 28, 0.2);
 }
 
 .info-item {

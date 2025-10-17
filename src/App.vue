@@ -152,12 +152,12 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Company Settings - Only for admin users -->
+          <!-- System Settings - Only for admin users -->
           <v-list-item
             v-if="isAuthenticated && isAdmin"
             prepend-icon="mdi-cog"
-            title="Company Settings"
-            value="company-settings"
+            title="System Settings"
+            value="system-settings"
             :to="{ name: 'CompanySettings' }"
             class="excel-nav-item"
           ></v-list-item>
@@ -355,6 +355,81 @@ export default {
         if (settings.bg_accent_color) {
           bgAccentColor.value = settings.bg_accent_color
         }
+
+        // Check for settings version changes
+        const localVersion = localStorage.getItem('settingsVersion')
+        const serverVersion = settings.settings_version || '1'
+        
+        if (localVersion !== serverVersion) {
+          console.log('Settings version changed, updating local storage...')
+          
+          // Update theme settings if they've changed
+          if (settings.theme_gradient_color1) {
+            const themeSettings = {
+              gradientColor1: settings.theme_gradient_color1,
+              gradientColor2: settings.theme_gradient_color2,
+              gradientColor3: settings.theme_gradient_color3,
+              gradientAngle: parseInt(settings.theme_gradient_angle) || 135,
+              buttonPrimaryColor: settings.theme_button_primary_color || '#B71C1C',
+              buttonSecondaryColor: settings.theme_button_secondary_color || '#5F6368',
+              buttonSuccessColor: settings.theme_button_success_color || '#4CAF50',
+              buttonErrorColor: settings.theme_button_error_color || '#D32F2F',
+              buttonWarningColor: settings.theme_button_warning_color || '#F57C00',
+              buttonInfoColor: settings.theme_button_info_color || '#757575'
+            }
+            
+            localStorage.setItem('themeSettings', JSON.stringify(themeSettings))
+            
+            // Notify to apply theme
+            window.dispatchEvent(new CustomEvent('theme-changed'))
+          }
+          
+          // Update module titles if they've changed
+          if (settings.module_courts_text) {
+            const moduleTitles = {
+              admin: {
+                text: settings.module_admin_text,
+                color: settings.module_admin_color,
+                badgeColor: settings.module_admin_badge_color,
+                subtitle: settings.module_admin_subtitle || 'Manage multi-sport court bookings and oversee the entire system with professional precision'
+              },
+              courts: {
+                text: settings.module_courts_text,
+                color: settings.module_courts_color,
+                badgeColor: settings.module_courts_badge_color,
+                subtitle: settings.module_courts_subtitle || 'Create, manage, and configure courts for all sports'
+              },
+              sports: {
+                text: settings.module_sports_text,
+                color: settings.module_sports_color,
+                badgeColor: settings.module_sports_badge_color,
+                subtitle: settings.module_sports_subtitle || 'Configure available sports and their settings'
+              },
+              bookings: {
+                text: settings.module_bookings_text,
+                color: settings.module_bookings_color,
+                badgeColor: settings.module_bookings_badge_color,
+                subtitle: settings.module_bookings_subtitle || 'View and manage your court reservations'
+              },
+              users: {
+                text: settings.module_users_text,
+                color: settings.module_users_color,
+                badgeColor: settings.module_users_badge_color,
+                subtitle: settings.module_users_subtitle || 'Manage users, staff, and administrators'
+              }
+            }
+            
+            localStorage.setItem('moduleTitles', JSON.stringify(moduleTitles))
+            
+            // Notify all modules to reload their titles
+            window.dispatchEvent(new CustomEvent('module-titles-updated', {
+              detail: moduleTitles
+            }))
+          }
+          
+          // Update version after all updates
+          localStorage.setItem('settingsVersion', serverVersion)
+        }
       } catch (error) {
         console.error('Failed to load company settings:', error)
         // Keep default name, logo, and colors if loading fails
@@ -367,10 +442,134 @@ export default {
       if (colors.accent) bgAccentColor.value = colors.accent
     }
 
+    // Apply custom theme from localStorage
+    const applyCustomTheme = () => {
+      const savedTheme = localStorage.getItem('themeSettings')
+      
+      if (!savedTheme) {
+        // No custom theme, remove if exists
+        const oldStyle = document.getElementById('custom-theme-gradient')
+        if (oldStyle) {
+          oldStyle.remove()
+        }
+        const mainElement = document.querySelector('.v-main')
+        if (mainElement) {
+          mainElement.classList.remove('custom-theme-active')
+        }
+        return
+      }
+
+      try {
+        const themeSettings = JSON.parse(savedTheme)
+        const angle = themeSettings.gradientAngle || 135
+        const c1 = themeSettings.gradientColor1 || '#FFFFFF'
+        const c2 = themeSettings.gradientColor2 || '#FFF5F5'
+        const c3 = themeSettings.gradientColor3 || '#FFEBEE'
+        
+        // Calculate lighter tints for overlays
+        const parseColor = (hex) => {
+          const r = parseInt(hex.slice(1, 3), 16)
+          const g = parseInt(hex.slice(3, 5), 16)
+          const b = parseInt(hex.slice(5, 7), 16)
+          return { r, g, b }
+        }
+        
+        const avgColor = parseColor(c2) // Use middle color for overlays
+        
+        // Remove old style if exists
+        const oldStyle = document.getElementById('custom-theme-gradient')
+        if (oldStyle) {
+          oldStyle.remove()
+        }
+        
+        // Create new style
+        const style = document.createElement('style')
+        style.id = 'custom-theme-gradient'
+        
+        // Button colors
+        const buttonPrimary = themeSettings.buttonPrimaryColor || '#B71C1C'
+        const buttonSecondary = themeSettings.buttonSecondaryColor || '#5F6368'
+        const buttonSuccess = themeSettings.buttonSuccessColor || '#4CAF50'
+        const buttonError = themeSettings.buttonErrorColor || '#D32F2F'
+        const buttonWarning = themeSettings.buttonWarningColor || '#F57C00'
+        const buttonInfo = themeSettings.buttonInfoColor || '#757575'
+        
+        style.innerHTML = `
+          /* Custom Theme Background */
+          :root {
+            --theme-gradient: linear-gradient(${angle}deg, ${c1} 0%, ${c2} 50%, ${c3} 100%);
+            --theme-overlay-color: rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.04);
+            --v-theme-primary: ${buttonPrimary};
+            --v-theme-secondary: ${buttonSecondary};
+            --v-theme-success: ${buttonSuccess};
+            --v-theme-error: ${buttonError};
+            --v-theme-warning: ${buttonWarning};
+            --v-theme-info: ${buttonInfo};
+          }
+          
+          .v-main.custom-theme-active {
+            background: linear-gradient(${angle}deg, ${c1} 0%, ${c2} 50%, ${c3} 100%) !important;
+            position: relative;
+          }
+          
+          .v-main.custom-theme-active::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+              radial-gradient(circle at 20% 80%, rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.03) 0%, transparent 50%),
+              radial-gradient(circle at 40% 40%, rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.02) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+          }
+          
+          .v-main.custom-theme-active::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+              radial-gradient(circle at 2px 2px, rgba(${avgColor.r}, ${avgColor.g}, ${avgColor.b}, 0.02) 1px, transparent 0);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: 0;
+          }
+        `
+        document.head.appendChild(style)
+        
+        // Add class to v-main
+        const mainElement = document.querySelector('.v-main')
+        if (mainElement) {
+          mainElement.classList.add('custom-theme-active')
+        }
+      } catch (error) {
+        console.error('Error applying custom theme:', error)
+      }
+    }
+
+    // Check if custom theme exists and apply class
+    const checkCustomTheme = () => {
+      applyCustomTheme()
+    }
+
+    // Apply theme immediately when app initializes
+    applyCustomTheme()
+
     onMounted(() => {
       updateCartCount()
       checkAuth()
       loadCompanySettings()
+      
+      // Re-apply custom theme after mount to ensure .v-main exists
+      setTimeout(() => {
+        applyCustomTheme()
+      }, 50)
 
       
       // Update cart count every 30 seconds (for expiration detection)
@@ -395,6 +594,11 @@ export default {
       // Listen for background color updates
       window.addEventListener('background-colors-updated', (event) => {
         updateBackgroundColors(event.detail)
+      })
+
+      // Listen for theme changes
+      window.addEventListener('theme-changed', () => {
+        checkCustomTheme()
       })
     })
 
@@ -747,13 +951,13 @@ export default {
   border-color: #e2e8f0;
 }
 
-/* Global Light Red Background */
-:deep(.v-main) {
+/* Global Light Red Background - Default Theme (can be overridden by custom theme) */
+:deep(.v-main:not(.custom-theme-active)) {
   background: linear-gradient(135deg, #FFFFFF 0%, #FFF5F5 25%, #FFF0F0 50%, #FFF5F5 75%, #FFFFFF 100%) !important;
   position: relative;
 }
 
-:deep(.v-main)::before {
+:deep(.v-main:not(.custom-theme-active))::before {
   content: '';
   position: fixed;
   top: 0;
@@ -768,7 +972,7 @@ export default {
   z-index: 0;
 }
 
-:deep(.v-main)::after {
+:deep(.v-main:not(.custom-theme-active))::after {
   content: '';
   position: fixed;
   top: 0;
@@ -782,18 +986,39 @@ export default {
   z-index: 0;
 }
 
-/* Global Dialog Theme - Light Red & White */
+/* Global Dialog Theme - Red & White */
 :deep(.v-dialog .v-card) {
-  background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F8 50%, #FFFFFF 100%) !important;
-  border: 1px solid rgba(239, 83, 80, 0.1) !important;
-  box-shadow: 0 12px 48px rgba(183, 28, 28, 0.12) !important;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(183, 28, 28, 0.1) !important;
+  box-shadow: 0 12px 48px rgba(183, 28, 28, 0.15) !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
 }
 
 :deep(.v-dialog .v-card-title) {
-  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%) !important;
-  color: #B71C1C !important;
-  border-bottom: 2px solid rgba(183, 28, 28, 0.1) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%) !important;
+  color: #FFFFFF !important;
+  border-bottom: none !important;
   font-weight: 700 !important;
+  padding: 20px 24px !important;
+  position: relative;
+}
+
+:deep(.v-dialog .v-card-title)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(211, 47, 47, 0.3) 0%, transparent 50%);
+  z-index: -1;
+}
+
+:deep(.v-dialog .v-card-title .v-icon) {
+  color: #FFFFFF !important;
 }
 
 :deep(.v-dialog .v-card-text) {
@@ -810,18 +1035,43 @@ export default {
   font-weight: 600 !important;
   text-transform: none !important;
   letter-spacing: 0.5px !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
 }
 
 :deep(.v-dialog .v-btn.bg-primary),
 :deep(.v-dialog .v-btn[color="primary"]) {
-  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%) !important;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3) !important;
+  color: #FFFFFF !important;
 }
 
 :deep(.v-dialog .v-btn.bg-primary):hover,
-:deep(.v-dialog .v-btn[color="primary"]:hover) {
-  box-shadow: 0 6px 16px rgba(183, 28, 28, 0.4) !important;
-  transform: translateY(-2px);
+:deep(.v-dialog .v-btn[color="primary"]):hover {
+  box-shadow: 0 6px 20px rgba(183, 28, 28, 0.5) !important;
+  transform: translateY(-3px) !important;
+  background: linear-gradient(135deg, #C62828 0%, #D32F2F 100%) !important;
+}
+
+:deep(.v-dialog .v-btn[variant="outlined"]) {
+  border: 2px solid rgba(183, 28, 28, 0.2) !important;
+  color: #B71C1C !important;
+  background: transparent !important;
+}
+
+:deep(.v-dialog .v-btn[variant="outlined"]):hover {
+  background: rgba(183, 28, 28, 0.05) !important;
+  border-color: rgba(183, 28, 28, 0.4) !important;
+}
+
+:deep(.v-dialog .v-btn[color="error"]) {
+  background: linear-gradient(135deg, #D32F2F 0%, #E53935 100%) !important;
+  color: #FFFFFF !important;
+}
+
+:deep(.v-dialog .v-btn[color="success"]) {
+  background: linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%) !important;
+  color: #FFFFFF !important;
 }
 
 /* Form Fields in Dialogs */

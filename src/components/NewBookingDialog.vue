@@ -424,10 +424,10 @@
                           <strong>Amount to Pay:</strong> ₱{{ calculateTotalPrice() }}
                         </div>
                         <div class="text-body-2 mb-2">
-                          <strong>GCash Number:</strong> 0917-123-4567
+                          <strong>GCash Number:</strong> {{ companySettings.payment_gcash_number || '—' }}
                         </div>
-                        <div class="text-body-2 mb-3">
-                          <strong>Account Name:</strong> Court Booking System
+                        <div class="text-body-2 mb-3" v-if="companySettings.payment_gcash_account_name">
+                          <strong>Account Name:</strong> {{ companySettings.payment_gcash_account_name }}
                         </div>
 
                         <v-text-field
@@ -483,7 +483,7 @@
                       <div class="text-caption">
                         <strong>Instructions:</strong>
                         <ol class="pl-4 mb-0">
-                          <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to 0917-123-4567</li>
+                          <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to {{ companySettings.payment_gcash_number || 'your GCash number' }}</li>
                           <li>Take a screenshot of your GCash payment receipt</li>
                           <li>Upload the screenshot above</li>
                           <li>Enter the reference number from your receipt</li>
@@ -551,6 +551,7 @@
 
 <script>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { companySettingService } from '../services/companySettingService'
 import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
@@ -598,6 +599,13 @@ export default {
     const paymentMethod = ref('gcash') // GCash payment is required
     const gcashReferenceNumber = ref('')
     const gcashQrCanvas = ref(null)
+    // Company payment settings
+    const companySettings = ref({
+      payment_gcash_number: '',
+      payment_gcash_qr_url: '',
+      payment_gcash_account_name: ''
+    })
+
     const proofOfPayment = ref(null)
     const proofPreview = ref(null)
 
@@ -857,6 +865,15 @@ export default {
       return total.toFixed(2)
     }
 
+    const loadCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        companySettings.value.payment_gcash_number = settings.payment_gcash_number || ''
+        companySettings.value.payment_gcash_qr_url = settings.payment_gcash_qr_url
+        companySettings.value.payment_gcash_account_name = settings.payment_gcash_account_name || ''
+      } catch (e) {}
+    }
+
     const handleProofUpload = (event) => {
       const file = event.target?.files?.[0] || proofOfPayment.value?.[0]
       if (file) {
@@ -915,12 +932,24 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court && courtData.slots && courtData.slots.length > 0) {
             courtData.slots.forEach(slot => {
+              // Ensure price is computed if missing
+              let price = parseFloat(slot.price)
+              if (isNaN(price) || price <= 0) {
+                const start = new Date(`2000-01-01 ${slot.start}`)
+                const end = new Date(`2000-01-01 ${slot.end}`)
+                const hours = Math.max(0, (end - start) / (1000 * 60 * 60))
+                const sportRate = parseFloat(selectedSport.value?.price_per_hour) || 0
+                const courtRate = parseFloat(court.price_per_hour) || 0
+                const rate = sportRate > 0 ? sportRate : courtRate
+                price = parseFloat((rate * hours).toFixed(2))
+              }
+
               const cartItem = {
                 court_id: court.id,
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
-                price: slot.price || 0
+                price: price
               }
 
               // Add admin booking fields to each cart item if admin is booking for someone
@@ -1322,6 +1351,7 @@ export default {
     })
 
     onMounted(() => {
+      loadCompanySettings()
       if (props.isOpen) {
         fetchSports()
         fetchCourts()
@@ -1372,7 +1402,8 @@ export default {
       adminNotes,
       userNames,
       // Services
-      sportService
+      sportService,
+      companySettings
     }
   }
 }
@@ -1392,7 +1423,7 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -1516,9 +1547,9 @@ export default {
 }
 
 .step-indicator.active .step-number {
-  background: #1976d2;
+  background: #B71C1C;
   color: white;
-  box-shadow: 0 4px 8px rgba(25, 118, 210, 0.3);
+  box-shadow: 0 4px 8px rgba(183, 28, 28, 0.3);
 }
 
 .step-indicator.completed .step-number {
@@ -1533,7 +1564,7 @@ export default {
 }
 
 .step-indicator.active .step-label {
-  color: #1976d2 !important;
+  color: #B71C1C !important;
   font-weight: bold;
 }
 
@@ -1542,12 +1573,18 @@ export default {
 }
 
 .dialog-header {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%);
   color: white;
   padding: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.dialog-header h2,
+.dialog-header .text-h5,
+.dialog-header .text-subtitle-2 {
+  color: white !important;
 }
 
 .header-content {
@@ -1587,13 +1624,13 @@ export default {
 .sport-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-color: #90caf9;
+  border-color: rgba(183, 28, 28, 0.3);
 }
 
 .sport-card.selected {
-  border-color: #1976d2 !important;
-  background: linear-gradient(135deg, rgba(25, 118, 210, 0.1) 0%, rgba(21, 101, 192, 0.05) 100%) !important;
-  box-shadow: 0 4px 16px rgba(25, 118, 210, 0.3) !important;
+  border-color: #B71C1C !important;
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.12) 0%, rgba(198, 40, 40, 0.06) 100%) !important;
+  box-shadow: 0 4px 16px rgba(183, 28, 28, 0.25) !important;
   transform: scale(1.0);
 }
 
@@ -1604,20 +1641,20 @@ export default {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  border: 2px solid #1976d2;
+  border: 2px solid #B71C1C;
   border-radius: inherit;
   animation: pulse 2s ease-in-out infinite;
   pointer-events: none;
 }
 
 .sport-card.selected .sport-icon-large {
-  color: #1976d2 !important;
+  color: #B71C1C !important;
   transform: scale(1.1);
   transition: transform 0.3s ease;
 }
 
 .sport-card.selected h4 {
-  color: #1976d2 !important;
+  color: #B71C1C !important;
   font-weight: 700 !important;
 }
 
@@ -1667,15 +1704,15 @@ export default {
 }
 
 .court-card.selected {
-  border-color: #1976d2;
-  background: rgba(25, 118, 210, 0.05) !important;
+  border-color: #B71C1C;
+  background: rgba(183, 28, 28, 0.06) !important;
 }
 
 .selection-badge {
   position: absolute;
   top: 8px;
   right: 8px;
-  background: #1976d2;
+  background: #B71C1C;
   border-radius: 50%;
   padding: 4px;
   z-index: 1;
@@ -1741,13 +1778,13 @@ export default {
 .time-slot-card:hover:not(.unavailable) {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  border-color: #90caf9;
+  border-color: rgba(183, 28, 28, 0.3);
 }
 
 .time-slot-card.selected {
-  border-color: #1976d2 !important;
-  background: linear-gradient(135deg, rgba(25, 118, 210, 0.15) 0%, rgba(21, 101, 192, 0.1) 100%) !important;
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3) !important;
+  border-color: #B71C1C !important;
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.15) 0%, rgba(198, 40, 40, 0.1) 100%) !important;
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3) !important;
   transform: scale(1.05);
 }
 
@@ -1758,18 +1795,18 @@ export default {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  border: 2px solid #1976d2;
+  border: 2px solid #B71C1C;
   border-radius: inherit;
   animation: pulse 2s ease-in-out infinite;
 }
 
 .time-slot-card.selected .v-card-text {
   font-weight: 600 !important;
-  color: #1976d2 !important;
+  color: #B71C1C !important;
 }
 
 .time-slot-card.selected .v-chip {
-  background: #1976d2 !important;
+  background: #B71C1C !important;
   color: white !important;
 }
 
@@ -1790,7 +1827,7 @@ export default {
 
 /* Booking Summary */
 .booking-summary {
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%);
 }
 
 .summary-header {

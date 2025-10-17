@@ -1,24 +1,5 @@
 <template>
   <div class="sports-home">
-    <!-- Dashboard Announcement Banner -->
-    <v-alert
-      v-if="dashboardSettings.announcement && dashboardSettings.announcement.trim()"
-      type="info"
-      variant="tonal"
-      closable
-      class="announcement-banner"
-      border="start"
-      border-color="primary"
-    >
-      <div class="d-flex align-center">
-        <v-icon class="mr-3" size="32" color="primary">mdi-bullhorn</v-icon>
-        <div>
-          <div class="text-h6 font-weight-bold mb-1">Announcement</div>
-          <div class="text-body-1">{{ dashboardSettings.announcement }}</div>
-        </div>
-      </div>
-    </v-alert>
-
     <!-- Hero Section with Enhanced Sports Design -->
     <div class="hero-section">
       <div class="hero-background">
@@ -30,11 +11,11 @@
           <v-col cols="12" md="10" class="text-center">
             <div class="hero-content">
               <!-- Welcome Message -->
-              <div v-if="dashboardSettings.welcomeMessage && dashboardSettings.welcomeMessage.trim()" class="welcome-message">
+              <!-- <div v-if="dashboardSettings.welcomeMessage && dashboardSettings.welcomeMessage.trim()" class="welcome-message">
                 <v-icon color="white" size="32" class="mr-2">mdi-hand-wave</v-icon>
                 {{ dashboardSettings.welcomeMessage }}
-              </div>
-
+              </div> -->
+              
               <div class="hero-badge">
                 <v-icon color="white" size="24" class="mr-2">mdi-badminton</v-icon>
                 Badminton & Pickleball Courts
@@ -185,7 +166,7 @@
                       <div class="pricing-section">
                         <div class="price-display">
                           <span class="price-label">Starting from</span>
-                          <span class="price-amount">{{ formatPriceTemplate(getSportPrice()) }}</span>
+                          <span class="price-amount">{{ formatPriceTemplate(getCourtPrice()) }}</span>
                           <span class="price-unit">/hour</span>
                         </div>
                       <v-btn
@@ -230,7 +211,6 @@ export default {
     // Dashboard settings
     const dashboardSettings = ref({
       welcomeMessage: '',
-      announcement: '',
       showStats: true,
       showRecentBookings: true
     })
@@ -319,18 +299,30 @@ export default {
       }
     }
 
-    const getSportPrice = () => {
+    const getCourtPrice = () => {
+      // Get minimum price from sports
       if (sports.value.length > 0) {
-        // Get the lowest price from all sports
         const prices = sports.value
-          .filter(sport => sport.price_per_hour != null)
-          .map(sport => sport.price_per_hour)
-
+          .map(sport => parseFloat(sport.price_per_hour || 0))
+          .filter(price => price > 0)
+        
         if (prices.length > 0) {
           return Math.min(...prices)
         }
       }
-      return 25 // fallback to default price
+      
+      // Fallback to courts if no sports prices
+      if (courts.value.length > 0) {
+        const prices = courts.value
+          .map(court => parseFloat(court.price_per_hour || 0))
+          .filter(price => price > 0)
+        
+        if (prices.length > 0) {
+          return Math.min(...prices)
+        }
+      }
+      
+      return 0 // fallback to 0 if no prices available
     }
 
     // Wrapper function for template use
@@ -359,7 +351,6 @@ export default {
         const settings = await companySettingService.getSettings()
         dashboardSettings.value = {
           welcomeMessage: settings.dashboard_welcome_message || '',
-          announcement: settings.dashboard_announcement || '',
           showStats: settings.dashboard_show_stats !== undefined ? settings.dashboard_show_stats : true,
           showRecentBookings: settings.dashboard_show_recent_bookings !== undefined ? settings.dashboard_show_recent_bookings : true
         }
@@ -394,7 +385,7 @@ export default {
       features,
       courtFeatures,
       dashboardSettings,
-      getSportPrice,
+      getCourtPrice,
       openBookingDialog,
       handleBookNowClick,
       formatPriceTemplate
@@ -407,14 +398,6 @@ export default {
 /* Modern Sports Design Theme */
 .sports-home {
   overflow-x: hidden;
-}
-
-/* Announcement Banner */
-.announcement-banner {
-  margin: 0;
-  border-radius: 0;
-  z-index: 1000;
-  animation: slideInDown 0.5s ease-out;
 }
 
 /* Welcome Message */
@@ -444,39 +427,10 @@ export default {
   overflow: hidden;
 }
 
-.hero-background {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-  z-index: 1;
-}
-
-.hero-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.2) 0%, transparent 50%);
-  z-index: 2;
-}
-
+.hero-background,
+.hero-overlay,
 .hero-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
-  background-size: 20px 20px;
-  z-index: 3;
+  display: none;
 }
 
 .hero-container {
@@ -527,7 +481,7 @@ export default {
 
 .hero-subtitle {
   font-size: clamp(1.1rem, 2vw, 1.3rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: #1e293b;
   margin-bottom: 40px;
   max-width: 600px;
   margin-left: auto;
@@ -731,7 +685,7 @@ export default {
 /* Court Section Styles */
 .court-section {
   position: relative;
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  background: transparent;
   overflow: hidden;
 }
 
@@ -812,6 +766,29 @@ export default {
   font-weight: 700;
   margin-bottom: 32px;
   color: #1e293b;
+}
+
+/* Inline Price Display */
+.inline-price {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.inline-price-amount {
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.inline-price-unit {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 600;
 }
 
 .features-grid {

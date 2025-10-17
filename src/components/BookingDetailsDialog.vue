@@ -7,19 +7,19 @@
     persistent
   >
     <v-card v-if="booking">
-      <v-card-title class="text-h5 dialog-title">
+      <v-card-title class="text-h5 dialog-title" style="background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
         <div class="d-flex align-center">
-          <v-icon class="mr-2">mdi-calendar-check</v-icon>
+          <v-icon class="mr-2" color="white">mdi-calendar-check</v-icon>
           Booking Details
         </div>
-        <v-btn icon="mdi-close" variant="text" @click="closeDialog"></v-btn>
+        <v-btn icon="mdi-close" variant="text" color="white" @click="closeDialog"></v-btn>
       </v-card-title>
 
       <v-card-text class="pa-6">
         <!-- User Information -->
         <div class="detail-section mb-4">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-account</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-account</v-icon>
             Customer Information
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -55,7 +55,7 @@
         <!-- Court Images Gallery -->
         <div class="detail-section mb-4" v-if="showCourtImages && booking.court?.images && booking.court.images.length > 0">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-image-multiple</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-image-multiple</v-icon>
             Court Images
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -71,7 +71,7 @@
         <!-- Transaction Details (for cart transactions) -->
         <div class="detail-section mb-4" v-if="isTransaction">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-receipt-text</v-icon>
             Transaction Details
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -111,7 +111,7 @@
         <!-- Booking Information (for regular bookings) -->
         <div class="detail-section mb-4" v-if="!isTransaction">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-calendar-clock</v-icon>
             Booking Information
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -151,7 +151,7 @@
         <!-- Cart Items in Transaction (Admin detailed view) -->
         <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && booking.cart_items && booking.cart_items.length > 0">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-cart</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-cart</v-icon>
             Cart Items ({{ booking.cart_items.length }})
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -183,7 +183,7 @@
         <!-- Time Slots Details (Simple view for non-admin) -->
         <div class="detail-section mb-4" v-if="(!showAdminFeatures || !isTransaction) && booking.cart_items && booking.cart_items.length > 0">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-clock-outline</v-icon>
             Time Slots
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -211,7 +211,7 @@
         <!-- Frequency Booking Details -->
         <div class="detail-section mb-4" v-if="showAdminFeatures && booking.frequency_type && booking.frequency_type !== 'once'">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-repeat</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-repeat</v-icon>
             Frequency Booking Details
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -253,7 +253,7 @@
         <!-- Payment Information -->
         <div class="detail-section mb-4">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-cash</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-cash</v-icon>
             Payment Information
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -324,7 +324,7 @@
         <!-- Attendance Status (Admin only, for approved bookings) -->
         <div class="detail-section mb-4" v-if="showAdminFeatures && (booking.approval_status === 'approved' || !isTransaction)">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-account-check</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-account-check</v-icon>
             Attendance Status
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -382,7 +382,7 @@
         <!-- Notes -->
         <div class="detail-section" v-if="booking.notes">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
+            <v-icon class="mr-2" color="#B71C1C">mdi-note-text</v-icon>
             Notes
           </h4>
           <v-card variant="outlined" class="pa-4">
@@ -406,12 +406,12 @@
     <!-- Proof of Payment Dialog -->
     <v-dialog v-model="imageDialog" max-width="800">
       <v-card>
-        <v-card-title class="text-h5 dialog-title">
+        <v-card-title class="text-h5 dialog-title" style="background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
           <div class="d-flex align-center">
-            <v-icon class="mr-2">mdi-image</v-icon>
+            <v-icon class="mr-2" color="white">mdi-image</v-icon>
             Proof of Payment
           </div>
-          <v-btn icon="mdi-close" variant="text" @click="imageDialog = false"></v-btn>
+          <v-btn icon="mdi-close" variant="text" color="white" @click="imageDialog = false"></v-btn>
         </v-card-title>
 
         <v-divider></v-divider>
@@ -799,15 +799,90 @@ export default {
 </script>
 
 <style scoped>
-/* Booking View Dialog Styles */
-.booking-view-dialog .dialog-title {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  color: white !important;
-  padding: 20px 24px;
+/* Modern Sports Booking Details Dialog Theme */
+.booking-details-dialog-card {
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+.dialog-header {
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%);
+  padding: 32px;
+  text-align: center;
+  position: relative;
+}
+
+.dialog-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(211, 47, 47, 0.3) 0%, transparent 50%);
+  z-index: 1;
+}
+
+.header-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 8px 20px;
+  margin-bottom: 16px;
+  color: white;
   font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  position: relative;
+  z-index: 2;
+}
+
+.dialog-title {
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+
+.title-gradient {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFFFFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dialog-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.6;
+  position: relative;
+  z-index: 2;
+}
+
+.dialog-divider {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  margin: 0 !important;
+}
+
+/* Status Header */
+.status-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(183, 28, 28, 0.12);
 }
 
 .booking-view-dialog .dialog-title .v-icon {
@@ -821,20 +896,42 @@ export default {
 .booking-view-dialog .detail-section-title {
   font-size: 18px;
   font-weight: 600;
-  color: #1976d2;
+  color: #B71C1C;
   margin-bottom: 12px;
   display: flex;
   align-items: center;
 }
 
-.booking-view-dialog .detail-row {
+.info-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(183, 28, 28, 0.1);
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.08);
+}
+
+.info-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
 }
 
-.booking-view-dialog .detail-label {
+.info-item.highlight-item {
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.08), rgba(95, 99, 104, 0.06));
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(183, 28, 28, 0.2);
+  border-bottom: 1px solid rgba(183, 28, 28, 0.2);
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-item .label {
+  color: #64748b;
   font-weight: 600;
   color: #64748b;
   font-size: 14px;
@@ -863,13 +960,68 @@ export default {
   gap: 4px;
 }
 
-.gap-2 {
-  gap: 8px;
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #B71C1C, #C62828);
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .booking-view-dialog .detail-row {
+.timeline-item {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -16px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #B71C1C;
+}
+
+.timeline-marker.created {
+  background: #B71C1C;
+}
+
+.timeline-marker.updated {
+  background: #C62828;
+}
+
+.timeline-content {
+  margin-left: 16px;
+}
+
+.timeline-title {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.timeline-date {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .status-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .booking-id {
+    text-align: center;
+  }
+  
+  .info-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;

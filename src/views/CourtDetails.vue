@@ -153,7 +153,6 @@
                       density="compact"
                     >
                       <div class="d-flex align-center">
-                        <v-icon class="mr-2">mdi-information</v-icon>
                         <div>
                           <strong>{{ getAvailableCount() }}</strong> available slots out of <strong>{{ availableSlots.length }}</strong> total slots
                         </div>
@@ -165,6 +164,16 @@
                       <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
                       Available Time Slots
                     </h4>
+                     <div class="mt-4 d-flex gap-4 justify-center flex-wrap">
+                      <div class="d-flex align-center">
+                        <v-chip color="success" size="x-small" class="mr-2" variant="flat"></v-chip>
+                        <span class="text-caption">Available</span>
+                      </div>
+                      <div class="d-flex align-center">
+                        <v-chip color="error" size="x-small" class="mr-2" variant="flat"></v-chip>
+                        <span class="text-caption">Booked (Click for details)</span>
+                      </div>
+                    </div>
                     <div class="time-slots-grid">
                       <v-card
                         v-for="(slot, index) in availableSlots"
@@ -191,16 +200,7 @@
                     </div>
 
                     <!-- Legend -->
-                    <div class="mt-4 d-flex gap-4 justify-center flex-wrap">
-                      <div class="d-flex align-center">
-                        <v-chip color="success" size="x-small" class="mr-2" variant="flat"></v-chip>
-                        <span class="text-caption">Available</span>
-                      </div>
-                      <div class="d-flex align-center">
-                        <v-chip color="grey" size="x-small" class="mr-2" variant="flat"></v-chip>
-                        <span class="text-caption">Booked</span>
-                      </div>
-                    </div>
+                   
                   </div>
 
                   <div v-else class="text-center py-8">
@@ -582,6 +582,9 @@ export default {
     // Booking details dialog
     const bookingDetailsDialog = ref(false)
     const selectedBookingSlot = ref(null)
+    
+    // Booking info dialog
+    const bookingInfoDialog = ref(false)
 
     // Booking view dialog for admin/staff
     const bookingViewDialog = ref(false)
@@ -687,7 +690,10 @@ export default {
         }, 0)
         return total.toFixed(2)
       }
-      return booking.total_price || '0.00'
+      
+      // Use calculated_price if available, otherwise use total_price
+      const price = booking.calculated_price || booking.total_price || 0
+      return parseFloat(price).toFixed(2)
     }
 
     const getStatusColor = (status) => {
@@ -769,7 +775,13 @@ export default {
 
     const handleSlotClick = (slot) => {
       selectedBookingSlot.value = slot
-      bookingDetailsDialog.value = true
+      if (slot.available) {
+        // Show booking dialog for available slots
+        bookingDetailsDialog.value = true
+      } else {
+        // Show booking info dialog for booked slots
+        bookingInfoDialog.value = true
+      }
     }
 
     const getBookingTypeColor = (type) => {
@@ -779,6 +791,31 @@ export default {
         'in_cart': 'warning'
       }
       return colors[type] || 'grey'
+    }
+
+    const getBookingStatusColor = (status) => {
+      const colors = {
+        'pending': 'warning',
+        'approved': 'success',
+        'completed': 'info',
+        'cancelled': 'error',
+        'rejected': 'error'
+      }
+      return colors[status] || 'grey'
+    }
+
+    const formatBookingStatus = (status) => {
+      if (!status) return 'Unknown'
+      return status.charAt(0).toUpperCase() + status.slice(1)
+    }
+
+    const formatBookingType = (type) => {
+      const types = {
+        'booking': 'Regular Booking',
+        'paid': 'Paid Booking',
+        'in_cart': 'In Cart'
+      }
+      return types[type] || type || 'Unknown'
     }
 
     const getBookingTypeIcon = (type) => {
@@ -882,10 +919,14 @@ export default {
       handleSlotClick,
       bookingDetailsDialog,
       selectedBookingSlot,
+      bookingInfoDialog,
       getBookingTypeColor,
       getBookingTypeIcon,
       getBookingTypeLabel,
       getBookingTypeDescription,
+      getBookingStatusColor,
+      formatBookingStatus,
+      formatBookingType,
       formatDate,
       formatPrice,
       formatDuration,
@@ -904,7 +945,7 @@ export default {
 <style scoped>
 .court-details-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: transparent;
   padding: 32px;
 }
 
@@ -985,7 +1026,7 @@ export default {
 }
 
 .info-card-title {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   color: white;
   font-weight: 600;
 }
@@ -1096,9 +1137,9 @@ export default {
 }
 
 .time-slot-card.selected {
-  border-color: #1976d2 !important;
-  background: linear-gradient(135deg, rgba(25, 118, 210, 0.15) 0%, rgba(21, 101, 192, 0.1) 100%) !important;
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3) !important;
+  border-color: #B71C1C !important;
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.15) 0%, rgba(198, 40, 40, 0.1) 100%) !important;
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3) !important;
   transform: scale(1.05);
 }
 
@@ -1200,7 +1241,7 @@ export default {
 
 /* Booking Details Dialog - Matching Bookings.vue Pattern */
 .booking-details-dialog .dialog-title {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   color: white !important;
   padding: 20px 24px;
   font-weight: 600;
@@ -1224,7 +1265,7 @@ export default {
 .booking-details-dialog .detail-label {
   font-size: 16px;
   font-weight: 600;
-  color: #1976d2;
+  color: #B71C1C;
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -1232,9 +1273,9 @@ export default {
 
 .booking-details-dialog .detail-content {
   padding: 12px;
-  background: #f5f7fa;
+  background: #fef2f2;
   border-radius: 8px;
-  border-left: 4px solid #1976d2;
+  border-left: 4px solid #B71C1C;
 }
 
 .booking-details-dialog .detail-item {

@@ -3,12 +3,12 @@
     <!-- Enhanced Header -->
     <div class="courts-header">
       <div class="header-content">
-        <div class="header-badge">
-          <v-icon color="#B71C1C" size="20" class="mr-2">mdi-stadium</v-icon>
-          {{ isAdmin ? 'Court Management' : 'Court Directory' }}
+        <div class="header-badge" :style="{ backgroundColor: badgeColor + '20', borderColor: badgeColor }">
+          <v-icon :color="badgeColor" size="20" class="mr-2">mdi-stadium</v-icon>
+          <span :style="{ color: badgeColor }">{{ isAdmin ? 'Court Management' : 'Court Directory' }}</span>
         </div>
         <h1 class="header-title">
-          <span class="title-gradient">{{ isAdmin ? 'Manage' : 'Explore' }}</span> Courts
+          <span class="title-gradient" :style="{ color: titleColor }">{{ moduleTitle }}</span>
         </h1>
         <p class="header-subtitle">
           {{ isAdmin ? 'Manage and organize multi-sport court facilities with professional precision' : 'Discover and book premium multi-sport court facilities' }}
@@ -616,7 +616,29 @@ export default {
     const selectedCourt = ref(null)
     const isAdmin = ref(false)
     const viewMode = ref('grid') // Default to grid view
+    
+    // Module Title Settings
+    const moduleTitle = ref('Manage Courts')
+    const titleColor = ref('#B71C1C')
+    const badgeColor = ref('#D32F2F')
 
+    // Load module title from localStorage
+    const loadModuleTitles = () => {
+      const savedTitles = localStorage.getItem('moduleTitles')
+      if (savedTitles) {
+        try {
+          const titles = JSON.parse(savedTitles)
+          if (titles.courts) {
+            moduleTitle.value = titles.courts.text || 'Manage Courts'
+            titleColor.value = titles.courts.color || '#B71C1C'
+            badgeColor.value = titles.courts.badgeColor || '#D32F2F'
+          }
+        } catch (error) {
+          console.error('Failed to load module titles:', error)
+        }
+      }
+    }
+    
     // Time slots state
     const courtTimeSlots = ref({})
     const loadingTimeSlots = ref({})
@@ -856,6 +878,18 @@ export default {
       fetchData()
       // Initialize date filter to today
       setDateToday()
+      // Load module titles
+      loadModuleTitles()
+
+      // Listen for module title updates
+      window.addEventListener('module-titles-updated', (event) => {
+        const titles = event.detail
+        if (titles.courts) {
+          moduleTitle.value = titles.courts.text || 'Manage Courts'
+          titleColor.value = titles.courts.color || '#B71C1C'
+          badgeColor.value = titles.courts.badgeColor || '#D32F2F'
+        }
+      })
     })
 
     // Watch for route changes to refresh data when navigating to this page
@@ -885,6 +919,10 @@ export default {
       editCourt,
       toggleCourtStatus,
       navigateToCourtDetails,
+      // Module Title
+      moduleTitle,
+      titleColor,
+      badgeColor,
       // Time slots
       courtTimeSlots,
       loadingTimeSlots,
@@ -943,16 +981,14 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(183, 28, 28, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(183, 28, 28, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: #B71C1C;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
+  transition: all 0.3s ease;
 }
 
 .header-title {
@@ -964,10 +1000,8 @@ export default {
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  transition: color 0.3s ease;
+  font-weight: inherit;
 }
 
 .header-subtitle {

@@ -281,8 +281,8 @@
                     </v-avatar>
                     <div>
                       <div class="text-caption text-grey-darken-1">Send payment to</div>
-                      <div class="text-h6 font-weight-bold">0917-123-4567</div>
-                      <div class="text-body-2">Court Booking System</div>
+                      <div class="text-h6 font-weight-bold">{{ companySettings.payment_gcash_number || '—' }}</div>
+                      <div class="text-body-2" v-if="companySettings.payment_gcash_account_name">{{ companySettings.payment_gcash_account_name }}</div>
                     </div>
                   </div>
                   <v-alert type="info" density="compact" class="mt-2">
@@ -298,9 +298,9 @@
                       <span class="text-caption ml-1">Scan to Pay</span>
                     </div>
                     <canvas ref="gcashQrCanvas" class="gcash-qr-code"></canvas>
-                    <div class="text-caption text-center mt-2 text-grey-darken-1">
-                      GCash QR Code
-                    </div>
+                      <div class="text-caption text-center mt-2 text-grey-darken-1">
+                        GCash QR Code
+                      </div>
                   </div>
                 </v-col>
               </v-row>
@@ -516,6 +516,7 @@
 <script>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { bookingService } from '../services/bookingService'
+import { companySettingService } from '../services/companySettingService'
 import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
@@ -543,6 +544,7 @@ export default {
     const gcashQrCanvas = ref(null)
     const timeRemaining = ref('')
     const expirationWarning = ref(false)
+    const companySettings = ref({ payment_gcash_number: '', payment_gcash_account_name: '', payment_gcash_qr_url: '' })
 
     // Selection state
     const selectedGroups = ref([])
@@ -601,6 +603,15 @@ export default {
       } finally {
         loading.value = false
       }
+    }
+
+    const loadCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        companySettings.value.payment_gcash_number = settings.payment_gcash_number || ''
+        companySettings.value.payment_gcash_account_name = settings.payment_gcash_account_name || ''
+        companySettings.value.payment_gcash_qr_url = settings.payment_gcash_qr_url || ''
+      } catch (e) {}
     }
 
     // Update expiration timer
@@ -1306,6 +1317,7 @@ export default {
       if (newVal) {
         loadCart()
         fetchCourts()
+        loadCompanySettings()
       }
     })
 
@@ -1361,7 +1373,8 @@ export default {
       isSlotSelected,
       selectTimeSlot,
       // Services
-      sportService
+      sportService,
+      companySettings
     }
   }
 }

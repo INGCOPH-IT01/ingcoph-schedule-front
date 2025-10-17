@@ -424,7 +424,7 @@ export default {
 }
 
 .dialog-header {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%);
   padding: 32px;
   text-align: center;
   position: relative;
@@ -438,8 +438,8 @@ export default {
   right: 0;
   bottom: 0;
   background:
-    radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
+    radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(211, 47, 47, 0.3) 0%, transparent 50%);
   z-index: 1;
 }
 
@@ -471,7 +471,7 @@ export default {
 }
 
 .title-gradient {
-  background: linear-gradient(135deg, #3b82f6 0%, #10b981 100%);
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFFFFF 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

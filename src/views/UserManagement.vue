@@ -9,18 +9,19 @@
     <!-- Header -->
     <div class="page-header">
       <div class="header-content">
-        <v-icon size="48" color="primary" class="mr-4">mdi-account-group</v-icon>
+        <v-icon size="48" :color="badgeColor" class="mr-4">mdi-account-group</v-icon>
         <div>
-          <h1 class="page-title">User Management</h1>
+          <h1 class="page-title" :style="{ color: titleColor }">{{ moduleTitle }}</h1>
           <p class="page-subtitle">Manage users, staff, and administrators</p>
         </div>
       </div>
       <v-btn
-        color="primary"
+        color="#B71C1C"
         size="large"
         @click="openCreateDialog"
         prepend-icon="mdi-account-plus"
         elevation="4"
+        style="background-color: #B71C1C !important; color: white !important;"
       >
         Create New User
       </v-btn>
@@ -113,8 +114,9 @@
             :color="getUserTypeColor(item.role)"
             size="small"
             variant="flat"
+            :style="{ backgroundColor: getUserTypeColor(item.role), color: 'white' }"
           >
-            <v-icon start size="small">{{ getUserTypeIcon(item.role) }}</v-icon>
+            <v-icon start size="small" color="white">{{ getUserTypeIcon(item.role) }}</v-icon>
             {{ item.role }}
           </v-chip>
         </template>
@@ -130,7 +132,7 @@
             icon
             size="small"
             variant="text"
-            color="primary"
+            color="#B71C1C"
             @click="openEditDialog(item)"
           >
             <v-icon>mdi-pencil</v-icon>
@@ -139,7 +141,7 @@
             icon
             size="small"
             variant="text"
-            color="error"
+            color="#D32F2F"
             @click="confirmDelete(item)"
             :disabled="item.id === currentUserId"
           >
@@ -157,9 +159,12 @@
       class="responsive-dialog"
     >
       <v-card class="user-dialog">
-        <v-card-title class="dialog-title">
-          <v-icon class="mr-2">{{ editMode ? 'mdi-account-edit' : 'mdi-account-plus' }}</v-icon>
-          {{ editMode ? 'Edit User' : 'Create New User' }}
+        <v-card-title class="dialog-title" style="background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%); color: white; display: flex; justify-content: space-between; align-items: center;">
+          <div class="d-flex align-center">
+            <v-icon class="mr-2" color="white">{{ editMode ? 'mdi-account-edit' : 'mdi-account-plus' }}</v-icon>
+            {{ editMode ? 'Edit User' : 'Create New User' }}
+          </div>
+          <v-btn icon="mdi-close" variant="text" color="white" @click="closeDialog"></v-btn>
         </v-card-title>
 
         <v-card-text class="pt-4">
@@ -229,17 +234,19 @@
         <v-card-actions class="px-6 pb-4">
           <v-spacer></v-spacer>
           <v-btn
-            variant="text"
+            variant="outlined"
+            color="#B71C1C"
             @click="closeDialog"
             :disabled="saving"
           >
             Cancel
           </v-btn>
           <v-btn
-            color="primary"
+            color="#B71C1C"
             @click="saveUser"
             :loading="saving"
             :disabled="saving"
+            style="background-color: #B71C1C !important; color: white !important;"
           >
             {{ editMode ? 'Update' : 'Create' }}
           </v-btn>
@@ -273,6 +280,28 @@ export default {
     const showPassword = ref(false)
     const showPasswordConfirm = ref(false)
     const currentUserId = ref(null)
+
+    // Module Title Settings
+    const moduleTitle = ref('Manage Users')
+    const titleColor = ref('#B71C1C')
+    const badgeColor = ref('#D32F2F')
+
+    // Load module title from localStorage
+    const loadModuleTitles = () => {
+      const savedTitles = localStorage.getItem('moduleTitles')
+      if (savedTitles) {
+        try {
+          const titles = JSON.parse(savedTitles)
+          if (titles.users) {
+            moduleTitle.value = titles.users.text || 'Manage Users'
+            titleColor.value = titles.users.color || '#B71C1C'
+            badgeColor.value = titles.users.badgeColor || '#D32F2F'
+          }
+        } catch (error) {
+          console.error('Failed to load module titles:', error)
+        }
+      }
+    }
 
     const formData = ref({
       name: '',
@@ -451,11 +480,11 @@ export default {
 
     const getUserTypeColor = (type) => {
       const colors = {
-        user: 'primary',
-        staff: 'success',
-        admin: 'error'
+        user: '#B71C1C',
+        staff: '#C62828',
+        admin: '#D32F2F'
       }
-      return colors[type] || 'grey'
+      return colors[type] || '#B71C1C'
     }
 
     const getUserTypeIcon = (type) => {
@@ -488,6 +517,19 @@ export default {
 
       await fetchUsers()
       await fetchStats()
+
+      // Load module titles
+      loadModuleTitles()
+
+      // Listen for module title updates
+      window.addEventListener('module-titles-updated', (event) => {
+        const titles = event.detail
+        if (titles.users) {
+          moduleTitle.value = titles.users.text || 'Manage Users'
+          titleColor.value = titles.users.color || '#B71C1C'
+          badgeColor.value = titles.users.badgeColor || '#D32F2F'
+        }
+      })
     })
 
     return {
@@ -505,6 +547,9 @@ export default {
       showPassword,
       showPasswordConfirm,
       currentUserId,
+      moduleTitle,
+      titleColor,
+      badgeColor,
       openCreateDialog,
       openEditDialog,
       closeDialog,
@@ -525,40 +570,11 @@ export default {
   min-height: 100vh;
 }
 
-/* Perfect Smash Background - Red & White */
-.sports-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #FFFFFF 0%, #FFEBEE 25%, #FFCDD2 50%, #FFEBEE 75%, #FFFFFF 100%);
-  z-index: -3;
-}
-
-.sports-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(198, 40, 40, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(211, 47, 47, 0.05) 0%, transparent 50%);
-  z-index: -2;
-}
-
+/* Remove hardcoded background - use global theme background from App.vue */
+.sports-background,
+.sports-overlay,
 .sports-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: 
-    radial-gradient(circle at 1px 1px, rgba(183, 28, 28, 0.03) 1px, transparent 0);
-  background-size: 20px 20px;
-  z-index: -1;
+  display: none;
 }
 
 /* Header */
@@ -618,19 +634,19 @@ export default {
 }
 
 .stat-icon-wrapper.users {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
 }
 
 .stat-icon-wrapper.staff {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #D32F2F 0%, #E53935 100%);
 }
 
 .stat-icon-wrapper.admins {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background: linear-gradient(135deg, #F44336 0%, #E57373 100%);
 }
 
 .stat-icon-wrapper.total {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #5F6368 0%, #757575 100%);
 }
 
 .stat-content {
@@ -657,7 +673,7 @@ export default {
 }
 
 .table-header {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   color: white !important;
   padding: 20px 24px;
   font-size: 1.2rem;
@@ -674,11 +690,22 @@ export default {
 
 /* Dialog */
 .dialog-title {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   color: white !important;
   padding: 20px 24px;
   font-size: 1.3rem;
   font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dialog-title .v-icon {
+  color: white !important;
+}
+
+.dialog-title .v-btn {
+  color: white !important;
 }
 
 /* Fixed Header and Footer for User Dialog */
@@ -693,7 +720,7 @@ export default {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 

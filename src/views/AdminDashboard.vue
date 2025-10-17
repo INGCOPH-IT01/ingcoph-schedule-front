@@ -3,15 +3,15 @@
     <!-- Enhanced Header -->
     <div class="dashboard-header">
       <div class="header-content">
-        <div class="header-badge">
+        <div class="header-badge" :style="{ background: `linear-gradient(135deg, ${badgeColor} 0%, ${titleColor} 100%)` }">
           <v-icon color="white" size="20" class="mr-2">mdi-shield-crown</v-icon>
           Admin Control Center
         </div>
-        <h1 class="header-title">
-          <span class="title-gradient">Champion</span> Dashboard
+        <h1 class="header-title" :style="{ color: titleColor }">
+          {{ moduleTitle }}
         </h1>
         <p class="header-subtitle">
-          Manage multi-sport court bookings and oversee the entire system with professional precision
+          {{ moduleSubtitle }}
         </p>
       </div>
     </div>
@@ -105,19 +105,6 @@
 
     <!-- Enhanced Quick Actions -->
     <div class="actions-section">
-      <div class="section-header">
-        <div class="section-badge">
-          <v-icon color="primary" size="20" class="mr-2">mdi-lightning-bolt</v-icon>
-          Quick Actions
-        </div>
-        <h2 class="section-title">
-          <span class="title-gradient">Champion</span> Controls
-        </h2>
-        <p class="section-subtitle">
-          Manage bookings and system operations with professional efficiency
-        </p>
-      </div>
-
       <div class="actions-grid">
         <div class="action-card action-card-1">
           <div class="action-icon">
@@ -511,6 +498,12 @@ export default {
     const detailsDialog = ref(false)
     const selectedBooking = ref(null)
     const sports = ref([])
+    
+    // Module title customization
+    const moduleTitle = ref('Admin Panel')
+    const titleColor = ref('#B71C1C')
+    const badgeColor = ref('#D32F2F')
+    const moduleSubtitle = ref('Manage multi-sport court bookings and oversee the entire system with professional precision')
 
     const snackbar = ref({
       show: false,
@@ -898,6 +891,34 @@ export default {
     }
 
 
+    // Load module titles from localStorage or use defaults
+    const loadModuleTitles = () => {
+      const savedTitles = localStorage.getItem('moduleTitles')
+      if (savedTitles) {
+        try {
+          const titles = JSON.parse(savedTitles)
+          if (titles.admin) {
+            moduleTitle.value = titles.admin.text || 'Admin Panel'
+            titleColor.value = titles.admin.color || '#B71C1C'
+            badgeColor.value = titles.admin.badgeColor || '#D32F2F'
+            moduleSubtitle.value = titles.admin.subtitle || 'Manage multi-sport court bookings and oversee the entire system with professional precision'
+          }
+        } catch (error) {
+          console.error('Error parsing module titles:', error)
+        }
+      }
+    }
+
+    // Listen for module title updates
+    const handleModuleTitlesUpdate = (event) => {
+      if (event.detail && event.detail.admin) {
+        moduleTitle.value = event.detail.admin.text || 'Admin Panel'
+        titleColor.value = event.detail.admin.color || '#B71C1C'
+        badgeColor.value = event.detail.admin.badgeColor || '#D32F2F'
+        moduleSubtitle.value = event.detail.admin.subtitle || 'Manage multi-sport court bookings and oversee the entire system with professional precision'
+      }
+    }
+
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
       loadStats()
@@ -908,11 +929,13 @@ export default {
       loadStats()
       loadSports()
       loadPendingBookings()
+      loadModuleTitles()
 
       // Listen for custom events to refresh admin data
       window.addEventListener('booking-created', handleBookingRefresh)
       window.addEventListener('booking-updated', handleBookingRefresh)
       window.addEventListener('booking-cancelled', handleBookingRefresh)
+      window.addEventListener('module-titles-updated', handleModuleTitlesUpdate)
     })
 
     onUnmounted(() => {
@@ -920,6 +943,7 @@ export default {
       window.removeEventListener('booking-created', handleBookingRefresh)
       window.removeEventListener('booking-updated', handleBookingRefresh)
       window.removeEventListener('booking-cancelled', handleBookingRefresh)
+      window.removeEventListener('module-titles-updated', handleModuleTitlesUpdate)
     })
 
     return {
@@ -937,6 +961,11 @@ export default {
       closeQrScannerDialog,
       qrScannerDialog,
       handleImageError,
+      // Module title customization
+      moduleTitle,
+      titleColor,
+      badgeColor,
+      moduleSubtitle,
       headers,
       statusFilter,
       userFilter,
@@ -1010,9 +1039,7 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
@@ -1020,6 +1047,7 @@ export default {
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px rgba(183, 28, 28, 0.3);
 }
 
 .header-title {
@@ -1027,7 +1055,6 @@ export default {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 24px;
-  color: white;
 }
 
 .title-gradient {

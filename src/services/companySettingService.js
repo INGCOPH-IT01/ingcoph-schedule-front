@@ -21,14 +21,23 @@ export const companySettingService = {
 
   async updateSettings(settingsData) {
     try {
-      // Check if we have a file to upload
-      const hasFile = settingsData.company_logo && (settingsData.company_logo instanceof File || settingsData.company_logo instanceof Blob)
+      // Check if we have files to upload
+      const hasLogo = settingsData.company_logo && (settingsData.company_logo instanceof File || settingsData.company_logo instanceof Blob)
+      const hasGcashQr = settingsData.payment_gcash_qr && (settingsData.payment_gcash_qr instanceof File || settingsData.payment_gcash_qr instanceof Blob)
 
-      if (hasFile) {
+      if (hasLogo || hasGcashQr) {
         // Use FormData for file upload
         const payload = new FormData()
         payload.append('company_name', settingsData.company_name)
-        payload.append('company_logo', settingsData.company_logo)
+        if (hasLogo) {
+          payload.append('company_logo', settingsData.company_logo)
+        }
+        if (settingsData.payment_gcash_number !== undefined) {
+          payload.append('payment_gcash_number', settingsData.payment_gcash_number)
+        }
+        if (hasGcashQr) {
+          payload.append('payment_gcash_qr', settingsData.payment_gcash_qr)
+        }
         
         // Add theme settings if present
         if (settingsData.theme_primary_color) {
@@ -86,6 +95,26 @@ export const companySettingService = {
       return response.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to delete company logo')
+    }
+  },
+
+  async updateModuleTitles(moduleTitles) {
+    try {
+      const response = await api.post('/admin/company-settings/module-titles', moduleTitles)
+      return response.data
+    } catch (error) {
+      console.error('Update module titles error:', error.response?.data)
+      throw error
+    }
+  },
+
+  async updateThemeSettings(themeSettings) {
+    try {
+      const response = await api.post('/admin/company-settings/theme', themeSettings)
+      return response.data
+    } catch (error) {
+      console.error('Update theme settings error:', error.response?.data)
+      throw error
     }
   }
 }

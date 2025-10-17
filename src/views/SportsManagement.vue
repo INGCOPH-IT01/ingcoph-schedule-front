@@ -359,7 +359,6 @@ export default {
 
         dialog.value = false
         await fetchSports()
-        await fetchCourts()
       } catch (error) {
         console.error('Failed to save sport:', error)
         showSnackbar(error.response?.data?.message || 'Failed to save sport', 'error')
@@ -380,7 +379,6 @@ export default {
         showSnackbar('Sport deleted successfully', 'success')
         deleteDialog.value = false
         await fetchSports()
-        await fetchCourts()
       } catch (error) {
         console.error('Failed to delete sport:', error)
         showSnackbar(error.response?.data?.message || 'Failed to delete sport', 'error')
@@ -399,7 +397,6 @@ export default {
 
     onMounted(async () => {
       await fetchSports()
-      await fetchCourts()
     })
 
     return {
