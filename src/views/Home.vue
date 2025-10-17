@@ -34,7 +34,7 @@
                 <v-icon color="white" size="32" class="mr-2">mdi-hand-wave</v-icon>
                 {{ dashboardSettings.welcomeMessage }}
               </div>
-              
+
               <div class="hero-badge">
                 <v-icon color="white" size="24" class="mr-2">mdi-badminton</v-icon>
                 Badminton & Pickleball Courts
@@ -106,7 +106,7 @@
             </p>
         </v-col>
       </v-row>
-      
+
       <v-row>
           <v-col cols="12" md="4" v-for="(feature, index) in features" :key="index">
             <div class="feature-card" :class="`feature-card-${index + 1}`">
@@ -145,14 +145,14 @@
             </p>
         </v-col>
       </v-row>
-      
+
       <v-row v-if="loading">
         <v-col cols="12" class="text-center">
           <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
           <p class="mt-4 text-h6">Loading court information...</p>
         </v-col>
       </v-row>
-      
+
       <v-row v-else-if="error">
         <v-col cols="12" class="text-center">
           <v-alert type="error" variant="tonal">
@@ -160,7 +160,7 @@
           </v-alert>
         </v-col>
       </v-row>
-      
+
       <v-row v-else>
           <v-col cols="12" md="10" offset-md="1">
             <div class="court-card">
@@ -329,9 +329,9 @@ export default {
     }
 
     const getCourtPrice = () => {
-      if (courts.value.length > 0) {
-        // Get the first court's price, or you could get the average/min/max
-        return courts.value[0].price_per_hour
+      if (courts.value.length > 0 && courts.value[0].sport) {
+        // Get the first court's sport price
+        return courts.value[0].sport.price_per_hour
       }
       return 25 // fallback to default price
     }
@@ -379,7 +379,7 @@ export default {
 
     onMounted(async () => {
       await Promise.all([fetchSports(), fetchCourts(), loadDashboardSettings()])
-      
+
       // Listen for dashboard settings updates
       window.addEventListener('dashboard-settings-updated', handleDashboardUpdate)
     })
@@ -463,7 +463,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.3) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.2) 0%, transparent 50%);
@@ -476,7 +476,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: 3;
@@ -753,7 +753,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
   background-size: 30px 30px;
 }
@@ -945,21 +945,21 @@ export default {
   .hero-stats {
     gap: 24px;
   }
-  
+
   .hero-actions {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .features-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .court-features {
     padding-left: 0;
     margin-top: 32px;
   }
-  
+
   .court-card {
     padding: 32px 24px;
   }
@@ -970,15 +970,15 @@ export default {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .court-card {
     padding: 24px 16px;
   }
-  
+
   .features-grid {
     gap: 12px;
   }
-  
+
   .feature-item {
     padding: 12px;
   }

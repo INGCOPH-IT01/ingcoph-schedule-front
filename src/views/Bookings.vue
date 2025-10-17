@@ -692,7 +692,7 @@
                     <strong>Sport:</strong> {{ selectedBooking.court?.sport?.name || 'Unknown' }}
                   </div>
                   <div class="detail-item">
-                    <strong>Price:</strong> ₱{{ (parseFloat(selectedBooking.court?.price_per_hour) || 0).toFixed(2) }}/hour
+                    <strong>Price:</strong> ₱{{ (parseFloat(selectedBooking.court?.sport?.price_per_hour) || 0).toFixed(2) }}/hour
                   </div>
                 </div>
               </div>
@@ -1534,7 +1534,7 @@
                         <strong>Court:</strong> {{ selectedCourt.name }}
                       </div>
                       <div class="text-body-2 mb-2">
-                        <strong>Price per Hour:</strong> {{ formatPriceTemplate(selectedCourt.price_per_hour) }}
+                        <strong>Price per Hour:</strong> {{ formatPriceTemplate(selectedCourt.sport?.price_per_hour) }}
                       </div>
                       <div class="text-body-2 mb-2">
                         <strong>Duration:</strong> {{ editForm?.duration }} hour{{ editForm?.duration > 1 ? 's' : '' }}
@@ -1723,7 +1723,7 @@
                     </v-icon>
                   </template>
                   <template v-slot:subtitle>
-                    {{ item.raw.sport?.name }} • ₱{{ item.raw.price_per_hour }}/hr
+                    {{ item.raw.sport?.name }} • ₱{{ item.raw.sport?.price_per_hour }}/hr
                   </template>
                 </v-list-item>
               </template>
@@ -3271,7 +3271,7 @@ export default {
                     const start = new Date(`2000-01-01 ${slot.start}`)
                     const end = new Date(`2000-01-01 ${slot.end}`)
                     const hours = (end - start) / (1000 * 60 * 60)
-                    slot.price = (court.price_per_hour * hours).toFixed(2)
+                    slot.price = (court.sport.price_per_hour * hours).toFixed(2)
                   } else {
                     console.error('❌ Court not found for recalculation')
                   }
@@ -3288,7 +3288,7 @@ export default {
                     start: cartItem.start_time,
                     end: cartItem.end_time,
                     available: true,
-                    price: (court.price_per_hour * hours).toFixed(2)
+                    price: (court.sport.price_per_hour * hours).toFixed(2)
                   })
                 }
               }
@@ -3455,7 +3455,7 @@ export default {
             const start = new Date(`2000-01-01 ${slot.start}`)
             const end = new Date(`2000-01-01 ${slot.end}`)
             const hours = (end - start) / (1000 * 60 * 60)
-            validSlot.price = (court.price_per_hour * hours).toFixed(2)
+            validSlot.price = (court.sport.price_per_hour * hours).toFixed(2)
           } else {
             console.error('❌ Court not found for price calculation, court_id:', editItem.value.court_id)
             console.error('❌ Available courts:', courts.value.map(c => c.id))
@@ -3559,7 +3559,7 @@ export default {
               const start = new Date(`2000-01-01 ${slot.start}`)
               const end = new Date(`2000-01-01 ${slot.end}`)
               const hours = (end - start) / (1000 * 60 * 60)
-              price = parseFloat((court.price_per_hour * hours).toFixed(2))
+              price = parseFloat((court.sport.price_per_hour * hours).toFixed(2))
             } else {
               console.error('❌ Court not found for price calculation')
               throw new Error(`Cannot calculate price for slot ${slot.start}-${slot.end}`)
@@ -3713,7 +3713,7 @@ export default {
         return
       }
 
-      const basePrice = selectedCourt.value.price_per_hour * editForm.duration
+      const basePrice = selectedCourt.value.sport.price_per_hour * editForm.duration
 
       if (editForm.frequency_type === 'once') {
         totalPrice.value = basePrice

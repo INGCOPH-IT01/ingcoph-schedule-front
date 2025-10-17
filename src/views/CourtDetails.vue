@@ -286,7 +286,7 @@
                   Price per Hour
                 </div>
                 <div class="info-value price-value">
-                  ₱{{ court.price_per_hour }}
+                  ₱{{ court.sport?.price_per_hour }}
                 </div>
               </div>
 

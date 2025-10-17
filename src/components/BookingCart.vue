@@ -418,7 +418,7 @@
                     </v-icon>
                   </template>
                   <template v-slot:subtitle>
-                    {{ item.raw.sport?.name }} • ₱{{ item.raw.price_per_hour }}/hr
+                    {{ item.raw.sport?.name }} • ₱{{ item.raw.sport?.price_per_hour }}/hr
                   </template>
                 </v-list-item>
               </template>
@@ -1062,13 +1062,13 @@ export default {
       }
 
       const court = courts.value.find(c => c.id === editItem.value.court_id)
-      if (!court) return 0
+      if (!court || !court.sport) return 0
 
       const start = new Date(`2000-01-01 ${editItem.value.start_time}`)
       const end = new Date(`2000-01-01 ${editItem.value.end_time}`)
       const hours = (end - start) / (1000 * 60 * 60)
 
-      return (court.price_per_hour * hours).toFixed(2)
+      return (court.sport.price_per_hour * hours).toFixed(2)
     }
 
     const saveEdit = async () => {
@@ -1119,11 +1119,11 @@ export default {
           // Use the slot's price directly
           price = parseFloat(selectedSlot.price)
         } else {
-          // Fallback: Calculate from court's hourly rate
+          // Fallback: Calculate from court's sport hourly rate
           const start = new Date(`2000-01-01 ${editItem.value.start_time}`)
           const end = new Date(`2000-01-01 ${editItem.value.end_time}`)
           const hours = (end - start) / (1000 * 60 * 60)
-          price = court.price_per_hour * hours
+          price = court.sport.price_per_hour * hours
         }
 
         console.log('💰 Calculated price:', price, 'for slot:', editItem.value.start_time, '-', editItem.value.end_time)

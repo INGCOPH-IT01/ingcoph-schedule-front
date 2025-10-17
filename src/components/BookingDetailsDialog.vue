@@ -63,7 +63,7 @@
                 </div>
                 <div class="info-item">
                   <span class="label">Price per Hour:</span>
-                  <span class="value">{{ formatPrice(booking.court?.price_per_hour || 0) }}</span>
+                  <span class="value">{{ formatPrice(booking.court?.sport?.price_per_hour || 0) }}</span>
                 </div>
               </div>
             </div>
@@ -78,8 +78,8 @@
               </h3>
               <div class="info-card">
                 <!-- User/Customer Information -->
-                <div 
-                  class="info-item" 
+                <div
+                  class="info-item"
                   :class="{ 'highlight-item': booking.booking_for_user_name }"
                 >
                   <span class="label">
@@ -88,11 +88,11 @@
                   </span>
                   <span class="value">
                     {{ booking.booking_for_user_name || booking.user?.name || 'N/A' }}
-                    <v-chip 
-                      v-if="booking.booking_for_user_name" 
-                      size="x-small" 
-                      color="info" 
-                      variant="outlined" 
+                    <v-chip
+                      v-if="booking.booking_for_user_name"
+                      size="x-small"
+                      color="info"
+                      variant="outlined"
                       class="ml-2"
                     >
                       Admin Booking
@@ -129,7 +129,7 @@
                 Court Images
               </h3>
               <div class="info-card">
-                <CourtImageGallery 
+                <CourtImageGallery
                   :images="booking.court.images"
                   :court-name="booking.court.name"
                   size="large"
@@ -172,7 +172,7 @@
                     </div>
                   </v-col>
                 </v-row>
-                
+
                 <!-- Proof of Payment -->
                 <div v-if="booking.proof_of_payment" class="proof-section mt-4">
                   <div class="info-item">
@@ -342,7 +342,7 @@ export default {
         console.log('Full booking object:', newBooking)
       }
     }, { immediate: true })
-    
+
     // Format functions
     const formatPrice = (price) => {
       return new Intl.NumberFormat('en-PH', {
@@ -552,7 +552,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
   z-index: 1;
@@ -786,21 +786,21 @@ export default {
     gap: 16px;
     text-align: center;
   }
-  
+
   .booking-id {
     text-align: center;
   }
-  
+
   .info-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
   }
-  
+
   .info-item .value {
     text-align: left;
   }
-  
+
   .proof-actions {
     flex-direction: column;
   }

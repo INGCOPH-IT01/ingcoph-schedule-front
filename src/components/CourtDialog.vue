@@ -91,20 +91,6 @@
         <v-row>
           <v-col cols="12" md="6">
             <v-text-field
-              v-model="form.price_per_hour"
-              label="Price per Hour"
-              type="number"
-              step="0.01"
-              min="0"
-              :rules="[v => v >= 0 || 'Price must be non-negative']"
-              variant="outlined"
-              prepend-inner-icon="mdi-currency-php"
-              class="excel-price-field"
-            ></v-text-field>
-          </v-col>
-
-          <v-col cols="12" md="6">
-            <v-text-field
               v-model="form.location"
               label="Location"
               placeholder="Enter court location"
@@ -264,7 +250,6 @@ export default {
     const form = ref({
       name: '',
       description: '',
-      price_per_hour: 0,
       location: '',
       amenities: [],
       is_active: true,
@@ -308,7 +293,6 @@ export default {
       form.value = {
         name: '',
         description: '',
-        price_per_hour: 0,
         location: '',
         amenities: [],
         is_active: true,
@@ -331,7 +315,6 @@ export default {
         form.value = {
           name: props.court.name || '',
           description: props.court.description || '',
-          price_per_hour: props.court.price_per_hour || '',
           location: props.court.location || '',
           amenities: [...(props.court.amenities || [])],
           is_active: props.court.is_active !== false,

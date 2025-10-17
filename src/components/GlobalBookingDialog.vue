@@ -49,7 +49,7 @@
                     />
                   </template>
                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                  <v-list-item-subtitle>{{ item.raw.sport.name }} - {{ formatPrice(item.raw.price_per_hour) }}/hour</v-list-item-subtitle>
+                  <v-list-item-subtitle>{{ item.raw.sport.name }} - {{ formatPrice(item.raw.sport.price_per_hour) }}/hour</v-list-item-subtitle>
                 </v-list-item>
               </template>
             </v-select>
@@ -92,7 +92,7 @@
                   <strong>Location:</strong> {{ selectedCourt.location || 'N/A' }}
                 </div>
                 <div class="text-body-2">
-                  <strong>Price per Hour:</strong> {{ formatPriceTemplate(selectedCourt?.price_per_hour) }}
+                  <strong>Price per Hour:</strong> {{ formatPriceTemplate(selectedCourt?.sport?.price_per_hour) }}
                 </div>
               </v-col>
               <v-col cols="12" md="6">
@@ -706,7 +706,7 @@ export default {
     const totalPrice = computed(() => {
       if (!selectedCourt.value || !form.value.duration) return 0
 
-      const basePrice = selectedCourt.value.price_per_hour * form.value.duration
+      const basePrice = selectedCourt.value.sport.price_per_hour * form.value.duration
 
       // Calculate frequency multiplier
       if (frequencyType.value === 'once') {
@@ -767,13 +767,13 @@ export default {
     const getPriceBreakdown = () => {
       if (!selectedCourt.value) return ''
 
-      const basePrice = selectedCourt.value.price_per_hour * form.value.duration
+      const basePrice = selectedCourt.value.sport.price_per_hour * form.value.duration
       if (frequencyType.value === 'once') {
         return `${formatPrice(basePrice)} for ${form.value.duration}h`
       } else {
         const multiplier = getFrequencyMultiplier()
         const frequencyLabel = getFrequencyLabel(frequencyType.value)
-        return `${selectedCourt.value.price_per_hour} hr × ${multiplier} sessions (${frequencyLabel})`
+        return `${selectedCourt.value.sport.price_per_hour} hr × ${multiplier} sessions (${frequencyLabel})`
       }
     }
 

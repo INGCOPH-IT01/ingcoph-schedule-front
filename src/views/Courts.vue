@@ -171,7 +171,7 @@
 
                 <div class="court-info-row">
                   <v-icon size="small" color="success">mdi-cash</v-icon>
-                  <span class="court-info-price">₱{{ court.price_per_hour }}/hr</span>
+                  <span class="court-info-price">₱{{ court.sport?.price_per_hour }}/hr</span>
                 </div>
 
                 <div class="court-info-row">
@@ -330,7 +330,7 @@
         <!-- Price Column -->
         <template v-slot:[`item.price_per_hour`]="{ item }">
           <div class="excel-price">
-            <span class="excel-price-amount">₱{{ item.price_per_hour }}/hour</span>
+            <span class="excel-price-amount">₱{{ item.sport?.price_per_hour }}/hour</span>
           </div>
         </template>
 

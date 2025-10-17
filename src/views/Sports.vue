@@ -178,9 +178,9 @@ export default {
     }
 
     const getCourtPrice = () => {
-      if (courts.value.length > 0) {
-        // Get the first court's price, or you could get the average/min/max
-        return courts.value[0].price_per_hour
+      if (courts.value.length > 0 && courts.value[0].sport) {
+        // Get the first court's sport price
+        return courts.value[0].sport.price_per_hour
       }
       return 25 // fallback to default price
     }

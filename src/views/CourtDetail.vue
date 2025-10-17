@@ -93,7 +93,7 @@
                     <span class="text-body-1">{{ court.location || 'Location not specified' }}</span>
                   </div>
                   <div class="d-flex align-center pl-2">
-                    <span class="text-h5 font-weight-bold text-primary">{{ formatPrice(court.price_per_hour) }}/hour</span>
+                    <span class="text-h5 font-weight-bold text-primary">{{ formatPrice(court.sport?.price_per_hour) }}/hour</span>
                   </div>
                 </div>
 
@@ -414,7 +414,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(198, 40, 40, 0.06) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(211, 47, 47, 0.05) 0%, transparent 50%);
@@ -427,7 +427,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(183, 28, 28, 0.03) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
