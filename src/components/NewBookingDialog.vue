@@ -626,6 +626,10 @@ export default {
       return currentUser.value?.role === 'admin'
     })
 
+    const isAdminOrStaff = computed(() => {
+      return currentUser.value?.role === 'admin' || currentUser.value?.role === 'staff'
+    })
+
     const filteredCourts = computed(() => {
       if (!selectedSport.value) return []
 
@@ -1318,8 +1322,12 @@ export default {
       if (newValue) {
         await fetchSports()
         await fetchCourts()
-        fetchCurrentUser()
-        fetchUsers()
+        await fetchCurrentUser()
+
+        // Only fetch users if the current user is admin or staff
+        if (isAdminOrStaff.value) {
+          fetchUsers()
+        }
 
         // If a preselected sport is provided, select it and move to step 2
         if (props.preselectedSport) {
@@ -1340,8 +1348,12 @@ export default {
       if (props.isOpen) {
         await fetchSports()
         await fetchCourts()
-        fetchCurrentUser()
-        fetchUsers()
+        await fetchCurrentUser()
+
+        // Only fetch users if the current user is admin or staff
+        if (isAdminOrStaff.value) {
+          fetchUsers()
+        }
 
         // If a preselected sport is provided, select it and move to step 2
         if (props.preselectedSport) {
@@ -1393,6 +1405,7 @@ export default {
       submitBooking,
       // Admin fields
       isAdmin,
+      isAdminOrStaff,
       bookingForUser,
       adminNotes,
       userNames,
