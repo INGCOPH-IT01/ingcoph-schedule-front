@@ -427,7 +427,7 @@
                           >
                             <div class="bg-preview-content">
                               <v-icon size="50" color="#B71C1C" class="mb-3">mdi-badminton</v-icon>
-                              <h3 style="color: #B71C1C; margin-bottom: 8px; font-size: 1.5rem;">Perfect Smash</h3>
+                              <h3 style="color: #B71C1C; margin-bottom: 8px; font-size: 1.5rem;">{{ companyName || 'Company Name' }}</h3>
                               <p style="color: #64748b; font-size: 0.9rem;">Gradient background preview</p>
                             </div>
                           </div>

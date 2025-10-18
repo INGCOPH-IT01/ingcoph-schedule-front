@@ -345,6 +345,8 @@ export default {
         const settings = await companySettingService.getSettings()
         if (settings.company_name) {
           companyName.value = settings.company_name
+          // Update document title with company name
+          document.title = `${settings.company_name} - Badminton & Pickleball Court Booking`
         }
 
         // Load company logo if exists

@@ -6,8 +6,9 @@ export const paymentSettingService = {
       const response = await api.get('/company-settings')
       const settings = response.data.data
       return {
+        company_name: settings.company_name || 'Perfect Smash',
         payment_gcash_number: settings.payment_gcash_number || '0917-123-4567',
-        payment_gcash_name: settings.payment_gcash_name || 'Perfect Smash',
+        payment_gcash_name: settings.payment_gcash_name || settings.company_name || 'Perfect Smash',
         payment_instructions: settings.payment_instructions || 'Please send payment to our GCash number and upload proof of payment.',
         payment_qr_code: settings.payment_qr_code || null,
         payment_qr_code_url: settings.payment_qr_code_url || null
@@ -19,8 +20,12 @@ export const paymentSettingService = {
 
   async updatePaymentSettings(paymentData) {
     try {
+      // Get current company name from settings
+      const currentSettings = await this.getPaymentSettings()
+      const companyName = currentSettings.company_name || 'Perfect Smash'
+
       const response = await api.put('/admin/company-settings', {
-        company_name: 'Perfect Smash', // Required field, will get actual value from settings
+        company_name: companyName, // Preserve existing company name
         payment_gcash_number: paymentData.payment_gcash_number,
         payment_gcash_name: paymentData.payment_gcash_name,
         payment_instructions: paymentData.payment_instructions

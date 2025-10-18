@@ -18,7 +18,7 @@
               <h1 class="auth-title">
                 <span class="title-gradient">Welcome</span> Back
               </h1>
-              <p class="auth-subtitle">Sign in to Perfect Smash</p>
+              <p class="auth-subtitle">Sign in to {{ companyName }}</p>
             </div>
 
             <div class="auth-form">
@@ -102,9 +102,10 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/authService'
+import { companySettingService } from '../services/companySettingService'
 
 export default {
   name: 'Login',
@@ -119,6 +120,7 @@ export default {
     const loading = ref(false)
     const error = ref('')
     const showPassword = ref(false)
+    const companyName = ref('Perfect Smash')
 
     const emailRules = [
       v => !!v || 'Email is required',
@@ -134,28 +136,28 @@ export default {
       try {
         loading.value = true
         error.value = ''
-        
+
         // Validate form before submission
         const { valid } = await loginForm.value.validate()
         if (!valid) {
           error.value = 'Please fill in all required fields correctly'
           return
         }
-        
+
         const response = await authService.login({
           email: form.value.email,
           password: form.value.password
         })
-        
+
         if(response.user) {
           router.push('/')
         }
 
         // Dispatch auth change event to update App.vue
-        window.dispatchEvent(new CustomEvent('auth-changed', { 
-          detail: { user: response.user } 
+        window.dispatchEvent(new CustomEvent('auth-changed', {
+          detail: { user: response.user }
         }))
-        
+
       } catch (err) {
         console.error('Login error in component:', err)
         error.value = err.message
@@ -164,12 +166,28 @@ export default {
       }
     }
 
+    const loadCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        if (settings.company_name) {
+          companyName.value = settings.company_name
+        }
+      } catch (error) {
+        console.error('Failed to load company settings:', error)
+      }
+    }
+
+    onMounted(() => {
+      loadCompanySettings()
+    })
+
     return {
       loginForm,
       form,
       loading,
       error,
       showPassword,
+      companyName,
       emailRules,
       passwordRules,
       handleLogin
@@ -204,7 +222,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -217,7 +235,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -355,7 +373,7 @@ export default {
     padding: 32px 24px;
     margin: 16px;
   }
-  
+
   .auth-title {
     font-size: 1.8rem;
   }
@@ -366,7 +384,7 @@ export default {
     padding: 24px 16px;
     margin: 12px;
   }
-  
+
   .auth-title {
     font-size: 1.5rem;
   }

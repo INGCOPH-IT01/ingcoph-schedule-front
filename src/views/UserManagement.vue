@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="user-management-container">
-    <!-- Perfect Smash Background -->
+    <!-- Red & White Background -->
     <div class="sports-background">
       <div class="sports-overlay"></div>
       <div class="sports-pattern"></div>
@@ -150,9 +150,9 @@
     </v-card>
 
     <!-- Create/Edit User Dialog -->
-    <v-dialog 
-      v-model="dialog" 
-      max-width="800px" 
+    <v-dialog
+      v-model="dialog"
+      max-width="800px"
       persistent
       class="responsive-dialog"
     >
@@ -525,7 +525,7 @@ export default {
   min-height: 100vh;
 }
 
-/* Perfect Smash Background - Red & White */
+/* Red & White Background */
 .sports-background {
   position: fixed;
   top: 0;
@@ -542,7 +542,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(198, 40, 40, 0.06) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(211, 47, 47, 0.05) 0%, transparent 50%);
@@ -555,7 +555,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(183, 28, 28, 0.03) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -716,7 +716,7 @@ export default {
   .v-dialog.responsive-dialog {
     margin: 0 !important;
   }
-  
+
   .user-dialog {
     max-height: 100vh;
     height: 100vh;
@@ -819,4 +819,3 @@ export default {
   }
 }
 </style>
-

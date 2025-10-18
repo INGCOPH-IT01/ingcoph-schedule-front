@@ -13,12 +13,12 @@
             <div class="auth-header">
               <div class="header-badge">
                 <v-icon color="white" size="20" class="mr-2">mdi-account-plus</v-icon>
-                Join Perfect Smash
+                Join {{ companyName }}
               </div>
               <h1 class="auth-title">
                 <span class="title-gradient">Create</span> Account
               </h1>
-              <p class="auth-subtitle">Join Perfect Smash court booking system</p>
+              <p class="auth-subtitle">Join {{ companyName }} court booking system</p>
             </div>
 
             <div class="auth-form">
@@ -131,9 +131,10 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { authService } from '../services/authService'
+import { companySettingService } from '../services/companySettingService'
 
 export default {
   name: 'Register',
@@ -150,6 +151,7 @@ export default {
     const error = ref('')
     const showPassword = ref(false)
     const showPasswordConfirm = ref(false)
+    const companyName = ref('Perfect Smash')
 
     const nameRules = [
       v => !!v || 'Name is required',
@@ -208,12 +210,28 @@ export default {
       }
     }
 
+    const loadCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        if (settings.company_name) {
+          companyName.value = settings.company_name
+        }
+      } catch (error) {
+        console.error('Failed to load company settings:', error)
+      }
+    }
+
+    onMounted(() => {
+      loadCompanySettings()
+    })
+
     return {
       form,
       loading,
       error,
       showPassword,
       showPasswordConfirm,
+      companyName,
       nameRules,
       emailRules,
       phoneRules,

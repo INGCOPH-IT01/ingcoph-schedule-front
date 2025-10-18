@@ -228,7 +228,7 @@ export default {
 
     const paymentSettings = ref({
       payment_gcash_number: '0917-123-4567',
-      payment_gcash_name: 'Perfect Smash',
+      payment_gcash_name: 'Company Name',
       payment_instructions: 'Please send payment to our GCash number and upload proof of payment.',
       payment_qr_code: null,
       payment_qr_code_url: null

@@ -51,10 +51,6 @@
               <!-- Stats - Show only if enabled -->
               <div v-if="dashboardSettings.showStats" class="hero-stats">
                 <div class="stat-item">
-                  <div class="stat-number">24/7</div>
-                  <div class="stat-label">Available</div>
-                </div>
-                <div class="stat-item">
                   <div class="stat-number">Premium</div>
                   <div class="stat-label">Facilities</div>
                 </div>
@@ -87,7 +83,7 @@
           <v-col cols="12" class="text-center mb-12">
             <div class="section-badge">
               <v-icon color="primary" size="20" class="mr-2">mdi-star</v-icon>
-              Why Choose Perfect Smash
+              Why Choose {{ companyName }}
             </div>
             <h2 class="section-title">
               <span class="title-gradient">Perfect</span> Features
@@ -162,7 +158,7 @@
                       <div class="court-icon-wrapper">
                         <v-icon size="100" color="white">mdi-badminton</v-icon>
                         </div>
-                      <h3 class="court-name">Perfect Smash Court</h3>
+                      <h3 class="court-name">{{ companyName }} Court</h3>
                       <p class="court-description">
                         Championship-grade facility for badminton and pickleball with premium flooring and professional equipment
                       </p>
@@ -226,6 +222,7 @@ export default {
     const courts = ref([])
     const loading = ref(true)
     const error = ref(null)
+    const companyName = ref('Perfect Smash')
 
     // Dashboard settings
     const dashboardSettings = ref({
@@ -248,7 +245,7 @@ export default {
         icon: 'mdi-clock-fast',
         title: 'Instant Booking',
         description: 'Book your court in seconds with our lightning-fast booking system and real-time availability',
-        highlight: '24/7 Available',
+        highlight: 'Quick Response',
         color: 'success'
       },
       {
@@ -280,24 +277,6 @@ export default {
         description: 'Convenient parking spaces',
         color: 'success'
       },
-      {
-        icon: 'mdi-music',
-        name: 'Sound System',
-        description: 'Premium audio equipment',
-        color: 'info'
-      },
-      {
-        icon: 'mdi-tools',
-        name: 'Equipment Rental',
-        description: 'Rackets and shuttlecocks available',
-        color: 'secondary'
-      },
-      {
-        icon: 'mdi-security',
-        name: 'Secure Facility',
-        description: '24/7 security and monitoring',
-        color: 'error'
-      }
     ])
 
     const fetchSports = async () => {
@@ -363,6 +342,10 @@ export default {
           showStats: settings.dashboard_show_stats !== undefined ? settings.dashboard_show_stats : true,
           showRecentBookings: settings.dashboard_show_recent_bookings !== undefined ? settings.dashboard_show_recent_bookings : true
         }
+        // Load company name
+        if (settings.company_name) {
+          companyName.value = settings.company_name
+        }
       } catch (error) {
         console.error('Failed to load dashboard settings:', error)
         // Keep default values on error
@@ -394,6 +377,7 @@ export default {
       features,
       courtFeatures,
       dashboardSettings,
+      companyName,
       getSportPrice,
       openBookingDialog,
       handleBookNowClick,
