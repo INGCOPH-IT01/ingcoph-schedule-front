@@ -299,6 +299,64 @@
                   {{ getPaymentStatusText(booking) }}
                 </v-chip>
               </div>
+              <!-- Warning for unpaid bookings -->
+              <v-alert
+                v-if="booking.payment_status !== 'paid'"
+                type="warning"
+                variant="tonal"
+                class="mt-3"
+                density="compact"
+              >
+                <div class="text-caption">
+                  <strong>Payment Required:</strong> This booking cannot be marked as "showed up" until payment is completed.
+                </div>
+              </v-alert>
+
+              <!-- Upload Proof of Payment Section (for unpaid bookings) -->
+              <v-card
+                v-if="booking.payment_status !== 'paid' && showAdminFeatures"
+                variant="outlined"
+                class="mt-3 pa-3"
+              >
+                <h5 class="text-subtitle-2 font-weight-bold mb-3">
+                  <v-icon size="small" class="mr-1">mdi-upload</v-icon>
+                  Upload Proof of Payment
+                </h5>
+
+                <v-file-input
+                  v-model="proofFile"
+                  label="Select proof of payment"
+                  accept="image/*"
+                  prepend-icon="mdi-camera"
+                  variant="outlined"
+                  density="compact"
+                  :rules="[v => !v || v.size < 5242880 || 'File size should be less than 5 MB']"
+                  hint="Upload a screenshot or photo of payment receipt (max 5MB)"
+                  persistent-hint
+                  class="mb-2"
+                  @change="handleProofFileChange"
+                ></v-file-input>
+
+                <!-- Preview uploaded image -->
+                <v-img
+                  v-if="proofPreviewUrl"
+                  :src="proofPreviewUrl"
+                  max-height="200"
+                  class="mb-2 rounded"
+                  cover
+                ></v-img>
+
+                <v-btn
+                  color="success"
+                  :loading="uploadingProof"
+                  :disabled="!proofFile"
+                  @click="uploadProofOfPayment"
+                  block
+                >
+                  <v-icon start>mdi-upload</v-icon>
+                  Upload and Mark as Paid
+                </v-btn>
+              </v-card>
             </template>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
@@ -449,16 +507,23 @@
                 ></v-text-field>
 
                 <div class="d-flex flex-wrap gap-2">
-                  <v-btn
-                    color="success"
-                    :variant="booking.attendance_status === 'showed_up' ? 'flat' : 'outlined'"
-                    prepend-icon="mdi-check-circle"
-                    size="small"
-                    @click="handleAttendanceUpdate('showed_up')"
-                    :disabled="updatingAttendance || (showPlayersAttendedInput && !playersAttended)"
-                  >
-                    Showed Up
-                  </v-btn>
+                  <v-tooltip :disabled="booking.payment_status === 'paid'" location="top">
+                    <template v-slot:activator="{ props: tooltipProps }">
+                      <div v-bind="tooltipProps">
+                        <v-btn
+                          color="success"
+                          :variant="booking.attendance_status === 'showed_up' ? 'flat' : 'outlined'"
+                          prepend-icon="mdi-check-circle"
+                          size="small"
+                          @click="handleAttendanceUpdate('showed_up')"
+                          :disabled="updatingAttendance || (showPlayersAttendedInput && !playersAttended) || booking.payment_status !== 'paid'"
+                        >
+                          Showed Up
+                        </v-btn>
+                      </div>
+                    </template>
+                    <span>Payment must be completed before marking as showed up</span>
+                  </v-tooltip>
                   <v-btn
                     color="error"
                     :variant="booking.attendance_status === 'no_show' ? 'flat' : 'outlined'"
@@ -570,6 +635,7 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import QRCode from 'qrcode'
 import { cartService } from '../services/cartService'
+import { bookingService } from '../services/bookingService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import { authService } from '../services/authService'
@@ -618,6 +684,11 @@ export default {
     const qrCodeError = ref('')
     const qrCodeImageUrl = ref('')
     const qrCodeData = ref('')
+
+    // Proof of Payment Upload state
+    const uploadingProof = ref(false)
+    const proofFile = ref(null)
+    const proofPreviewUrl = ref('')
 
     const closeDialog = () => {
       // Clean up blob URL if it exists
@@ -810,6 +881,12 @@ export default {
     const handleAttendanceUpdate = async (status) => {
       if (!props.booking?.id) return
 
+      // Check if payment is required for marking as showed_up
+      if (status === 'showed_up' && props.booking.payment_status !== 'paid') {
+        alert('Cannot mark as showed up: Payment has not been completed for this booking.')
+        return
+      }
+
       // If clicking "Showed Up", show the input field if not already shown
       if (status === 'showed_up' && !showPlayersAttendedInput.value) {
         showPlayersAttendedInput.value = true
@@ -851,6 +928,12 @@ export default {
         emit('attendance-updated', { bookingId: props.booking.id, status })
       } catch (error) {
         console.error('Failed to update attendance status:', error)
+        // Show error message to user
+        if (error.response?.data?.message) {
+          alert(error.response.data.message)
+        } else {
+          alert('Failed to update attendance status. Please try again.')
+        }
       } finally {
         updatingAttendance.value = false
       }
@@ -904,6 +987,65 @@ export default {
 
     const handleImageError = (event) => {
       console.error('Image failed to load:', event)
+    }
+
+    // Proof of Payment Upload functions
+    const handleProofFileChange = (event) => {
+      const file = event.target?.files?.[0] || proofFile.value?.[0]
+      if (file) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          proofPreviewUrl.value = e.target.result
+        }
+        reader.readAsDataURL(file)
+      } else {
+        proofPreviewUrl.value = ''
+      }
+    }
+
+    const uploadProofOfPayment = async () => {
+      if (!proofFile.value || !props.booking?.id) {
+        return
+      }
+
+      try {
+        uploadingProof.value = true
+
+        const file = proofFile.value[0] || proofFile.value
+        // Use the existing payment_method from booking, or default to 'gcash'
+        const paymentMethod = props.booking.payment_method && props.booking.payment_method !== 'pending'
+          ? props.booking.payment_method
+          : 'gcash'
+
+        const response = await bookingService.uploadProofOfPayment(
+          props.booking.id,
+          file,
+          paymentMethod
+        )
+
+        // Update the booking object with new payment info
+        if (props.booking) {
+          props.booking.payment_status = 'paid'
+          props.booking.payment_method = response.data.payment_method
+          props.booking.proof_of_payment = response.data.proof_of_payment
+          props.booking.paid_at = response.data.paid_at
+        }
+
+        // Reset upload form
+        proofFile.value = null
+        proofPreviewUrl.value = ''
+
+        // Show success message
+        alert('Proof of payment uploaded successfully! Booking is now marked as paid.')
+
+        // Emit event to refresh booking list if needed
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'paid' })
+      } catch (error) {
+        console.error('Failed to upload proof of payment:', error)
+        alert(error.message || 'Failed to upload proof of payment. Please try again.')
+      } finally {
+        uploadingProof.value = false
+      }
     }
 
     // QR Code functions
@@ -1072,6 +1214,10 @@ export default {
       qrCodeError,
       qrCodeImageUrl,
       qrCodeData,
+      // Proof of Payment Upload state
+      uploadingProof,
+      proofFile,
+      proofPreviewUrl,
       // Methods
       closeDialog,
       formatTimeSlot,
@@ -1082,6 +1228,9 @@ export default {
       downloadImage,
       onImageDialogClose,
       handleImageError,
+      // Proof of Payment Upload methods
+      handleProofFileChange,
+      uploadProofOfPayment,
       // QR Code methods
       loadQrCode,
       downloadQrCode,

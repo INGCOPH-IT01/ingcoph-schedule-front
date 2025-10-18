@@ -474,12 +474,11 @@
                 <v-card-text>
                   <h4 class="text-h6 mb-4">
                     <v-icon class="mr-2" color="success">mdi-cellphone-check</v-icon>
-                    GCash Payment Required
+                    {{ isAdminOrStaff ? 'Payment Options' : 'GCash Payment Required' }}
                   </h4>
 
-                  <v-alert type="info" variant="tonal" class="mb-4">
+                  <v-alert v-if="!isAdminOrStaff" type="info" variant="tonal" class="mb-4">
                     <div class="d-flex align-center">
-
                       <div>
                         <div class="font-weight-bold">Payment is required to complete your booking</div>
                         <div class="text-caption">All bookings must be paid via GCash before submission</div>
@@ -487,8 +486,28 @@
                     </div>
                   </v-alert>
 
+                  <!-- Admin/Staff can choose to skip payment -->
+                  <v-alert v-if="isAdminOrStaff" type="info" variant="tonal" class="mb-4">
+                    <div class="d-flex align-center">
+                      <div>
+                        <div class="font-weight-bold">As Admin/Staff, payment is optional</div>
+                        <div class="text-caption">You can book time slots without payment, but they cannot be marked as "showed up" until payment is completed</div>
+                      </div>
+                    </div>
+                  </v-alert>
+
+                  <!-- Admin/Staff Payment Checkbox -->
+                  <v-checkbox
+                    v-if="isAdminOrStaff"
+                    v-model="skipPayment"
+                    label="Skip payment for now (book without payment)"
+                    color="primary"
+                    hide-details
+                    class="mb-4"
+                  ></v-checkbox>
+
                   <!-- GCash Payment Details -->
-                  <v-card variant="tonal" color="success" class="pa-4">
+                  <v-card v-if="!skipPayment" variant="tonal" color="success" class="pa-4">
                     <div class="d-flex align-center mb-3">
                       <v-avatar size="48" class="mr-3">
                         <v-icon size="32" color="success">mdi-cellphone-check</v-icon>
@@ -521,7 +540,7 @@
                           density="compact"
                           prepend-icon="mdi-camera"
                           accept="image/*"
-                          :rules="[v => !!v || 'Proof of payment is required']"
+                          :rules="skipPayment ? [] : [v => !!v || 'Proof of payment is required']"
                           hint="Upload a screenshot of your GCash payment receipt"
                           persistent-hint
                           @change="handleProofUpload"
@@ -572,8 +591,13 @@
                 </v-card-text>
               </v-card>
 
-              <v-alert type="info" class="mt-4" icon="mdi-information">
+              <v-alert v-if="!skipPayment" type="info" class="mt-4" icon="mdi-information">
                 Your booking will be confirmed immediately after GCash payment verification.
+              </v-alert>
+
+              <v-alert v-if="skipPayment && isAdminOrStaff" type="warning" class="mt-4" icon="mdi-alert">
+                <div class="font-weight-bold">Booking without payment</div>
+                <div class="text-caption">Time slots will be marked as booked, but cannot be marked as "showed up" until payment is completed.</div>
               </v-alert>
             </div>
           </v-window-item>
@@ -612,6 +636,7 @@
             Add to Booking
           </v-btn>
           <v-btn
+            v-if="!skipPayment"
             color="success"
             :loading="submitting"
             :disabled="!proofOfPayment"
@@ -619,6 +644,15 @@
           >
             <v-icon start>mdi-cellphone-check</v-icon>
             Checkout with GCash
+          </v-btn>
+          <v-btn
+            v-if="skipPayment && isAdminOrStaff"
+            color="warning"
+            :loading="submitting"
+            @click="submitBookingWithoutPayment"
+          >
+            <v-icon start>mdi-calendar-check</v-icon>
+            Book Without Payment
           </v-btn>
         </template>
       </v-card-actions>
@@ -681,6 +715,7 @@ export default {
     const gcashQrCanvas = ref(null)
     const proofOfPayment = ref(null)
     const proofPreview = ref(null)
+    const skipPayment = ref(false) // Admin/Staff can skip payment
 
     // Payment settings from Payment Details module
     const paymentSettings = ref({
@@ -1380,6 +1415,148 @@ export default {
       }
     }
 
+    const submitBookingWithoutPayment = async () => {
+      submitting.value = true
+
+      try {
+        // Validate selections
+        if (!selectedSport.value || !selectedDate.value) {
+          showAlert({
+            icon: 'warning',
+            title: 'Incomplete Selection',
+            text: 'Please select sport and time slots before booking.'
+          })
+          submitting.value = false
+          return
+        }
+
+        // Prepare admin booking data if admin is booking for someone else
+        let adminBookingData = null
+        if (isAdminOrStaff.value && bookingForUser.value) {
+          // Check if bookingForUser is an object (existing user) or string (custom name)
+          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+            adminBookingData = {
+              booking_for_user_id: bookingForUser.value.id,
+              booking_for_user_name: bookingForUser.value.name
+            }
+          } else {
+            adminBookingData = {
+              booking_for_user_name: bookingForUser.value
+            }
+          }
+
+          if (adminNotes.value) {
+            adminBookingData.admin_notes = adminNotes.value
+          }
+        }
+
+        // Create cart items array with admin booking fields
+        const cartItems = []
+        Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
+          const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
+          if (court) {
+            courtData.slots.forEach(slot => {
+              // Create proper datetime objects with the selected date for accurate pricing
+              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+
+              // Use time-based pricing calculation
+              const price = calculatePriceForRange(startDateTime, endDateTime)
+
+              const cartItem = {
+                court_id: parseInt(courtId),
+                booking_date: selectedDate.value,
+                start_time: slot.start,
+                end_time: slot.end,
+                price: price,
+                number_of_players: numberOfPlayers.value || 1
+              }
+
+              // Add admin booking fields to each cart item
+              if (adminBookingData) {
+                Object.assign(cartItem, adminBookingData)
+              }
+
+              cartItems.push(cartItem)
+            })
+          }
+        })
+
+        if (cartItems.length === 0) {
+          showAlert({
+            icon: 'warning',
+            title: 'No Time Slots Selected',
+            text: 'Please select at least one time slot to book.'
+          })
+          submitting.value = false
+          return
+        }
+
+        // Add items to cart first
+        await cartService.addToCart(cartItems)
+
+        // Get the cart items that were just added
+        const cartResponse = await cartService.getCartTransaction()
+        const cartItemIds = cartResponse.cart_items.map(item => item.id)
+
+        // Checkout without payment
+        await cartService.checkout({
+          payment_method: 'pending',
+          skip_payment: true,
+          selected_items: cartItemIds
+        })
+
+        // Dispatch cart updated event
+        window.dispatchEvent(new CustomEvent('cart-updated'))
+
+        // Emit booking-created event immediately to refresh the list
+        emit('booking-created')
+
+        // Dispatch global events immediately
+        window.dispatchEvent(new CustomEvent('booking-created'))
+        window.dispatchEvent(new CustomEvent('cart-updated'))
+
+        // Show success message (non-blocking for list refresh)
+        await showAlert({
+          icon: 'success',
+          title: 'Booking Created!',
+          html: `
+            <p>Successfully created <strong>${cartItems.length}</strong> booking(s) without payment!</p>
+            <p class="text-warning">Remember: These bookings cannot be marked as "showed up" until payment is completed.</p>
+          `,
+          confirmButtonText: 'OK'
+        })
+
+        // Close dialog and reset form after user closes alert
+        emit('close')
+        resetForm()
+      } catch (error) {
+        console.error('Failed to create bookings:', error)
+        console.error('Error response:', error.response)
+        console.error('Error data:', error.response?.data)
+
+        let errorMessage = 'Failed to create bookings. Please try again.'
+
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        } else if (error.response?.data?.errors) {
+          const errors = Object.values(error.response.data.errors).flat()
+          errorMessage = errors.join(', ')
+        } else if (error.message) {
+          errorMessage = error.message
+        }
+
+        showAlert({
+          icon: 'error',
+          title: 'Booking Failed',
+          html: `<p>${errorMessage}</p>
+                 ${error.response?.data?.errors ? '<pre style="text-align: left; font-size: 11px; max-height: 200px; overflow: auto;">' + JSON.stringify(error.response.data.errors, null, 2) + '</pre>' : ''}`
+        })
+      } finally {
+        submitting.value = false
+      }
+    }
+
     const submitBooking = async () => {
       submitting.value = true
       try {
@@ -1458,6 +1635,7 @@ export default {
       paymentMethod.value = 'gcash'
       proofOfPayment.value = null
       proofPreview.value = null
+      skipPayment.value = false
       // Reset admin fields
       bookingForUser.value = null
       adminNotes.value = ''
@@ -1645,6 +1823,7 @@ export default {
       proofOfPayment,
       proofPreview,
       paymentSettings,
+      skipPayment,
       selectedSport,
       selectedDate,
       courtTimeSlots,
@@ -1669,6 +1848,7 @@ export default {
       handleImageError,
       addToCart,
       submitBookingWithGCash,
+      submitBookingWithoutPayment,
       submitBooking,
       // Admin fields
       isAdmin,
