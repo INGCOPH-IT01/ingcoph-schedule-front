@@ -283,44 +283,109 @@
 
                   <v-divider class="mb-4"></v-divider>
 
-                  <!-- List all bookings by court -->
-                  <div
-                    v-for="(courtData, courtId) in courtTimeSlots"
-                    :key="courtId"
-                    class="court-bookings-section mb-4"
-                  >
-                    <v-card variant="tonal" class="pa-3">
-                      <div class="d-flex align-center mb-2">
-                        <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                        <h5 class="text-subtitle-1 font-weight-bold">
-                          {{ filteredCourts.find(c => c.id === parseInt(courtId))?.name }}
-                        </h5>
-                      </div>
+                  <!-- Pricing Breakdown by Rate -->
+                  <div v-if="getPricingBreakdown().length > 1" class="pricing-breakdown mb-4">
+                    <h5 class="text-subtitle-1 font-weight-bold mb-3">
+                      <v-icon class="mr-2" color="info">mdi-cash-multiple</v-icon>
+                      Pricing Breakdown
+                    </h5>
 
-                      <div class="text-caption text-grey mb-2">
-                        <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
-                        {{ formatDate(selectedDate) }}
-                      </div>
+                    <div
+                      v-for="(rateGroup, index) in getPricingBreakdown()"
+                      :key="index"
+                      class="rate-group-section mb-3"
+                    >
+                      <v-card variant="outlined" class="pa-3">
+                        <div class="d-flex align-center justify-space-between mb-2">
+                          <div>
+                            <h6 class="text-subtitle-2 font-weight-bold">
+                              {{ rateGroup.rateName }}
+                            </h6>
+                            <div v-if="rateGroup.rateDescription" class="text-caption text-grey">
+                              {{ rateGroup.rateDescription }}
+                            </div>
+                          </div>
+                          <v-chip color="info" size="small">
+                            ₱{{ rateGroup.pricePerHour.toFixed(2) }}/hr
+                          </v-chip>
+                        </div>
 
-                      <v-divider class="my-2"></v-divider>
+                        <v-divider class="my-2"></v-divider>
 
-                      <div class="time-slots-list">
-                        <v-chip
-                          v-for="(slot, index) in courtData.slots"
-                          :key="index"
-                          color="success"
-                          size="small"
-                          class="mr-2 mb-2"
-                        >
-                          <v-icon start size="16">mdi-clock-outline</v-icon>
-                          {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
-                        </v-chip>
-                      </div>
+                        <div class="rate-slots-list">
+                          <div
+                            v-for="(slot, slotIndex) in rateGroup.slots"
+                            :key="slotIndex"
+                            class="d-flex align-center justify-space-between mb-2"
+                          >
+                            <div class="d-flex align-center flex-grow-1">
+                              <v-icon size="16" class="mr-2" color="grey">mdi-stadium</v-icon>
+                              <span class="text-body-2">{{ slot.courtName }}</span>
+                              <v-icon size="12" class="mx-2" color="grey">mdi-circle-small</v-icon>
+                              <span class="text-body-2">
+                                {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
+                              </span>
+                            </div>
+                            <span class="text-body-2 font-weight-medium">
+                              ₱{{ slot.price.toFixed(2) }}
+                            </span>
+                          </div>
+                        </div>
 
-                      <div class="text-caption text-grey mt-2">
-                        {{ courtData.slots.length }} time slot(s) selected
-                      </div>
-                    </v-card>
+                        <v-divider class="my-2"></v-divider>
+
+                        <div class="d-flex justify-space-between align-center">
+                          <span class="text-caption text-grey">
+                            {{ rateGroup.slots.length }} slot(s)
+                          </span>
+                          <span class="text-body-2 font-weight-bold">
+                            Subtotal: ₱{{ rateGroup.totalPrice.toFixed(2) }}
+                          </span>
+                        </div>
+                      </v-card>
+                    </div>
+                  </div>
+
+                  <!-- List all bookings by court (shown when no rate breakdown or single rate) -->
+                  <div v-else>
+                    <div
+                      v-for="(courtData, courtId) in courtTimeSlots"
+                      :key="courtId"
+                      class="court-bookings-section mb-4"
+                    >
+                      <v-card variant="tonal" class="pa-3">
+                        <div class="d-flex align-center mb-2">
+                          <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
+                          <h5 class="text-subtitle-1 font-weight-bold">
+                            {{ filteredCourts.find(c => c.id === parseInt(courtId))?.name }}
+                          </h5>
+                        </div>
+
+                        <div class="text-caption text-grey mb-2">
+                          <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
+                          {{ formatDate(selectedDate) }}
+                        </div>
+
+                        <v-divider class="my-2"></v-divider>
+
+                        <div class="time-slots-list">
+                          <v-chip
+                            v-for="(slot, index) in courtData.slots"
+                            :key="index"
+                            color="success"
+                            size="small"
+                            class="mr-2 mb-2"
+                          >
+                            <v-icon start size="16">mdi-clock-outline</v-icon>
+                            {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
+                          </v-chip>
+                        </div>
+
+                        <div class="text-caption text-grey mt-2">
+                          {{ courtData.slots.length }} time slot(s) selected
+                        </div>
+                      </v-card>
+                    </div>
                   </div>
 
                   <v-divider class="my-4"></v-divider>
@@ -924,13 +989,19 @@ export default {
       let totalPrice = 0
       const currentTime = new Date(startDateTime)
 
+      // Handle midnight crossing: if end time is before start time, it means next day
+      let adjustedEndDateTime = new Date(endDateTime)
+      if (adjustedEndDateTime <= currentTime) {
+        adjustedEndDateTime = new Date(adjustedEndDateTime.getTime() + 24 * 60 * 60 * 1000) // Add 1 day
+      }
+
       // Calculate price for each hour segment
-      while (currentTime < endDateTime) {
+      while (currentTime < adjustedEndDateTime) {
         const nextHour = new Date(currentTime.getTime() + 60 * 60 * 1000) // Add 1 hour
 
         // If next hour exceeds end time, calculate partial hour
-        if (nextHour > endDateTime) {
-          const fraction = (endDateTime - currentTime) / (60 * 60 * 1000)
+        if (nextHour > adjustedEndDateTime) {
+          const fraction = (adjustedEndDateTime - currentTime) / (60 * 60 * 1000)
           totalPrice += getPriceForDateTime(currentTime) * fraction
           break
         }
@@ -941,6 +1012,84 @@ export default {
       }
 
       return totalPrice
+    }
+
+    /**
+     * Get pricing breakdown grouped by rates
+     * Returns an array of rate groups with their slots and prices
+     */
+    const getPricingBreakdown = () => {
+      const breakdown = new Map() // Using Map to group by rate
+
+      Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
+        const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
+        if (court) {
+          courtData.slots.forEach(slot => {
+            // Create proper datetime objects with the selected date
+            const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+
+            // Get the pricing rule that applies to this slot
+            const pricePerHour = getPriceForDateTime(startDateTime)
+            const slotPrice = calculatePriceForRange(startDateTime, endDateTime)
+
+            // Find the pricing rule name
+            let rateName = 'Standard Rate'
+            let rateDescription = null
+
+            if (selectedSport.value?.time_based_pricing) {
+              const pricingRules = selectedSport.value.time_based_pricing
+                .filter(rule => rule.is_active)
+                .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+
+              const dayOfWeek = startDateTime.getDay()
+              const time = startDateTime.toTimeString().substring(0, 8)
+
+              for (const rule of pricingRules) {
+                const daysOfWeek = rule.days_of_week
+                if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(dayOfWeek)) {
+                  continue
+                }
+
+                const ruleStart = rule.start_time.length === 5 ? `${rule.start_time}:00` : rule.start_time
+                const ruleEnd = rule.end_time.length === 5 ? `${rule.end_time}:00` : rule.end_time
+
+                if (time >= ruleStart && time < ruleEnd) {
+                  rateName = rule.name
+                  rateDescription = `${formatTime(rule.start_time)} - ${formatTime(rule.end_time)}`
+                  break
+                }
+              }
+            }
+
+            // Create a unique key for this rate
+            const rateKey = `${pricePerHour}-${rateName}`
+
+            if (!breakdown.has(rateKey)) {
+              breakdown.set(rateKey, {
+                rateName,
+                rateDescription,
+                pricePerHour,
+                slots: [],
+                totalPrice: 0
+              })
+            }
+
+            const group = breakdown.get(rateKey)
+            group.slots.push({
+              courtId,
+              courtName: court.name,
+              start: slot.start,
+              end: slot.end,
+              price: slotPrice
+            })
+            group.totalPrice += slotPrice
+          })
+        }
+      })
+
+      // Convert Map to array and sort by price (highest first)
+      return Array.from(breakdown.values()).sort((a, b) => b.pricePerHour - a.pricePerHour)
     }
 
     const calculateTotalPrice = () => {
@@ -1513,6 +1662,7 @@ export default {
       loadTimeSlotsForAllCourts,
       formatTime,
       formatDate,
+      getPricingBreakdown,
       calculateTotalPrice,
       handleProofUpload,
       generateGCashQR,
@@ -1952,6 +2102,47 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* Pricing Breakdown */
+.pricing-breakdown {
+  margin-bottom: 16px;
+}
+
+.rate-group-section {
+  margin-bottom: 12px;
+}
+
+.rate-group-section .v-card {
+  border-left: 4px solid #2196f3;
+  transition: all 0.3s ease;
+}
+
+.rate-group-section .v-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.rate-slots-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.rate-slots-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rate-slots-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.rate-slots-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.rate-slots-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .summary-item {
