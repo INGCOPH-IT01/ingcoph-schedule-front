@@ -219,7 +219,7 @@
                   <div class="sport-price-section">
                     <div class="sport-price-display">
                       <span class="sport-price-label">Price per Hour</span>
-                      <span class="sport-price-amount">Starts at {{ formatPriceTemplate(sport.price_per_hour) }}</span>
+                      <span class="sport-price-amount">Starts at {{ formatPriceTemplate(sport.lowest_price_per_hour) }}</span>
                     </div>
                     <v-chip
                       :color="sport.is_active ? 'success' : 'error'"
@@ -489,10 +489,10 @@ export default {
 
     const getSportPrice = () => {
       if (sports.value.length > 0) {
-        // Get the lowest price from all sports
+        // Get the lowest price from all sports using their lowest_price_per_hour
         const prices = sports.value
-          .filter(sport => sport.price_per_hour != null)
-          .map(sport => sport.price_per_hour)
+          .filter(sport => sport.lowest_price_per_hour != null)
+          .map(sport => sport.lowest_price_per_hour)
 
         if (prices.length > 0) {
           return Math.min(...prices)
