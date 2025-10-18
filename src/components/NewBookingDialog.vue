@@ -77,6 +77,24 @@
               <v-alert v-if="sports.length === 0" type="info" class="mt-4">
                 No sports available. Please contact the administrator.
               </v-alert>
+
+              <!-- Number of Players Field -->
+              <v-card v-if="selectedSport" variant="outlined" class="mt-6 pa-4">
+                <h4 class="text-h6 mb-4">
+                  <v-icon class="mr-2" color="primary">mdi-account-multiple</v-icon>
+                  Number of Players
+                </h4>
+                <v-text-field
+                  v-model.number="numberOfPlayers"
+                  type="number"
+                  label="How many players?"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-account-group"
+                  :rules="[v => v >= 1 || 'At least 1 player required']"
+                  persistent-hint
+                  min="1"
+                ></v-text-field>
+              </v-card>
             </div>
           </v-window-item>
 
@@ -626,6 +644,7 @@ export default {
     const selectedSport = ref(null)
     const selectedDate = ref('')
     const courtTimeSlots = ref({}) // Store time slots per court: { courtId: { date: '', slots: [] } }
+    const numberOfPlayers = ref(1) // Number of players for the booking
 
     // Admin booking fields
     const bookingForUser = ref(null)
@@ -675,7 +694,7 @@ export default {
 
     const canProceed = computed(() => {
       switch (step.value) {
-        case 1: return selectedSport.value !== null
+        case 1: return selectedSport.value !== null && numberOfPlayers.value >= 1 && numberOfPlayers.value <= 100
         case 2: return Object.keys(courtTimeSlots.value).length > 0 &&
                        Object.values(courtTimeSlots.value).some(ct => ct.slots.length > 0)
         default: return false
@@ -725,6 +744,10 @@ export default {
       selectedDate.value = ''
       courtTimeSlots.value = {}
       timeSlots.value = {}
+      // Reset to 1 player when changing sport
+      if (numberOfPlayers.value === 0) {
+        numberOfPlayers.value = 1
+      }
     }
 
     const toggleTimeSlot = (courtId, slot) => {
@@ -945,7 +968,8 @@ export default {
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
-                price: slot.price || 0
+                price: slot.price || 0,
+                number_of_players: numberOfPlayers.value || 1
               }
 
               // Add admin booking fields to each cart item if admin is booking for someone
@@ -1073,7 +1097,8 @@ export default {
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
-                price: price
+                price: price,
+                number_of_players: numberOfPlayers.value || 1
               }
 
               // Add admin booking fields to each cart item
@@ -1227,6 +1252,7 @@ export default {
       selectedDate.value = ''
       courtTimeSlots.value = {}
       timeSlots.value = {}
+      numberOfPlayers.value = 1
       paymentMethod.value = 'gcash'
       gcashReferenceNumber.value = ''
       proofOfPayment.value = null
@@ -1422,6 +1448,7 @@ export default {
       selectedSport,
       selectedDate,
       courtTimeSlots,
+      numberOfPlayers,
       minDate,
       filteredCourts,
       canProceed,

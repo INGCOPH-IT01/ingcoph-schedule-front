@@ -99,11 +99,19 @@ export const cartService = {
    * Update attendance status for a cart transaction (Admin only)
    * @param {number} transactionId - Cart transaction ID
    * @param {string} status - Attendance status (not_set, showed_up, no_show)
+   * @param {number} playersAttended - Number of players who attended (optional)
    */
-  async updateAttendanceStatus(transactionId, status) {
-    const response = await api.patch(`/admin/cart-transactions/${transactionId}/attendance-status`, {
+  async updateAttendanceStatus(transactionId, status, playersAttended = null) {
+    const data = {
       attendance_status: status
-    })
+    }
+
+    // Include players_attended if provided
+    if (playersAttended !== null && playersAttended !== undefined) {
+      data.players_attended = playersAttended
+    }
+
+    const response = await api.patch(`/admin/cart-transactions/${transactionId}/attendance-status`, data)
     return response.data
   }
 }

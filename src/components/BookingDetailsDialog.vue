@@ -91,6 +91,14 @@
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
+              <span class="detail-label">Number of Players:</span>
+              <v-chip color="primary" variant="tonal" size="small">
+                <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
+                {{ booking.number_of_players || 1 }} player{{ (booking.number_of_players || 1) > 1 ? 's' : '' }}
+              </v-chip>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
               <span class="detail-label">Approval Status:</span>
               <v-chip
                 :color="statusColor"
@@ -133,6 +141,14 @@
             <div class="detail-row">
               <span class="detail-label">Time:</span>
               <span class="detail-value">{{ formattedTimeRange }}</span>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Number of Players:</span>
+              <v-chip color="primary" variant="tonal" size="small">
+                <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
+                {{ booking.number_of_players || 1 }} player{{ (booking.number_of_players || 1) > 1 ? 's' : '' }}
+              </v-chip>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
@@ -388,6 +404,20 @@
           </h4>
           <v-card variant="outlined" class="pa-4">
             <div class="detail-row mb-3">
+              <span class="detail-label">Number of Players:</span>
+              <v-chip color="primary" variant="tonal" size="small">
+                <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
+                {{ booking.number_of_players || 1 }} player(s)
+              </v-chip>
+            </div>
+            <div class="detail-row mb-3" v-if="booking.attendance_scan_count !== undefined">
+              <span class="detail-label">Scan Count:</span>
+              <v-chip :color="booking.attendance_scan_count >= (booking.number_of_players || 1) ? 'success' : 'warning'" variant="tonal" size="small">
+                <v-icon class="mr-1" size="small">mdi-qrcode-scan</v-icon>
+                {{ booking.attendance_scan_count || 0 }} / {{ booking.number_of_players || 1 }} scanned
+              </v-chip>
+            </div>
+            <div class="detail-row mb-3">
               <span class="detail-label">Current Status:</span>
               <v-chip
                 :color="getAttendanceColor(booking.attendance_status)"
@@ -401,39 +431,64 @@
             <v-divider class="my-3"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Mark Attendance:</span>
-              <div class="d-flex flex-wrap gap-2">
-                <v-btn
-                  color="success"
-                  :variant="booking.attendance_status === 'showed_up' ? 'flat' : 'outlined'"
-                  prepend-icon="mdi-check-circle"
-                  size="small"
-                  @click="handleAttendanceUpdate('showed_up')"
-                  :disabled="updatingAttendance"
-                >
-                  Showed Up
-                </v-btn>
-                <v-btn
-                  color="error"
-                  :variant="booking.attendance_status === 'no_show' ? 'flat' : 'outlined'"
-                  prepend-icon="mdi-close-circle"
-                  size="small"
-                  @click="handleAttendanceUpdate('no_show')"
-                  :disabled="updatingAttendance"
-                >
-                  No Show
-                </v-btn>
-                <v-btn
-                  v-if="booking.attendance_status !== 'not_set'"
-                  color="grey"
+              <div class="d-flex flex-column gap-3">
+                <!-- Players Attended Input (only shown for "showed_up") -->
+                <v-text-field
+                  v-if="showPlayersAttendedInput"
+                  v-model.number="playersAttended"
+                  type="number"
+                  label="How many players attended?"
                   variant="outlined"
-                  prepend-icon="mdi-refresh"
-                  size="small"
-                  @click="handleAttendanceUpdate('not_set')"
-                  :disabled="updatingAttendance"
-                >
-                  Reset
-                </v-btn>
+                  density="compact"
+                  prepend-inner-icon="mdi-account-multiple"
+                  :min="0"
+                  :max="booking.number_of_players || 100"
+                  :rules="[v => v >= 0 || 'Cannot be negative', v => v <= (booking.number_of_players || 100) || `Cannot exceed ${booking.number_of_players || 100}`]"
+                  hint="Enter the number of players who attended"
+                  persistent-hint
+                ></v-text-field>
+
+                <div class="d-flex flex-wrap gap-2">
+                  <v-btn
+                    color="success"
+                    :variant="booking.attendance_status === 'showed_up' ? 'flat' : 'outlined'"
+                    prepend-icon="mdi-check-circle"
+                    size="small"
+                    @click="handleAttendanceUpdate('showed_up')"
+                    :disabled="updatingAttendance || (showPlayersAttendedInput && !playersAttended)"
+                  >
+                    Showed Up
+                  </v-btn>
+                  <v-btn
+                    color="error"
+                    :variant="booking.attendance_status === 'no_show' ? 'flat' : 'outlined'"
+                    prepend-icon="mdi-close-circle"
+                    size="small"
+                    @click="handleAttendanceUpdate('no_show')"
+                    :disabled="updatingAttendance"
+                  >
+                    No Show
+                  </v-btn>
+                  <v-btn
+                    v-if="booking.attendance_status !== 'not_set'"
+                    color="grey"
+                    variant="outlined"
+                    prepend-icon="mdi-refresh"
+                    size="small"
+                    @click="handleAttendanceUpdate('not_set')"
+                    :disabled="updatingAttendance"
+                  >
+                    Reset
+                  </v-btn>
+                </div>
               </div>
+            </div>
+            <div class="detail-row mt-3" v-if="booking.players_attended !== null && booking.players_attended !== undefined">
+              <span class="detail-label">Players Attended:</span>
+              <v-chip color="info" variant="tonal" size="small">
+                <v-icon class="mr-1" size="small">mdi-account-check</v-icon>
+                {{ booking.players_attended }} player(s) attended
+              </v-chip>
             </div>
           </v-card>
         </div>
@@ -555,6 +610,8 @@ export default {
     const selectedImageUrl = ref('')
     const updatingAttendance = ref(false)
     const userRole = ref(null)
+    const playersAttended = ref(null)
+    const showPlayersAttendedInput = ref(false)
 
     // QR Code state
     const loadingQrCode = ref(false)
@@ -753,13 +810,42 @@ export default {
     const handleAttendanceUpdate = async (status) => {
       if (!props.booking?.id) return
 
+      // If clicking "Showed Up", show the input field if not already shown
+      if (status === 'showed_up' && !showPlayersAttendedInput.value) {
+        showPlayersAttendedInput.value = true
+        // Pre-fill with the current number of players or existing value
+        if (!playersAttended.value) {
+          playersAttended.value = props.booking.players_attended || props.booking.number_of_players || 1
+        }
+        return
+      }
+
       try {
         updatingAttendance.value = true
-        await cartService.updateAttendanceStatus(props.booking.id, status)
+
+        const updateData = {
+          attendance_status: status
+        }
+
+        // Include players_attended if marking as showed_up
+        if (status === 'showed_up' && playersAttended.value !== null) {
+          updateData.players_attended = playersAttended.value
+        }
+
+        await cartService.updateAttendanceStatus(props.booking.id, status, updateData.players_attended)
 
         // Update the booking object
         if (props.booking) {
           props.booking.attendance_status = status
+          if (status === 'showed_up' && playersAttended.value !== null) {
+            props.booking.players_attended = playersAttended.value
+          }
+        }
+
+        // Reset the input field
+        showPlayersAttendedInput.value = false
+        if (status !== 'showed_up') {
+          playersAttended.value = null
         }
 
         emit('attendance-updated', { bookingId: props.booking.id, status })
@@ -977,6 +1063,8 @@ export default {
       imageDialog,
       selectedImageUrl,
       updatingAttendance,
+      playersAttended,
+      showPlayersAttendedInput,
       isTransaction,
       isStaffOrAdmin,
       // QR Code state

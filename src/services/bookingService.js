@@ -137,11 +137,18 @@ export const bookingService = {
   },
 
   // Update booking attendance status
-  async updateAttendanceStatus(bookingId, status) {
+  async updateAttendanceStatus(bookingId, status, playersAttended = null) {
     try {
-      const response = await api.patch(`/bookings/${bookingId}/attendance-status`, {
+      const data = {
         attendance_status: status
-      })
+      }
+
+      // Include players_attended if provided
+      if (playersAttended !== null && playersAttended !== undefined) {
+        data.players_attended = playersAttended
+      }
+
+      const response = await api.patch(`/bookings/${bookingId}/attendance-status`, data)
       return response.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update attendance status')
