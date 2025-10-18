@@ -1178,10 +1178,17 @@ export default {
   position: relative;
   z-index: 3;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .sport-icon-section {
   margin-bottom: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .sport-icon-wrapper {
@@ -1227,6 +1234,8 @@ export default {
 .sport-details {
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   padding-top: 24px;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .sport-price-section {
