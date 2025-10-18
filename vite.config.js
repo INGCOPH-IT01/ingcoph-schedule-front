@@ -12,5 +12,17 @@ export default defineConfig({
         secure: false,
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router'],
+          'vuetify': ['vuetify'],
+          'utilities': ['axios', 'laravel-echo', 'pusher-js']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   }
 })
