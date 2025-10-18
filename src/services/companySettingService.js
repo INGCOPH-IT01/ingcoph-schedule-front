@@ -29,7 +29,18 @@ export const companySettingService = {
         const payload = new FormData()
         payload.append('company_name', settingsData.company_name)
         payload.append('company_logo', settingsData.company_logo)
-        
+
+        // Add contact information if present
+        if (settingsData.contact_email !== undefined) {
+          payload.append('contact_email', settingsData.contact_email || '')
+        }
+        if (settingsData.contact_mobile !== undefined) {
+          payload.append('contact_mobile', settingsData.contact_mobile || '')
+        }
+        if (settingsData.contact_viber !== undefined) {
+          payload.append('contact_viber', settingsData.contact_viber || '')
+        }
+
         // Add theme settings if present
         if (settingsData.theme_primary_color) {
           payload.append('theme_primary_color', settingsData.theme_primary_color)
@@ -43,7 +54,7 @@ export const companySettingService = {
         if (settingsData.theme_mode) {
           payload.append('theme_mode', settingsData.theme_mode)
         }
-        
+
         // Add dashboard settings if present
         if (settingsData.dashboard_welcome_message !== undefined) {
           payload.append('dashboard_welcome_message', settingsData.dashboard_welcome_message)
@@ -57,7 +68,7 @@ export const companySettingService = {
         if (settingsData.dashboard_show_recent_bookings !== undefined) {
           payload.append('dashboard_show_recent_bookings', settingsData.dashboard_show_recent_bookings ? '1' : '0')
         }
-        
+
         // Laravel doesn't support file uploads with PUT, use POST with _method override
         payload.append('_method', 'PUT')
 

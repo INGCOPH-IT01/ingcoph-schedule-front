@@ -96,6 +96,56 @@
                 class="mb-4"
               ></v-text-field>
 
+              <v-divider class="mb-6"></v-divider>
+
+              <!-- Contact Details Section -->
+              <div class="mb-6">
+                <label class="text-subtitle-1 font-weight-bold mb-3 d-block">
+                  <v-icon class="mr-2" color="primary">mdi-card-account-phone</v-icon>
+                  Contact Details
+                </label>
+
+                <v-text-field
+                  v-model="contactEmail"
+                  label="Email Address"
+                  placeholder="company@example.com"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-email"
+                  :rules="[rules.email]"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mb-4"
+                  hint="Primary email for customer inquiries"
+                  persistent-hint
+                ></v-text-field>
+
+                <v-text-field
+                  v-model="contactMobile"
+                  label="Mobile Number"
+                  placeholder="+63 XXX XXX XXXX"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-cellphone"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mb-4"
+                  hint="Contact mobile number"
+                  persistent-hint
+                ></v-text-field>
+
+                <v-text-field
+                  v-model="contactViber"
+                  label="Viber Number"
+                  placeholder="+63 XXX XXX XXXX"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-message-text"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mb-0"
+                  hint="Viber contact number (if different from mobile)"
+                  persistent-hint
+                ></v-text-field>
+              </div>
+
               <v-alert
                 v-if="successMessage"
                 type="success"
@@ -245,7 +295,7 @@
                   <small>Changes preview in real-time. Click "Save" to apply everywhere.</small>
                 </v-alert>
                 <div class="bg-preview-container">
-                  <div 
+                  <div
                     class="bg-preview"
                     :style="{
                       background: `linear-gradient(135deg, ${bgPrimaryColor} 0%, ${bgSecondaryColor} 25%, ${bgAccentColor} 50%, ${bgSecondaryColor} 75%, ${bgPrimaryColor} 100%)`,
@@ -384,6 +434,14 @@ export default {
     const successMessage = ref('')
     const errorMessage = ref('')
 
+    // Contact details
+    const contactEmail = ref('')
+    const originalContactEmail = ref('')
+    const contactMobile = ref('')
+    const originalContactMobile = ref('')
+    const contactViber = ref('')
+    const originalContactViber = ref('')
+
     // Background colors
     const bgPrimaryColor = ref('#FFFFFF')
     const bgSecondaryColor = ref('#FFEBEE')
@@ -399,7 +457,12 @@ export default {
     })
 
     const rules = {
-      required: value => !!value || 'This field is required'
+      required: value => !!value || 'This field is required',
+      email: value => {
+        if (!value) return true // Allow empty email
+        const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        return pattern.test(value) || 'Invalid email address'
+      }
     }
 
     const loadSettings = async () => {
@@ -415,6 +478,14 @@ export default {
           currentLogoUrl.value = `${apiUrl}${settings.company_logo_url}`
           originalLogoUrl.value = currentLogoUrl.value
         }
+
+        // Load contact details
+        contactEmail.value = settings.contact_email || ''
+        originalContactEmail.value = settings.contact_email || ''
+        contactMobile.value = settings.contact_mobile || ''
+        originalContactMobile.value = settings.contact_mobile || ''
+        contactViber.value = settings.contact_viber || ''
+        originalContactViber.value = settings.contact_viber || ''
 
         // Load background colors
         bgPrimaryColor.value = settings.bg_primary_color || '#FFFFFF'
@@ -485,7 +556,10 @@ export default {
         successMessage.value = ''
 
         const settingsData = {
-          company_name: companyName.value
+          company_name: companyName.value,
+          contact_email: contactEmail.value,
+          contact_mobile: contactMobile.value,
+          contact_viber: contactViber.value
         }
 
         // Add logo file if selected
@@ -497,6 +571,9 @@ export default {
         const result = await companySettingService.updateSettings(settingsData)
 
         originalCompanyName.value = companyName.value
+        originalContactEmail.value = contactEmail.value
+        originalContactMobile.value = contactMobile.value
+        originalContactViber.value = contactViber.value
 
         // Update current logo URL if a new one was uploaded
         if (result.company_logo_url) {
@@ -527,6 +604,9 @@ export default {
       logoPreview.value = null
       logoFile.value = null
       logoToDelete.value = false
+      contactEmail.value = originalContactEmail.value
+      contactMobile.value = originalContactMobile.value
+      contactViber.value = originalContactViber.value
       successMessage.value = ''
       errorMessage.value = ''
     }
@@ -630,6 +710,10 @@ export default {
       errorMessage,
       snackbar,
       rules,
+      // Contact details
+      contactEmail,
+      contactMobile,
+      contactViber,
       loadSettings,
       saveSettings,
       resetForm,
@@ -693,7 +777,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(183, 28, 28, 0.08) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(198, 40, 40, 0.06) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(211, 47, 47, 0.05) 0%, transparent 50%);
@@ -706,7 +790,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(183, 28, 28, 0.03) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
