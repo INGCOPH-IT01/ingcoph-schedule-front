@@ -625,6 +625,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
 import { sportService } from '../services/sportService'
+import { companySettingService } from '../services/companySettingService'
 import CourtDialog from '../components/CourtDialog.vue'
 
 export default {
@@ -642,6 +643,9 @@ export default {
     const selectedCourt = ref(null)
     const isAdmin = ref(false)
     const viewMode = ref('grid') // Default to grid view
+
+    // Company settings
+    const companySettings = ref({})
 
     // Time slots state
     const courtTimeSlots = ref({})
@@ -677,6 +681,30 @@ export default {
 
     const filteredCourts = computed(() => {
       return courts.value
+    })
+
+    const operatingHoursText = computed(() => {
+      const opening = companySettings.value.operating_hours_opening || '07:00'
+      const closing = companySettings.value.operating_hours_closing || '00:00'
+
+      // Format times to 12-hour format
+      const formatTime = (time) => {
+        if (!time) return ''
+
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours)
+
+        // Handle midnight (00:00) special case
+        if (hour === 0 && minutes === '00') {
+          return '12:00 MN' // Midnight
+        }
+
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour % 12 || 12
+        return `${displayHour}:${minutes} ${ampm}`
+      }
+
+      return `${formatTime(opening)} - ${formatTime(closing)}`
     })
 
     const itemProps = (item) => ({
@@ -737,8 +765,25 @@ export default {
     }
 
     const getCourtOperatingHours = (court) => {
-      // Default operating hours for courts
-      return '6:00 AM - 10:00 PM'
+      return operatingHoursText.value
+    }
+
+    const fetchCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        // Convert array of settings to object for easier access
+        const settingsObj = {}
+        settings.forEach(setting => {
+          settingsObj[setting.key] = setting.value
+        })
+        companySettings.value = settingsObj
+        console.log('Company settings loaded:', {
+          opening: companySettings.value.operating_hours_opening,
+          closing: companySettings.value.operating_hours_closing
+        })
+      } catch (err) {
+        console.error('Failed to load company settings:', err)
+      }
     }
 
     const getCourtPriceRange = (court) => {
@@ -938,6 +983,7 @@ export default {
 
     onMounted(async () => {
       await checkAdminStatus()
+      await fetchCompanySettings()
       fetchData()
       // Initialize date filter to today
       setDateToday()
