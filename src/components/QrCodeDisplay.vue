@@ -301,4 +301,156 @@ export default {
 .error-section {
   padding: 40px 0;
 }
+
+/* Mobile Responsive Design */
+@media (max-width: 960px) {
+  .qr-display-card {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .qr-code-wrapper {
+    padding: 12px;
+  }
+
+  .qr-code {
+    width: 180px;
+    height: 180px;
+  }
+}
+
+@media (max-width: 600px) {
+  .qr-display-container {
+    align-items: flex-start;
+    padding: 8px;
+  }
+
+  .qr-display-card {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .qr-display-card .v-card-title {
+    padding: 16px !important;
+    font-size: 1.1rem !important;
+  }
+
+  .qr-display-card .v-card-text {
+    padding: 16px !important;
+  }
+
+  .qr-display-card .v-card-actions {
+    padding: 12px 16px !important;
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .qr-display-card .v-card-actions .v-btn {
+    width: 100% !important;
+    min-height: 48px;
+  }
+
+  .qr-code-wrapper {
+    padding: 10px;
+  }
+
+  .qr-code {
+    width: 160px;
+    height: 160px;
+  }
+
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .info-item strong {
+    min-width: auto;
+    margin-right: 0;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  .v-text-field {
+    font-size: 14px;
+  }
+
+  .v-alert {
+    font-size: 13px;
+  }
+
+  .v-alert ul {
+    padding-left: 16px;
+  }
+
+  .v-alert ul li {
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .booking-info .v-card-title {
+    padding: 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .booking-info .v-card-text {
+    padding: 12px !important;
+  }
+
+  .booking-info .v-row {
+    margin: 0 !important;
+  }
+
+  .booking-info .v-col {
+    padding: 4px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .qr-display-card .v-card-title {
+    padding: 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .qr-display-card .v-card-title .v-icon {
+    font-size: 20px;
+  }
+
+  .qr-display-card .v-card-text {
+    padding: 12px !important;
+  }
+
+  .qr-display-card .v-card-actions {
+    padding: 10px 12px !important;
+  }
+
+  .qr-code-wrapper {
+    padding: 8px;
+  }
+
+  .qr-code {
+    width: 140px;
+    height: 140px;
+  }
+
+  .info-item {
+    font-size: 13px;
+  }
+
+  .loading-section,
+  .error-section {
+    padding: 20px 0;
+  }
+}
+
+/* Touch-friendly buttons */
+@media (max-width: 768px) {
+  .v-btn {
+    min-height: 44px;
+    font-size: 14px;
+  }
+}
 </style>

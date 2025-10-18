@@ -5,6 +5,8 @@
     max-width="1200px"
     persistent
     class="responsive-dialog"
+    :fullscreen="$vuetify.display.mobile"
+    transition="dialog-bottom-transition"
   >
     <v-card class="booking-dialog">
       <!-- Header -->

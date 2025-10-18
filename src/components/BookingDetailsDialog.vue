@@ -5,6 +5,8 @@
     max-width="800px"
     class="booking-view-dialog"
     persistent
+    :fullscreen="$vuetify.display.mobile"
+    transition="dialog-bottom-transition"
   >
     <v-card v-if="booking">
       <v-card-title class="text-h5 dialog-title">
@@ -584,7 +586,12 @@
     </v-card>
 
     <!-- Proof of Payment Dialog -->
-    <v-dialog v-model="imageDialog" max-width="800" @update:model-value="onImageDialogClose">
+    <v-dialog
+      v-model="imageDialog"
+      max-width="800"
+      @update:model-value="onImageDialogClose"
+      :fullscreen="$vuetify.display.mobile"
+    >
       <v-card>
         <v-card-title class="text-h5 dialog-title">
           <div class="d-flex align-center">
@@ -1358,16 +1365,253 @@ export default {
   gap: 8px;
 }
 
-/* Responsive adjustments */
+/* Mobile Responsive Design */
+@media (max-width: 960px) {
+  .booking-view-dialog .v-card {
+    border-radius: 0;
+  }
+
+  .booking-view-dialog .dialog-title {
+    padding: 16px;
+    font-size: 1.25rem;
+  }
+
+  .booking-view-dialog .dialog-title .v-icon {
+    font-size: 24px;
+  }
+
+  .booking-view-dialog .detail-section-title {
+    font-size: 16px;
+  }
+
+  .booking-view-dialog .v-card-text {
+    padding: 16px !important;
+  }
+
+  .booking-view-dialog .detail-section {
+    margin-bottom: 16px;
+  }
+
+  .booking-view-dialog .pa-4 {
+    padding: 12px !important;
+  }
+
+  .booking-view-dialog .pa-6 {
+    padding: 16px !important;
+  }
+}
+
 @media (max-width: 600px) {
   .booking-view-dialog .detail-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: 8px;
+    padding: 12px 0;
+  }
+
+  .booking-view-dialog .detail-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
   }
 
   .booking-view-dialog .detail-value {
     text-align: left;
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .booking-view-dialog .dialog-title {
+    padding: 12px 16px;
+  }
+
+  .booking-view-dialog .dialog-title .d-flex {
+    font-size: 1.1rem;
+  }
+
+  .booking-view-dialog .v-card-text {
+    padding: 12px !important;
+  }
+
+  .booking-view-dialog .detail-section {
+    margin-bottom: 12px;
+  }
+
+  .booking-view-dialog .v-card.pa-4 {
+    padding: 12px !important;
+  }
+
+  .booking-view-dialog .detail-section-title {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+
+  /* QR Code mobile optimization */
+  .qr-code-wrapper {
+    padding: 12px;
+  }
+
+  .booking-qr-code {
+    max-width: 200px;
+    padding: 8px;
+  }
+
+  /* Button adjustments for mobile */
+  .booking-view-dialog .v-btn {
+    min-width: auto;
+  }
+
+  .booking-view-dialog .v-card-actions {
+    padding: 12px 16px !important;
+  }
+
+  .booking-view-dialog .v-card-actions .v-btn {
+    padding: 8px 16px !important;
+  }
+
+  /* Chip sizing for mobile */
+  .booking-view-dialog .v-chip {
+    font-size: 0.75rem;
+    height: auto;
+    padding: 4px 8px;
+  }
+
+  /* File input on mobile */
+  .booking-view-dialog .v-file-input {
+    font-size: 14px;
+  }
+
+  /* Images on mobile */
+  .booking-view-dialog .v-img {
+    max-height: 250px !important;
+  }
+
+  /* List items on mobile */
+  .booking-view-dialog .v-list-item {
+    padding: 8px 0 !important;
+  }
+
+  .booking-view-dialog .v-list-item-title {
+    font-size: 14px;
+  }
+
+  .booking-view-dialog .v-list-item-subtitle {
+    font-size: 12px;
+  }
+
+  /* Attendance section mobile */
+  .booking-view-dialog .d-flex.gap-2 {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .booking-view-dialog .d-flex.gap-2 .v-btn {
+    width: 100% !important;
+  }
+
+  .booking-view-dialog .d-flex.gap-3 {
+    gap: 12px;
+  }
+
+  /* Alert text sizing */
+  .booking-view-dialog .v-alert {
+    font-size: 13px;
+  }
+
+  .booking-view-dialog .text-caption {
+    font-size: 11px;
+  }
+
+  /* Text field improvements */
+  .booking-view-dialog .v-text-field {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .booking-view-dialog .dialog-title {
+    padding: 10px 12px;
+  }
+
+  .booking-view-dialog .dialog-title .d-flex {
+    font-size: 1rem;
+  }
+
+  .booking-view-dialog .v-card-text {
+    padding: 8px !important;
+  }
+
+  .booking-view-dialog .detail-section {
+    margin-bottom: 10px;
+  }
+
+  .booking-view-dialog .v-card.pa-4 {
+    padding: 8px !important;
+  }
+
+  .booking-view-dialog .detail-row {
+    padding: 8px 0;
+  }
+
+  .booking-view-dialog .detail-label {
+    font-size: 12px;
+  }
+
+  .booking-view-dialog .detail-value {
+    font-size: 13px;
+  }
+
+  .booking-view-dialog .detail-section-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .qr-code-wrapper {
+    padding: 8px;
+  }
+
+  .booking-qr-code {
+    max-width: 180px;
+    padding: 6px;
+  }
+
+  .booking-view-dialog .v-btn {
+    font-size: 13px !important;
+    padding: 6px 12px !important;
+  }
+
+  .booking-view-dialog .v-chip {
+    font-size: 0.7rem;
+  }
+
+  .booking-view-dialog .v-list-item-title {
+    font-size: 13px;
+  }
+
+  .booking-view-dialog .v-list-item-subtitle {
+    font-size: 11px;
+  }
+}
+
+/* Touch-friendly buttons */
+@media (max-width: 768px) {
+  .booking-view-dialog .v-btn {
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .booking-view-dialog .v-btn--icon {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 960px) and (orientation: landscape) {
+  .booking-view-dialog .v-card-text {
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
   }
 }
 </style>

@@ -5,6 +5,8 @@
     max-width="1200px"
     scrollable
     class="responsive-dialog"
+    :fullscreen="$vuetify.display.mobile"
+    transition="dialog-bottom-transition"
   >
     <v-card class="cart-dialog">
       <v-card-title class="d-flex align-center justify-space-between pa-4 bg-primary">
@@ -227,7 +229,13 @@
     </v-card>
 
     <!-- GCash Payment Dialog -->
-    <v-dialog v-model="paymentDialog" max-width="600px" persistent>
+    <v-dialog
+      v-model="paymentDialog"
+      max-width="600px"
+      persistent
+      :fullscreen="$vuetify.display.mobile"
+      transition="dialog-bottom-transition"
+    >
       <v-card>
         <v-card-title class="text-h5 bg-success text-white pa-4">
           <v-icon class="mr-2" color="white">mdi-cellphone-check</v-icon>
@@ -1167,13 +1175,18 @@ export default {
 
 @media (max-width: 960px) {
   .v-card-title {
-    flex-direction: column;
-    align-items: flex-start !important;
+    flex-direction: row !important;
+    align-items: center !important;
     padding: 16px !important;
+    flex-wrap: nowrap;
   }
 
   .v-card-title > div:first-child {
-    margin-bottom: 8px;
+    margin-bottom: 0;
+  }
+
+  .v-card-title .text-h5 {
+    font-size: 1.15rem !important;
   }
 
   .cart-group-header {
@@ -1185,6 +1198,24 @@ export default {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 8px;
   }
+
+  /* Touch-friendly buttons */
+  .v-btn {
+    min-height: 44px;
+  }
+
+  /* Better spacing for mobile */
+  .mb-3 {
+    margin-bottom: 12px;
+  }
+
+  .pa-3 {
+    padding: 12px !important;
+  }
+
+  .pa-4 {
+    padding: 14px !important;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1193,17 +1224,43 @@ export default {
   }
 
   .v-card-title {
-    padding: 12px !important;
+    padding: 12px 16px !important;
   }
 
   .v-card-title .text-h5 {
     font-size: 1.1rem !important;
   }
 
-  .cart-item,
-  .cart-group-card {
+  .v-card-actions {
+    padding: 12px 16px !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .v-card-actions .v-btn {
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .cart-item {
     padding: 12px !important;
     margin-bottom: 12px !important;
+  }
+
+  .cart-item .d-flex {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  .cart-item .d-flex.gap-2 {
+    flex-direction: row !important;
+    margin-top: 8px;
+    align-self: flex-end;
+  }
+
+  .cart-item .text-body-2 {
+    font-size: 13px;
+    line-height: 1.6;
   }
 
   .time-slots-grid {
@@ -1216,11 +1273,11 @@ export default {
   }
 
   .time-text {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .price-text {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .cart-total {
@@ -1232,15 +1289,29 @@ export default {
   .cart-total .v-btn {
     width: 100% !important;
   }
+
+  /* GCash payment dialog mobile */
+  .gcash-qr-container {
+    padding: 12px;
+  }
+
+  .gcash-qr-code {
+    width: 180px !important;
+    height: 180px !important;
+  }
+
+  .payment-instructions {
+    font-size: 14px;
+  }
+
+  .payment-instructions li {
+    margin-bottom: 10px;
+  }
 }
 
 @media (max-width: 600px) {
   .v-card-title .text-h5 {
     font-size: 1rem !important;
-  }
-
-  .v-card-title .v-icon:first-child {
-    display: none;
   }
 
   .cart-group-header h4 {
@@ -1249,23 +1320,26 @@ export default {
 
   .time-slots-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 4px;
+    gap: 6px;
   }
 
   .time-slot-chip {
-    padding: 6px 8px !important;
+    padding: 8px 10px !important;
+    font-size: 12px;
   }
 
   .time-text {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .price-text {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .v-chip {
     font-size: 0.75rem !important;
+    height: auto !important;
+    padding: 4px 8px !important;
   }
 
   .cart-actions {
@@ -1277,6 +1351,79 @@ export default {
     width: 100% !important;
     margin-bottom: 8px !important;
   }
+
+  .v-card-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .v-card-actions .v-btn {
+    width: 100% !important;
+    margin-bottom: 8px !important;
+  }
+
+  .v-card-actions .v-spacer {
+    display: none;
+  }
+
+  /* Cart item improvements */
+  .cart-item .flex-grow-1 {
+    width: 100%;
+  }
+
+  .cart-item .d-flex.justify-space-between {
+    flex-direction: column;
+  }
+
+  .cart-item .mr-3 {
+    margin-right: 0 !important;
+    margin-bottom: 8px;
+  }
+
+  /* Better checkbox sizing */
+  .v-checkbox {
+    transform: scale(1.1);
+  }
+
+  /* Text sizing improvements */
+  .text-subtitle-1 {
+    font-size: 0.95rem !important;
+  }
+
+  .text-body-2 {
+    font-size: 0.8rem !important;
+  }
+
+  .text-h6 {
+    font-size: 1rem !important;
+  }
+
+  .text-h5 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Payment dialog improvements */
+  .v-file-input {
+    font-size: 14px;
+  }
+
+  .gcash-qr-container {
+    padding: 10px;
+  }
+
+  .gcash-qr-code {
+    width: 160px !important;
+    height: 160px !important;
+  }
+
+  .payment-instructions {
+    padding-left: 16px;
+    font-size: 13px;
+  }
+
+  .payment-instructions li {
+    margin-bottom: 8px;
+  }
 }
 
 @media (max-width: 400px) {
@@ -1284,13 +1431,66 @@ export default {
     padding: 8px !important;
   }
 
-  .cart-item,
-  .cart-group-card {
-    padding: 8px !important;
+  .v-card-title {
+    padding: 10px 12px !important;
+  }
+
+  .v-card-title .text-h5 {
+    font-size: 0.95rem !important;
+  }
+
+  .v-card-actions {
+    padding: 8px 12px !important;
+  }
+
+  .cart-item {
+    padding: 10px !important;
+  }
+
+  .cart-item .text-subtitle-1 {
+    font-size: 0.9rem !important;
+  }
+
+  .cart-item .text-body-2 {
+    font-size: 0.75rem !important;
   }
 
   .time-slots-grid {
     grid-template-columns: 1fr;
+  }
+
+  .time-slot-chip {
+    padding: 10px !important;
+    width: 100%;
+  }
+
+  .v-chip {
+    font-size: 0.7rem !important;
+  }
+
+  .gcash-qr-code {
+    width: 140px !important;
+    height: 140px !important;
+  }
+
+  .payment-instructions {
+    font-size: 12px;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 960px) and (orientation: landscape) {
+  .cart-dialog > .v-card-text {
+    max-height: calc(100vh - 100px);
+  }
+}
+
+/* iOS safe area support */
+@supports (padding: env(safe-area-inset-bottom)) {
+  @media (max-width: 768px) {
+    .v-card-actions {
+      padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    }
   }
 }
 
