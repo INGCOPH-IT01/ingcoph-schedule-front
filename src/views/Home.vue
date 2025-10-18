@@ -29,6 +29,18 @@
         <v-row align="center" justify="center" class="min-height-screen">
           <v-col cols="12" md="10" class="text-center">
             <div class="hero-content">
+              <!-- Company Logo -->
+              <div v-if="companyLogoUrl" class="hero-logo-wrapper">
+                <v-img
+                  :src="companyLogoUrl"
+                  :alt="companyName + ' Logo'"
+                  max-height="250"
+                  max-width="250"
+                  contain
+                  class="hero-company-logo"
+                ></v-img>
+              </div>
+
               <!-- Welcome Message -->
               <div v-if="dashboardSettings.welcomeMessage && dashboardSettings.welcomeMessage.trim()" class="welcome-message">
                 <v-icon color="white" size="32" class="mr-2">mdi-hand-wave</v-icon>
@@ -223,6 +235,7 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const companyName = ref('Perfect Smash')
+    const companyLogoUrl = ref(null)
 
     // Dashboard settings
     const dashboardSettings = ref({
@@ -346,6 +359,11 @@ export default {
         if (settings.company_name) {
           companyName.value = settings.company_name
         }
+        // Load company logo
+        if (settings.company_logo_url) {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+          companyLogoUrl.value = `${apiUrl}${settings.company_logo_url}`
+        }
       } catch (error) {
         console.error('Failed to load dashboard settings:', error)
         // Keep default values on error
@@ -378,6 +396,7 @@ export default {
       courtFeatures,
       dashboardSettings,
       companyName,
+      companyLogoUrl,
       getSportPrice,
       openBookingDialog,
       handleBookNowClick,
@@ -399,6 +418,19 @@ export default {
   border-radius: 0;
   z-index: 1000;
   animation: slideInDown 0.5s ease-out;
+}
+
+/* Hero Company Logo */
+.hero-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.hero-company-logo {
+  animation: fadeInScale 0.8s ease-out;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
 }
 
 /* Welcome Message */
@@ -888,6 +920,15 @@ export default {
 }
 
 /* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     transform: translateY(30px);
@@ -923,6 +964,15 @@ export default {
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .hero-logo-wrapper {
+    margin-bottom: 24px;
+  }
+
+  .hero-company-logo {
+    max-height: 80px !important;
+    max-width: 200px !important;
+  }
+
   .hero-stats {
     gap: 24px;
   }
@@ -947,6 +997,15 @@ export default {
 }
 
 @media (max-width: 480px) {
+  .hero-logo-wrapper {
+    margin-bottom: 20px;
+  }
+
+  .hero-company-logo {
+    max-height: 60px !important;
+    max-width: 150px !important;
+  }
+
   .hero-stats {
     flex-direction: column;
     gap: 16px;
