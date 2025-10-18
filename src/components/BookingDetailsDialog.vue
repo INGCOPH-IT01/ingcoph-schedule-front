@@ -642,6 +642,7 @@
 <script>
 import { computed, ref, onMounted, watch } from 'vue'
 import QRCode from 'qrcode'
+import api from '../services/api'
 import { cartService } from '../services/cartService'
 import { bookingService } from '../services/bookingService'
 import { sportService } from '../services/sportService'
@@ -957,9 +958,6 @@ export default {
             ? `/cart-transactions/${props.booking.id}/proof-of-payment`
             : `/bookings/${props.booking.id}/proof-of-payment`
 
-          // Import api service
-          const { default: api } = await import('../services/api')
-
           // Fetch the image as a blob with authentication
           const response = await api.get(endpoint, {
             responseType: 'blob'
@@ -1065,9 +1063,6 @@ export default {
       qrCodeError.value = ''
 
       try {
-        // Import api service dynamically
-        const { default: api } = await import('../services/api')
-
         // Determine the actual booking ID to use
         let bookingId = props.booking.id
 
