@@ -45,7 +45,7 @@
                   <v-icon class="mr-2" color="primary">mdi-office-building</v-icon>
                   Company Information
                 </h3>
-                
+
                 <v-form ref="settingsForm" v-model="formValid" @submit.prevent="saveCompanySettings">
                   <!-- Company Logo Upload -->
                   <div class="mb-6">
@@ -107,6 +107,56 @@
                     :disabled="saving"
                     class="mb-4"
                   ></v-text-field>
+
+                  <!-- Contact Information Section -->
+                  <v-divider class="mb-4"></v-divider>
+                  <h3 class="text-h6 mb-4">
+                    <v-icon class="mr-2" color="primary">mdi-phone-message</v-icon>
+                    Contact Information
+                  </h3>
+
+                  <v-text-field
+                    v-model="contactViber"
+                    label="Viber Number"
+                    placeholder="Enter Viber number"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-message-processing"
+                    :loading="loading"
+                    :disabled="saving"
+                    class="mb-4"
+                    hint="Contact number for Viber"
+                    persistent-hint
+                  ></v-text-field>
+
+                  <v-text-field
+                    v-model="contactMobile"
+                    label="Mobile Number"
+                    placeholder="Enter mobile number"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-cellphone"
+                    :loading="loading"
+                    :disabled="saving"
+                    class="mb-4"
+                    hint="Primary mobile contact number"
+                    persistent-hint
+                  ></v-text-field>
+
+                  <v-text-field
+                    v-model="contactEmail"
+                    label="Email Address"
+                    placeholder="Enter email address"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-email"
+                    type="email"
+                    :rules="[rules.email]"
+                    :loading="loading"
+                    :disabled="saving"
+                    class="mb-4"
+                    hint="Primary email address for contact"
+                    persistent-hint
+                  ></v-text-field>
+
+                  <v-divider class="mb-4"></v-divider>
 
                   <v-alert
                     v-if="successMessage"
@@ -368,7 +418,7 @@
                       <v-divider></v-divider>
                       <v-card-text>
                         <div class="bg-preview-container">
-                          <div 
+                          <div
                             class="bg-preview"
                             :style="{
                               background: `linear-gradient(135deg, ${bgPrimaryColor} 0%, ${bgSecondaryColor} 25%, ${bgAccentColor} 50%, ${bgSecondaryColor} 75%, ${bgPrimaryColor} 100%)`,
@@ -462,7 +512,7 @@ export default {
   name: 'SystemSettings',
   setup() {
     const activeTab = ref('company')
-    
+
     // Company Settings
     const companyName = ref('')
     const originalCompanyName = ref('')
@@ -477,6 +527,14 @@ export default {
     const settingsForm = ref(null)
     const successMessage = ref('')
     const errorMessage = ref('')
+
+    // Contact Information
+    const contactViber = ref('')
+    const originalContactViber = ref('')
+    const contactMobile = ref('')
+    const originalContactMobile = ref('')
+    const contactEmail = ref('')
+    const originalContactEmail = ref('')
 
     // Background colors
     const bgPrimaryColor = ref('#FFFFFF')
@@ -497,14 +555,15 @@ export default {
     })
 
     const rules = {
-      required: value => !!value || 'This field is required'
+      required: value => !!value || 'This field is required',
+      email: value => !value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Invalid email address'
     }
 
     const loadSettings = async () => {
       try {
         loading.value = true
         const settings = await companySettingService.getSettings()
-        
+
         // Load company settings
         companyName.value = settings.company_name || ''
         originalCompanyName.value = settings.company_name || ''
@@ -515,11 +574,19 @@ export default {
           originalLogoUrl.value = currentLogoUrl.value
         }
 
+        // Load contact information
+        contactViber.value = settings.contact_viber || ''
+        originalContactViber.value = settings.contact_viber || ''
+        contactMobile.value = settings.contact_mobile || ''
+        originalContactMobile.value = settings.contact_mobile || ''
+        contactEmail.value = settings.contact_email || ''
+        originalContactEmail.value = settings.contact_email || ''
+
         // Load background colors
         bgPrimaryColor.value = settings.bg_primary_color || '#FFFFFF'
         bgSecondaryColor.value = settings.bg_secondary_color || '#FFEBEE'
         bgAccentColor.value = settings.bg_accent_color || '#FFCDD2'
-        
+
         // Store original values
         originalBgPrimaryColor.value = bgPrimaryColor.value
         originalBgSecondaryColor.value = bgSecondaryColor.value
@@ -572,6 +639,9 @@ export default {
 
         const formData = new FormData()
         formData.append('company_name', companyName.value)
+        formData.append('contact_viber', contactViber.value)
+        formData.append('contact_mobile', contactMobile.value)
+        formData.append('contact_email', contactEmail.value)
 
         if (logoFile.value) {
           formData.append('company_logo', logoFile.value)
@@ -580,6 +650,9 @@ export default {
         const response = await companySettingService.updateSettings(formData)
 
         originalCompanyName.value = companyName.value
+        originalContactViber.value = contactViber.value
+        originalContactMobile.value = contactMobile.value
+        originalContactEmail.value = contactEmail.value
 
         if (response.company_logo_url) {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -604,6 +677,9 @@ export default {
 
     const resetCompanyForm = () => {
       companyName.value = originalCompanyName.value
+      contactViber.value = originalContactViber.value
+      contactMobile.value = originalContactMobile.value
+      contactEmail.value = originalContactEmail.value
       currentLogoUrl.value = originalLogoUrl.value
       logoPreview.value = null
       logoFile.value = null
@@ -626,14 +702,14 @@ export default {
         }
 
         await companySettingService.updateSettings(data)
-        
+
         // Update original values after successful save
         originalBgPrimaryColor.value = bgPrimaryColor.value
         originalBgSecondaryColor.value = bgSecondaryColor.value
         originalBgAccentColor.value = bgAccentColor.value
-        
+
         bgSuccessMessage.value = 'Background colors saved! Changes applied immediately.'
-        
+
         showSnackbar('Background colors updated successfully!', 'success', 'mdi-check-circle')
 
         // Dispatch event to update background in real-time
@@ -663,7 +739,7 @@ export default {
       bgSuccessMessage.value = ''
       bgErrorMessage.value = ''
       showSnackbar('Colors reset to saved values', 'info', 'mdi-refresh')
-      
+
       // Update background immediately
       window.dispatchEvent(new CustomEvent('background-colors-updated', {
         detail: {
@@ -749,6 +825,10 @@ export default {
       removeLogo,
       saveCompanySettings,
       resetCompanyForm,
+      // Contact Information
+      contactViber,
+      contactMobile,
+      contactEmail,
       // Background colors
       bgPrimaryColor,
       bgSecondaryColor,
@@ -918,4 +998,3 @@ export default {
   }
 }
 </style>
-
