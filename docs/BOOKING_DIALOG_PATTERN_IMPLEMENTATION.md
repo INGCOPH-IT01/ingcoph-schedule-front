@@ -118,7 +118,7 @@ Completely revamped the time availability display in the Court module to match t
 ### Visual Design
 
 #### Color Scheme:
-- **Available Slots:** 
+- **Available Slots:**
   - Chip: Success green (`#4caf50`)
   - Background: White
   - Hover: Light blue border
@@ -471,7 +471,7 @@ const bookTimeSlot = (slot) => {
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 6px;
   }
-  
+
   .time-text-small {
     font-size: 10px;
   }
@@ -543,7 +543,7 @@ Returns slots with:
 
 ### Potential Additions:
 1. **Real-time Updates** - WebSocket for live availability changes
-2. **Quick Actions** - "Add to Cart" from dialog
+2. **Quick Actions** - "Add to Booking" from dialog
 3. **User Info** - Show who booked (for admins)
 4. **Notification** - Alert when booked slot becomes available
 5. **Multi-select** - Select multiple slots from dialog
@@ -634,4 +634,3 @@ Successfully transformed the time availability display to exactly match the book
 - Intuitive interactions
 
 The implementation maintains 100% design consistency with the booking selection interface while adding valuable new features for viewing booking details! 🏆
-

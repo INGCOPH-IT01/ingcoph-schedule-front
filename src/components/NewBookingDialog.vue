@@ -540,7 +540,7 @@
             class="mr-2"
           >
             <v-icon start>mdi-cart-plus</v-icon>
-            Add to Cart
+            Add to Booking
           </v-btn>
           <v-btn
             color="success"
@@ -962,13 +962,13 @@ export default {
           showAlert({
             icon: 'warning',
             title: 'No Time Slots Selected',
-            text: 'Please select at least one time slot to add to cart.'
+            text: 'Please select at least one time slot to add to booking.'
           })
           addingToCart.value = false
           return
         }
 
-        // Add to cart via API
+        // Add to booking via API
         const response = await cartService.addToCart(cartItems)
 
         // Dispatch custom events to update cart count and refresh bookings
@@ -992,7 +992,7 @@ export default {
         emit('close')
         resetForm()
       } catch (error) {
-        console.error('Failed to add to cart:', error)
+        console.error('Failed to add to booking:', error)
         showAlert({
           icon: 'error',
           title: 'Failed',
