@@ -264,7 +264,6 @@
                 <li>Send <strong>₱{{ totalPrice }}</strong> to our GCash number</li>
                 <li>Take a screenshot of your payment receipt</li>
                 <li>Upload the screenshot below</li>
-                <li>Enter your GCash reference number</li>
                 <li>Click "Complete Payment" to finish</li>
               </ol>
             </v-card-text>
@@ -314,17 +313,6 @@
               </v-row>
             </v-card-text>
           </v-card>
-
-          <!-- GCash Reference Number -->
-          <v-text-field
-            v-model="gcashReference"
-            label="GCash Reference Number *"
-            placeholder="Enter reference number from receipt"
-            variant="outlined"
-            prepend-inner-icon="mdi-pound"
-            :rules="[v => !!v || 'Reference number is required']"
-            class="mb-4"
-          ></v-text-field>
 
           <!-- Proof of Payment Upload -->
           <v-file-input
@@ -385,7 +373,7 @@
           <v-btn
             color="success"
             :loading="checkingOut"
-            :disabled="!gcashReference || !proofOfPayment"
+            :disabled="!proofOfPayment"
             @click="completePayment"
           >
             <v-icon start>mdi-check-circle</v-icon>
@@ -546,7 +534,6 @@ export default {
     const loading = ref(false)
     const checkingOut = ref(false)
     const paymentDialog = ref(false)
-    const gcashReference = ref('')
     const proofOfPayment = ref(null)
     const proofPreview = ref(null)
     const gcashQrCanvas = ref(null)
@@ -959,7 +946,6 @@ export default {
 
     const closePaymentDialog = () => {
       paymentDialog.value = false
-      gcashReference.value = ''
       proofOfPayment.value = null
       proofPreview.value = null
     }
@@ -1220,11 +1206,11 @@ export default {
     }
 
     const completePayment = async () => {
-      if (!gcashReference.value || !proofOfPayment.value) {
+      if (!proofOfPayment.value) {
         showAlert({
           icon: 'warning',
           title: 'Incomplete Payment',
-          text: 'Please provide both GCash reference number and proof of payment.'
+          text: 'Please upload proof of payment to complete your booking.'
         })
         return
       }
@@ -1258,7 +1244,6 @@ export default {
         // Checkout via cart API with selected items only
         const response = await cartService.checkout({
           payment_method: 'gcash',
-          gcash_reference: gcashReference.value,
           proof_of_payment: proofBase64,
           selected_items: selectedItems.map(item => item.id)
         })
@@ -1269,7 +1254,6 @@ export default {
           html: `
             <p>Successfully submitted <strong>${response.bookings.length}</strong> booking(s) with payment!</p>
             <p class="text-muted">Total: <strong>₱${totalPrice.value}</strong></p>
-            <p class="text-caption mt-2">GCash Ref: ${gcashReference.value}</p>
             <div class="mt-3 text-info">
               <small>Your bookings will be confirmed after admin verifies your payment.</small>
             </div>
@@ -1377,7 +1361,6 @@ export default {
       groupedCartItems,
       checkingOut,
       paymentDialog,
-      gcashReference,
       proofOfPayment,
       proofPreview,
       gcashQrCanvas,
