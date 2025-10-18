@@ -150,17 +150,6 @@
                     v-if="!cartTransaction || cartTransaction.payment_status !== 'paid'"
                     icon
                     size="small"
-                    color="primary"
-                    variant="text"
-                    @click="editGroup(group)"
-                    title="Edit"
-                  >
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
-                  <v-btn
-                    v-if="!cartTransaction || cartTransaction.payment_status !== 'paid'"
-                    icon
-                    size="small"
                     color="error"
                     variant="text"
                     @click="removeGroup(group)"
@@ -382,130 +371,6 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-
-    <!-- Edit Cart Item Dialog -->
-    <v-dialog v-model="editDialog" max-width="600px">
-      <v-card>
-        <v-card-title class="bg-primary text-white pa-4">
-          <v-icon class="mr-2" color="white">mdi-pencil</v-icon>
-          Edit Booking
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <v-form ref="editForm">
-            <!-- Court Selection -->
-            <v-select
-              v-model="editItem.court_id"
-              :items="courts"
-              item-title="name"
-              item-value="id"
-              label="Court"
-              variant="outlined"
-              density="comfortable"
-              prepend-inner-icon="mdi-stadium"
-              class="mb-4"
-              :rules="[v => !!v || 'Court is required']"
-            >
-              <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props">
-                  <template v-slot:prepend>
-                    <v-icon :color="sportService.getSportColor(item.raw.sport?.name)">
-                      {{ sportService.getSportIcon(item.raw.sport?.name, item.raw.sport?.icon) }}
-                    </v-icon>
-                  </template>
-                  <template v-slot:subtitle>
-                    {{ item.raw.sport?.name }} • ₱{{ item.raw.sport?.price_per_hour }}/hr
-                  </template>
-                </v-list-item>
-              </template>
-            </v-select>
-
-            <!-- Date Selection -->
-            <v-text-field
-              v-model="editItem.booking_date"
-              type="date"
-              label="Date"
-              variant="outlined"
-              density="comfortable"
-              prepend-inner-icon="mdi-calendar"
-              class="mb-4"
-              :rules="[v => !!v || 'Date is required']"
-              :min="new Date().toISOString().split('T')[0]"
-              @update:model-value="fetchAvailableSlots"
-            ></v-text-field>
-
-            <!-- Available Time Slots -->
-            <div v-if="editItem.court_id && editItem.booking_date">
-              <div class="d-flex align-center justify-space-between mb-2">
-                <h4 class="text-subtitle-1">Available Time Slots</h4>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  @click="fetchAvailableSlots"
-                  :loading="loadingSlots"
-                >
-                  <v-icon start>mdi-refresh</v-icon>
-                  Refresh
-                </v-btn>
-              </div>
-
-              <v-progress-linear v-if="loadingSlots" indeterminate color="primary" class="mb-3"></v-progress-linear>
-
-              <div v-else-if="availableSlots.length === 0" class="text-center pa-4">
-                <v-icon size="48" color="grey">mdi-calendar-remove</v-icon>
-                <p class="text-grey mt-2">No available slots for this date</p>
-              </div>
-
-              <div v-else class="time-slots-container mb-4">
-                <div class="time-slots-grid">
-                  <v-chip
-                    v-for="slot in availableSlots"
-                    :key="`${slot.start}-${slot.end}`"
-                    :color="isSlotSelected(slot) ? 'primary' : (slot.available ? 'success' : 'error')"
-                    :variant="isSlotSelected(slot) ? 'elevated' : 'outlined'"
-                    :disabled="!slot.available"
-                    class="time-slot-chip"
-                    @click="selectTimeSlot(slot)"
-                  >
-                    <div class="time-slot-content">
-                      <v-icon start size="small">mdi-clock-outline</v-icon>
-                      <span class="time-text">{{ formatTimeSlot(slot.start) }} - {{ formatTimeSlot(slot.end) }}</span>
-                      <span class="price-text">₱{{ slot.price }}</span>
-                    </div>
-                  </v-chip>
-                </div>
-              </div>
-            </div>
-
-            <!-- Price Preview -->
-            <v-alert v-if="editItem.court_id && editItem.start_time && editItem.end_time" type="info" density="compact" class="mt-2">
-              <div class="d-flex align-center justify-space-between">
-                <span>Estimated Price:</span>
-                <strong class="text-h6">₱{{ calculateEditPrice() }}</strong>
-              </div>
-            </v-alert>
-          </v-form>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-4">
-          <v-btn variant="text" @click="closeEditDialog">
-            Cancel
-          </v-btn>
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            :loading="updating"
-            @click="saveEdit"
-          >
-            <v-icon start>mdi-content-save</v-icon>
-            Save Changes
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-dialog>
 </template>
 
@@ -552,20 +417,8 @@ export default {
     const selectAll = ref(false)
 
     // Edit dialog state
-    const editDialog = ref(false)
-    const editItem = ref({
-      id: null,
-      court_id: null,
-      booking_date: '',
-      start_time: '',
-      end_time: '',
-      price: 0
-    })
-    const editForm = ref(null)
     const updating = ref(false)
     const courts = ref([])
-    const availableSlots = ref([])
-    const loadingSlots = ref(false)
 
     const loadCart = async () => {
       loading.value = true
@@ -671,7 +524,7 @@ export default {
           // Start a new group
           currentGroup = {
             id: `group-${groupIdCounter++}-${item.court.id}-${itemDate}-${itemStartTime}`,
-            sport: item.court.sport,
+            sport: item.sport || item.court.sport,
             court: item.court,
             date: itemDate,
             originalItems: [item],
@@ -693,7 +546,7 @@ export default {
             groups.push(currentGroup)
             currentGroup = {
               id: `group-${groupIdCounter++}-${item.court.id}-${itemDate}-${itemStartTime}`,
-              sport: item.court.sport,
+              sport: item.sport || item.court.sport,
               court: item.court,
               date: itemDate,
               originalItems: [item],
@@ -961,249 +814,6 @@ export default {
       }
     }
 
-    const fetchAvailableSlots = async () => {
-      if (!editItem.value.court_id || !editItem.value.booking_date) {
-        availableSlots.value = []
-        return
-      }
-
-      loadingSlots.value = true
-      try {
-        let slots = await courtService.getAvailableSlots(
-          editItem.value.court_id,
-          editItem.value.booking_date
-        )
-
-        // Deduplicate slots (in case API returns duplicates)
-        const uniqueSlots = []
-        const seenKeys = new Set()
-
-        slots.forEach(slot => {
-          const key = `${slot.start}-${slot.end}`
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key)
-            uniqueSlots.push(slot)
-          }
-        })
-
-        availableSlots.value = uniqueSlots
-      } catch (error) {
-        console.error('Error fetching available slots:', error)
-        availableSlots.value = []
-      } finally {
-        loadingSlots.value = false
-      }
-    }
-
-    const isSlotSelected = (slot) => {
-      // Normalize time format for comparison
-      const normalizeTime = (time) => {
-        if (!time) return time
-        return time.substring(0, 5) // HH:MM:SS -> HH:MM
-      }
-      return normalizeTime(editItem.value.start_time) === normalizeTime(slot.start) &&
-             normalizeTime(editItem.value.end_time) === normalizeTime(slot.end)
-    }
-
-    const selectTimeSlot = (slot) => {
-      if (!slot.available) return
-
-      editItem.value.start_time = slot.start
-      editItem.value.end_time = slot.end
-    }
-
-    const editGroup = (group) => {
-      // Get the first item from the group to edit
-      const firstItem = group.originalItems[0]
-
-      // Format the date properly
-      let bookingDate = firstItem.booking_date
-      if (typeof bookingDate === 'object' && bookingDate !== null) {
-        bookingDate = new Date(bookingDate).toISOString().split('T')[0]
-      } else if (typeof bookingDate === 'string' && bookingDate.includes('T')) {
-        bookingDate = bookingDate.split('T')[0]
-      }
-
-      editItem.value = {
-        id: firstItem.id,
-        court_id: firstItem.court_id,
-        booking_date: bookingDate,
-        start_time: group.startTime,
-        end_time: group.endTime,
-        price: group.originalItems.reduce((sum, item) => sum + parseFloat(item.price), 0),
-        originalItems: group.originalItems
-      }
-
-      editDialog.value = true
-      // Fetch available slots after opening dialog
-      nextTick(async () => {
-        await fetchAvailableSlots()
-
-        // Mark user's own booked slots as available so they can be deselected
-        if (group.originalItems && group.originalItems.length > 0) {
-          // Normalize time format helper
-          const normalizeTime = (time) => {
-            if (!time) return time
-            return time.substring(0, 5) // HH:MM:SS -> HH:MM
-          }
-
-          group.originalItems.forEach(cartItem => {
-            const normalizedStart = normalizeTime(cartItem.start_time)
-            const normalizedEnd = normalizeTime(cartItem.end_time)
-
-            const slotIndex = availableSlots.value.findIndex(
-              slot => normalizeTime(slot.start) === normalizedStart && normalizeTime(slot.end) === normalizedEnd
-            )
-
-            if (slotIndex !== -1) {
-              // Mark own slot as available
-              availableSlots.value[slotIndex].available = true
-            }
-          })
-        }
-      })
-    }
-
-    const closeEditDialog = () => {
-      editDialog.value = false
-      availableSlots.value = []
-      editItem.value = {
-        id: null,
-        court_id: null,
-        booking_date: '',
-        start_time: '',
-        end_time: '',
-        price: 0
-      }
-    }
-
-    // Watch for court changes to fetch available slots
-    watch(() => editItem.value.court_id, () => {
-      if (editItem.value.court_id && editItem.value.booking_date) {
-        fetchAvailableSlots()
-      }
-    })
-
-    const calculateEditPrice = () => {
-      if (!editItem.value.court_id || !editItem.value.start_time || !editItem.value.end_time) {
-        return 0
-      }
-
-      const court = courts.value.find(c => c.id === editItem.value.court_id)
-      if (!court || !court.sport) return 0
-
-      const start = new Date(`2000-01-01 ${editItem.value.start_time}`)
-      const end = new Date(`2000-01-01 ${editItem.value.end_time}`)
-      const hours = (end - start) / (1000 * 60 * 60)
-
-      return (court.sport.price_per_hour * hours).toFixed(2)
-    }
-
-    const saveEdit = async () => {
-      // Validate form
-      if (!editForm.value) return
-
-      const { valid } = await editForm.value.validate()
-      if (!valid) return
-
-      updating.value = true
-
-      try {
-        // Validate required fields
-        if (!editItem.value.court_id || !editItem.value.booking_date ||
-            !editItem.value.start_time || !editItem.value.end_time) {
-          await showAlert({
-            icon: 'warning',
-            title: 'Incomplete Data',
-            text: 'Please select a court, date, and time slot'
-          })
-          return
-        }
-
-        // Find the court and calculate price
-        const court = courts.value.find(c => c.id === editItem.value.court_id)
-        if (!court) {
-          await showAlert({
-            icon: 'error',
-            title: 'Error',
-            text: 'Court not found'
-          })
-          return
-        }
-
-        // Find the selected slot to get its price (with time normalization)
-        const normalizeTime = (time) => {
-          if (!time) return time
-          return time.substring(0, 5) // HH:MM:SS -> HH:MM
-        }
-
-        const selectedSlot = availableSlots.value.find(
-          slot => normalizeTime(slot.start) === normalizeTime(editItem.value.start_time) &&
-                  normalizeTime(slot.end) === normalizeTime(editItem.value.end_time)
-        )
-
-        let price
-        if (selectedSlot && selectedSlot.price) {
-          // Use the slot's price directly
-          price = parseFloat(selectedSlot.price)
-        } else {
-          // Fallback: Calculate from court's sport hourly rate
-          const start = new Date(`2000-01-01 ${editItem.value.start_time}`)
-          const end = new Date(`2000-01-01 ${editItem.value.end_time}`)
-          const hours = (end - start) / (1000 * 60 * 60)
-          price = court.sport.price_per_hour * hours
-        }
-
-        // Validate price
-        if (isNaN(price) || price < 0) {
-          await showAlert({
-            icon: 'error',
-            title: 'Error',
-            text: 'Invalid price calculation. Please try again.'
-          })
-          return
-        }
-
-        // Delete old cart items
-        for (const item of editItem.value.originalItems) {
-          await cartService.removeFromCart(item.id)
-        }
-
-        // Add new cart item with updated details
-        await cartService.addToCart([{
-          court_id: editItem.value.court_id,
-          booking_date: editItem.value.booking_date,
-          start_time: editItem.value.start_time,
-          end_time: editItem.value.end_time,
-          price: price
-        }])
-
-        // Close dialog first
-        closeEditDialog()
-
-        // Refresh cart
-        await loadCart()
-        window.dispatchEvent(new CustomEvent('cart-updated'))
-
-        // Show success message after dialog is closed
-        await showAlert({
-          icon: 'success',
-          title: 'Updated!',
-          text: 'Cart item has been updated successfully.',
-          timer: 1500,
-          showConfirmButton: false
-        })
-      } catch (error) {
-        console.error('Error updating cart item:', error)
-        showAlert({
-          icon: 'error',
-          title: 'Error',
-          text: error.response?.data?.message || 'Failed to update cart item'
-        })
-      } finally {
-        updating.value = false
-      }
-    }
 
     const completePayment = async () => {
       if (!proofOfPayment.value) {
@@ -1380,20 +990,8 @@ export default {
       completePayment,
       formatDate,
       formatTimeSlot,
-      editDialog,
-      editItem,
-      editForm,
       updating,
       courts,
-      availableSlots,
-      loadingSlots,
-      editGroup,
-      closeEditDialog,
-      calculateEditPrice,
-      saveEdit,
-      fetchAvailableSlots,
-      isSlotSelected,
-      selectTimeSlot,
       // Services
       sportService,
       // Payment settings

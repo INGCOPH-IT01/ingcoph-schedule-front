@@ -185,15 +185,15 @@
                         <div>
                           <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
                           <v-chip
-                            :color="sportService.getSportColor(booking.court?.sport?.name)"
+                            :color="sportService.getSportColor(booking.sport?.name)"
                             size="x-small"
                             variant="flat"
                             class="text-white mt-1"
-                          >
+                            >
                             <v-icon start size="x-small">
-                              {{ sportService.getSportIcon(booking.court?.sport?.name, booking.court?.sport?.icon) }}
+                              {{ sportService.getSportIcon(booking.sport?.name, booking.sport?.icon) }}
                             </v-icon>
-                            {{ booking.court?.sport?.name || 'Unknown Sport' }}
+                            {{ booking.sport?.name || 'Unknown Sport' }}
                           </v-chip>
                         </div>
                       </div>
@@ -287,15 +287,6 @@
                       <!-- Actions -->
                       <div class="booking-actions-compact">
                         <v-btn
-                          v-if="booking.approval_status === 'pending' && booking.payment_status !== 'paid' && !isBookingExpired(booking)"
-                          icon="mdi-pencil"
-                          size="x-small"
-                          variant="tonal"
-                          color="warning"
-                          @click="editBooking(booking)"
-                          title="Edit Booking"
-                        ></v-btn>
-                        <v-btn
                           v-if="booking.approval_status === 'approved' && booking.qr_code"
                           icon="mdi-qrcode"
                           size="x-small"
@@ -358,7 +349,7 @@
                     <div class="excel-cell-content">
                       <div class="excel-cell-text">
                         <div class="excel-cell-title">{{ item.court?.name || 'Unknown Court' }}</div>
-                        <div class="excel-cell-subtitle">{{ item.court?.sport?.name || 'Unknown Sport' }}</div>
+                        <div class="excel-cell-subtitle">{{ item.sport?.name || 'Unknown Sport' }}</div>
                       </div>
                     </div>
                   </td>
@@ -553,15 +544,6 @@
               </div>
               <div v-else class="excel-actions">
                 <v-btn
-                  v-if="item.status === 'pending'"
-                  icon="mdi-pencil"
-                  size="small"
-                  variant="text"
-                  color="warning"
-                  @click="editBooking(item)"
-                  class="excel-action-btn"
-                ></v-btn>
-                <v-btn
                   v-if="item.status === 'pending' || item.status === 'approved'"
                   icon="mdi-cancel"
                   size="small"
@@ -632,8 +614,8 @@
                             <tr v-for="cartItem in item.cart_transaction.cart_items" :key="cartItem.id">
                               <td>
                                 <div class="d-flex align-center">
-                                  <v-icon class="mr-2" size="small" :color="sportService.getSportColor(cartItem.court?.sport?.name)">
-                                    {{ sportService.getSportIcon(cartItem.court?.sport?.name, cartItem.court?.sport?.icon) }}
+                                  <v-icon class="mr-2" size="small" :color="sportService.getSportColor(cartItem.sport?.name)">
+                                    {{ sportService.getSportIcon(cartItem.sport?.name, cartItem.sport?.icon) }}
                                   </v-icon>
                                   {{ cartItem.court?.name || 'N/A' }}
                                 </div>
@@ -702,7 +684,7 @@
                     <strong>Court:</strong> {{ editingBooking.court?.name || 'Unknown' }}
                   </div>
                   <div class="info-item">
-                    <strong>Sport:</strong> {{ editingBooking.court?.sport?.name || 'Unknown' }}
+                    <strong>Sport:</strong> {{ editingBooking.sport?.name || 'Unknown' }}
                   </div>
                   <div class="info-item">
                     <strong>Status:</strong>
@@ -756,7 +738,7 @@
                     <strong>Court:</strong> {{ editingBooking.court?.name || 'Unknown' }}
                   </div>
                   <div class="detail-item mb-2">
-                    <strong>Sport:</strong> {{ editingBooking.court?.sport?.name || 'Unknown' }}
+                    <strong>Sport:</strong> {{ editingBooking.sport?.name || 'Unknown' }}
                   </div>
                   <div class="detail-item mb-2">
                     <strong>Date:</strong> {{ formatDate(editingBooking.start_time) }}
@@ -1665,12 +1647,17 @@ export default {
         Object.entries(dateCourtGroups).forEach(([groupKey, group]) => {
           // Only add if there are items
           if (group.items.length > 0) {
+            // Extract sport from the first cart item
+            const firstItem = group.items[0]
+            const extractedSport = firstItem?.sport || firstItem?.court?.sport || null
+
             flattened.push({
               id: `${transaction.id}_${groupKey}`,
               // booking_id: group.bookings.id,
               transaction_id: transaction.id,
               booking_date: group.date,
               court: group.court,
+              sport: extractedSport,
               cart_items: group.items,
               price: group.price,
               user: transaction.user,
@@ -1925,12 +1912,18 @@ export default {
                 if (!latestEnd || endTime > latestEnd) latestEnd = endTime
               })
 
+              // Extract sport from cart items
+              const firstCartItem = transaction.cart_items[0]
+              const extractedSport = firstCartItem?.sport || firstCartItem?.court?.sport || null
+
               return {
                 id: `transaction_${transaction.id}`,
                 transaction_id: transaction.id,
                 isTransaction: true,
                 user: transaction.user,
-                court: transaction.cart_items[0]?.court || {},
+                court: firstCartItem?.court || {},
+                sport: extractedSport,
+                booking_date: bookingDate,
                 start_time: earliestStart,
                 end_time: latestEnd,
                 total_price: parseFloat(transaction.total_price),

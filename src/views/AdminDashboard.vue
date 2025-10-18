@@ -684,7 +684,7 @@ export default {
         ...pendingBookings.value.map(booking => [
           booking.user.name,
           booking.court.name,
-          booking.court.sport.name,
+          booking.sport?.name || booking.court?.sport?.name || 'Unknown Sport',
           formatDate(booking.start_time),
           formatTime(booking.start_time),
           formatTime(booking.end_time),

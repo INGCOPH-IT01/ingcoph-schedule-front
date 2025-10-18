@@ -178,15 +178,15 @@
                 class="mb-2"
               >
                 <template v-slot:prepend>
-                  <v-avatar :color="sportService.getSportColor(item.court?.sport?.name)" size="40">
-                    <v-icon color="white">{{ sportService.getSportIcon(item.court?.sport?.name, item.court?.sport?.icon) }}</v-icon>
+                  <v-avatar :color="sportService.getSportColor(item.sport?.name)" size="40">
+                    <v-icon color="white">{{ sportService.getSportIcon(item.sport?.name, item.sport?.icon) }}</v-icon>
                   </v-avatar>
                 </template>
                 <v-list-item-title class="font-weight-bold">
                   {{ item.court?.name || 'Unknown Court' }}
                 </v-list-item-title>
                 <v-list-item-subtitle>
-                  {{ item.court?.sport?.name || 'Unknown Sport' }} •
+                  {{ item.sport?.name || 'Unknown Sport' }} •
                   {{ formatBookingDate(item.booking_date) }} •
                   {{ item.start_time }} - {{ item.end_time }} •
                   <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>

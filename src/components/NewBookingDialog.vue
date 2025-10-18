@@ -1213,6 +1213,7 @@ export default {
 
               const cartItem = {
                 court_id: court.id,
+                sport_id: selectedSport.value.id,
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
@@ -1333,6 +1334,7 @@ export default {
 
               const cartItem = {
                 court_id: parseInt(courtId),
+                sport_id: selectedSport.value.id,
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
@@ -1465,6 +1467,7 @@ export default {
 
               const cartItem = {
                 court_id: parseInt(courtId),
+                sport_id: selectedSport.value.id,
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
