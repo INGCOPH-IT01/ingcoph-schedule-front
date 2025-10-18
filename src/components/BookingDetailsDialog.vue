@@ -321,6 +321,65 @@
           </v-card>
         </div>
 
+        <!-- QR Code Section (Approved Bookings Only) -->
+        <div class="detail-section mb-4" v-if="isApprovedBooking">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-qrcode</v-icon>
+            Booking QR Code
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div v-if="loadingQrCode" class="text-center py-4">
+              <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+              <p class="mt-3 text-body-2">Generating QR code...</p>
+            </div>
+            <div v-else-if="qrCodeError" class="text-center py-4">
+              <v-icon size="64" color="error">mdi-alert-circle</v-icon>
+              <p class="mt-3 text-body-2 text-error">{{ qrCodeError }}</p>
+              <v-btn
+                color="primary"
+                variant="outlined"
+                size="small"
+                class="mt-2"
+                @click="loadQrCode"
+              >
+                Retry
+              </v-btn>
+            </div>
+            <div v-else-if="qrCodeImageUrl" class="text-center">
+              <div class="qr-code-wrapper mb-3">
+                <img
+                  :src="qrCodeImageUrl"
+                  alt="Booking QR Code"
+                  class="booking-qr-code"
+                />
+              </div>
+              <p class="text-body-2 mb-3">
+                Show this QR code at the venue for verification
+              </p>
+              <div class="d-flex justify-center gap-2">
+                <v-btn
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  prepend-icon="mdi-download"
+                  @click="downloadQrCode"
+                >
+                  Download
+                </v-btn>
+                <v-btn
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  prepend-icon="mdi-content-copy"
+                  @click="copyQrCodeData"
+                >
+                  Copy Code
+                </v-btn>
+              </div>
+            </div>
+          </v-card>
+        </div>
+
         <!-- Attendance Status (Staff/Admin only, for approved bookings) -->
         <div class="detail-section mb-4" v-if="isStaffOrAdmin && (booking.approval_status === 'approved' || !isTransaction)">
           <h4 class="detail-section-title">
@@ -453,7 +512,8 @@
 </template>
 
 <script>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
+import QRCode from 'qrcode'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
@@ -495,6 +555,12 @@ export default {
     const selectedImageUrl = ref('')
     const updatingAttendance = ref(false)
     const userRole = ref(null)
+
+    // QR Code state
+    const loadingQrCode = ref(false)
+    const qrCodeError = ref('')
+    const qrCodeImageUrl = ref('')
+    const qrCodeData = ref('')
 
     const closeDialog = () => {
       // Clean up blob URL if it exists
@@ -754,7 +820,100 @@ export default {
       console.error('Image failed to load:', event)
     }
 
+    // QR Code functions
+    const loadQrCode = async () => {
+      if (!props.booking?.id) return
+
+      loadingQrCode.value = true
+      qrCodeError.value = ''
+
+      try {
+        // Import api service dynamically
+        const { default: api } = await import('../services/api')
+
+        // Determine the actual booking ID to use
+        let bookingId = props.booking.id
+
+        // If this is a transaction (cart-based booking), we need to get the first booking's ID
+        // Transaction IDs are formatted as 'transaction_{id}', which is not a real booking PK
+        if (isTransaction.value) {
+          // Check if cart_transaction has bookings array
+          if (props.booking.cart_transaction?.bookings && props.booking.cart_transaction.bookings.length > 0) {
+            bookingId = props.booking.cart_transaction.bookings[0].id // Use first booking's PK
+          } else if (props.booking.cart_items && props.booking.cart_items.length > 0) {
+            // Check if cart_items have bookings relationship loaded (through cart transaction)
+            const firstItem = props.booking.cart_items[0]
+            if (firstItem.bookings && firstItem.bookings.length > 0) {
+              bookingId = firstItem.bookings[0].id
+            } else if (firstItem.booking_id) {
+              // Direct booking_id on cart item (if exists)
+              bookingId = firstItem.booking_id
+            } else {
+              qrCodeError.value = 'No booking ID found for this transaction'
+              loadingQrCode.value = false
+              return
+            }
+          } else {
+            qrCodeError.value = 'No booking records found for this transaction'
+            loadingQrCode.value = false
+            return
+          }
+        }
+
+        // Use the booking's internal ID (PK) to fetch QR code from the bookings endpoint
+        const endpoint = `/bookings/${bookingId}/qr-code`
+
+        // Fetch QR code data from API
+        const response = await api.get(endpoint)
+        qrCodeData.value = response.data.data.qr_code
+
+        // Generate QR code image
+        const dataUrl = await QRCode.toDataURL(qrCodeData.value, {
+          width: 256,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        })
+        qrCodeImageUrl.value = dataUrl
+      } catch (error) {
+        console.error('Failed to load QR code:', error)
+        qrCodeError.value = error.response?.data?.message || 'Failed to generate QR code'
+      } finally {
+        loadingQrCode.value = false
+      }
+    }
+
+    const downloadQrCode = () => {
+      if (qrCodeImageUrl.value) {
+        const link = document.createElement('a')
+        link.download = `booking-${props.booking?.id || 'qr-code'}.png`
+        link.href = qrCodeImageUrl.value
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+    }
+
+    const copyQrCodeData = async () => {
+      if (qrCodeData.value) {
+        try {
+          await navigator.clipboard.writeText(qrCodeData.value)
+          // Successfully copied (you could show a snackbar here if needed)
+        } catch (error) {
+          console.error('Failed to copy QR code data:', error)
+        }
+      }
+    }
+
     // Computed properties
+    const isApprovedBooking = computed(() => {
+      if (!props.booking) return false
+      const status = props.booking.approval_status || props.booking.status || ''
+      return status.toLowerCase() === 'approved'
+    })
+
     const formattedDate = computed(() => {
       if (!props.booking) return ''
       return formatBookingDate(getBookingDate(props.booking))
@@ -794,6 +953,25 @@ export default {
       }
     })
 
+    // Watch for booking changes to load QR code when dialog opens with approved booking
+    watch(
+      () => props.isOpen,
+      (isOpen) => {
+        if (isOpen && props.booking) {
+          // Reset QR code state when opening
+          qrCodeImageUrl.value = ''
+          qrCodeData.value = ''
+          qrCodeError.value = ''
+
+          // Load QR code if booking is approved
+          if (isApprovedBooking.value) {
+            loadQrCode()
+          }
+        }
+      },
+      { immediate: true }
+    )
+
     return {
       // State
       imageDialog,
@@ -801,6 +979,11 @@ export default {
       updatingAttendance,
       isTransaction,
       isStaffOrAdmin,
+      // QR Code state
+      loadingQrCode,
+      qrCodeError,
+      qrCodeImageUrl,
+      qrCodeData,
       // Methods
       closeDialog,
       formatTimeSlot,
@@ -811,6 +994,10 @@ export default {
       downloadImage,
       onImageDialogClose,
       handleImageError,
+      // QR Code methods
+      loadQrCode,
+      downloadQrCode,
+      copyQrCodeData,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
@@ -824,6 +1011,7 @@ export default {
       getAttendanceIcon,
       getAttendanceLabel,
       // Computed
+      isApprovedBooking,
       formattedDate,
       formattedTimeRange,
       totalPrice,
@@ -896,6 +1084,26 @@ export default {
   height: auto;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* QR Code Styles */
+.qr-code-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+  border-radius: 16px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.booking-qr-code {
+  max-width: 256px;
+  height: auto;
+  border-radius: 8px;
+  background: white;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 /* Utility Classes */

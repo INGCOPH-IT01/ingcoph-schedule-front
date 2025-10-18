@@ -1667,6 +1667,7 @@ export default {
           if (group.items.length > 0) {
             flattened.push({
               id: `${transaction.id}_${groupKey}`,
+              // booking_id: group.bookings.id,
               transaction_id: transaction.id,
               booking_date: group.date,
               court: group.court,
