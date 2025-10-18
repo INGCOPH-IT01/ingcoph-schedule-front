@@ -448,19 +448,6 @@
                           <strong>Account Name:</strong> {{ paymentSettings.payment_gcash_name }}
                         </div>
 
-                        <v-text-field
-                          v-model="gcashReferenceNumber"
-                          label="GCash Reference Number"
-                          placeholder="Enter your GCash reference number"
-                          variant="outlined"
-                          density="compact"
-                          prepend-inner-icon="mdi-pound"
-                          :rules="[v => !!v || 'Reference number is required']"
-                          hint="Enter the reference number from your GCash transaction"
-                          persistent-hint
-                          class="mb-3"
-                        ></v-text-field>
-
                         <v-file-input
                           v-model="proofOfPayment"
                           label="Proof of Payment"
@@ -512,7 +499,6 @@
                           <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to {{ paymentSettings.payment_gcash_number }}</li>
                           <li>Take a screenshot of your GCash payment receipt</li>
                           <li>Upload the screenshot above</li>
-                          <li>Enter the reference number from your receipt</li>
                           <li>Click "Checkout with GCash" to complete</li>
                         </ol>
                       </div>
@@ -563,7 +549,7 @@
           <v-btn
             color="success"
             :loading="submitting"
-            :disabled="!gcashReferenceNumber || !proofOfPayment"
+            :disabled="!proofOfPayment"
             @click="submitBookingWithGCash"
           >
             <v-icon start>mdi-cellphone-check</v-icon>
@@ -627,7 +613,6 @@ export default {
 
     // Payment options
     const paymentMethod = ref('gcash') // GCash payment is required
-    const gcashReferenceNumber = ref('')
     const gcashQrCanvas = ref(null)
     const proofOfPayment = ref(null)
     const proofPreview = ref(null)
@@ -1028,15 +1013,6 @@ export default {
     }
 
     const submitBookingWithGCash = async () => {
-      if (!gcashReferenceNumber.value) {
-        showAlert({
-          icon: 'warning',
-          title: 'Missing Reference Number',
-          text: 'Please enter your GCash reference number.'
-        })
-        return
-      }
-
       if (!proofOfPayment.value) {
         showAlert({
           icon: 'warning',
@@ -1121,7 +1097,6 @@ export default {
         // Checkout with GCash payment
         await cartService.checkout({
           payment_method: 'gcash',
-          gcash_reference: gcashReferenceNumber.value,
           proof_of_payment: proofBase64,
           selected_items: cartItemIds
         })
@@ -1142,7 +1117,6 @@ export default {
           title: 'Payment Successful!',
           html: `
             <p>Successfully created <strong>${cartItems.length}</strong> booking(s) with GCash payment!</p>
-            <p class="text-muted">GCash Reference: <strong>${gcashReferenceNumber.value}</strong></p>
             <p class="text-success">Your bookings are confirmed and pending admin approval!</p>
           `,
           confirmButtonText: 'OK'
@@ -1254,7 +1228,6 @@ export default {
       timeSlots.value = {}
       numberOfPlayers.value = 1
       paymentMethod.value = 'gcash'
-      gcashReferenceNumber.value = ''
       proofOfPayment.value = null
       proofPreview.value = null
       // Reset admin fields
@@ -1440,7 +1413,6 @@ export default {
       submitting,
       addingToCart,
       paymentMethod,
-      gcashReferenceNumber,
       gcashQrCanvas,
       proofOfPayment,
       proofPreview,
