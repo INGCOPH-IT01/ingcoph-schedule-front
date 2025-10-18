@@ -89,17 +89,39 @@
       </v-row>
     </div>
 
-    <!-- Revenue Card -->
+    <!-- Hours and Revenue Cards -->
     <v-row class="mb-6">
       <v-col cols="12" sm="6" md="3">
-        <v-card class="pa-4" color="warning" variant="tonal">
-          <div class="d-flex align-center">
-            <div>
-              <div class="text-h4 font-weight-bold">{{ formatPrice(stats.total_revenue ?? 0) }}</div>
-              <div class="text-body-2">Total Revenue</div>
+        <div class="stat-card stat-card-5">
+          <div class="stat-icon">
+            <v-icon color="info" size="48">mdi-clock-outline</v-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-number">{{ stats.total_hours ?? 0 }}</div>
+            <div class="stat-label">Total Hours Today</div>
+            <div class="stat-trend">
+              <v-icon color="info" size="16" class="mr-1">mdi-calendar-today</v-icon>
+              <span class="text-info">Across All Courts</span>
             </div>
           </div>
-        </v-card>
+          <div class="stat-glow"></div>
+        </div>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <div class="stat-card stat-card-6">
+          <div class="stat-icon">
+            <v-icon color="warning" size="48">mdi-cash-multiple</v-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-number">{{ formatPrice(stats.total_revenue ?? 0) }}</div>
+            <div class="stat-label">Total Revenue</div>
+            <div class="stat-trend">
+              <v-icon color="success" size="16" class="mr-1">mdi-trending-up</v-icon>
+              <span class="text-success">All Time</span>
+            </div>
+          </div>
+          <div class="stat-glow"></div>
+        </div>
       </v-col>
     </v-row>
 
@@ -1106,6 +1128,14 @@ export default {
 
 .stat-card-4:hover {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+.stat-card-5:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+.stat-card-6:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
 }
 
 .stat-icon {
