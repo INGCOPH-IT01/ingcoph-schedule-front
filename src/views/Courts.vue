@@ -165,11 +165,6 @@
 
               <v-card-text class="court-card-content">
                 <div class="court-info-row">
-                  <v-icon size="small" color="primary">mdi-map-marker</v-icon>
-                  <span class="court-info-text">{{ court.location || 'No location' }}</span>
-                </div>
-
-                <div class="court-info-row">
                   <v-icon size="small" color="success">mdi-cash</v-icon>
                   <span class="court-info-price">{{ getCourtPriceRange(court) }}</span>
                 </div>
@@ -332,7 +327,6 @@
             <div class="excel-cell-icon">🏟️</div>
             <div class="excel-cell-text">
               <div class="excel-cell-title">{{ item.name }}</div>
-              <div class="excel-cell-subtitle">{{ item.location }}</div>
             </div>
           </div>
         </template>

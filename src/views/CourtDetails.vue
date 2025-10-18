@@ -298,18 +298,6 @@
 
               <div class="info-item">
                 <div class="info-label">
-                  <v-icon size="small" class="mr-2">mdi-map-marker</v-icon>
-                  Location
-                </div>
-                <div class="info-value">
-                  {{ court.location || 'Not specified' }}
-                </div>
-              </div>
-
-              <v-divider class="my-3"></v-divider>
-
-              <div class="info-item">
-                <div class="info-label">
                   <v-icon size="small" class="mr-2">mdi-ruler</v-icon>
                   Court Size
                 </div>

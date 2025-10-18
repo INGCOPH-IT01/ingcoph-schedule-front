@@ -89,10 +89,6 @@
 
                 <div class="d-flex flex-wrap gap-4 mb-4">
                   <div class="d-flex align-center">
-                    <v-icon class="mr-2" color="primary">mdi-map-marker</v-icon>
-                    <span class="text-body-1">{{ court.location || 'Location not specified' }}</span>
-                  </div>
-                  <div class="d-flex align-center pl-2">
                     <span class="text-h5 font-weight-bold text-primary">{{ getCourtPriceRange(court) }}</span>
                   </div>
                 </div>

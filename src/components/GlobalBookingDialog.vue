@@ -88,9 +88,6 @@
                 <div class="text-body-2 mb-2">
                   <strong>Sport:</strong> {{ selectedCourt.sport.name }}
                 </div>
-                <div class="text-body-2 mb-2">
-                  <strong>Location:</strong> {{ selectedCourt.location || 'N/A' }}
-                </div>
                 <div class="text-body-2">
                   <strong>Price per Hour:</strong> {{ formatPriceTemplate(selectedCourt?.sport?.price_per_hour) }}
                 </div>

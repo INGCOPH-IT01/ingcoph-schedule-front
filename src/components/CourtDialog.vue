@@ -88,17 +88,6 @@
           </v-col>
         </v-row>
 
-        <v-row>
-          <v-col cols="12" md="6">
-            <v-text-field
-              v-model="form.location"
-              label="Location"
-              placeholder="Enter court location"
-              variant="outlined"
-              prepend-inner-icon="mdi-map-marker"
-            ></v-text-field>
-          </v-col>
-        </v-row>
         <v-row class="mb-4">
           <v-col cols="12">
             <div class="d-flex align-center justify-space-between mb-2">
@@ -251,7 +240,6 @@ export default {
     const form = ref({
       name: '',
       description: '',
-      location: '',
       amenities: [],
       is_active: true,
       images: [],
@@ -274,7 +262,6 @@ export default {
       form.value = {
         name: '',
         description: '',
-        location: '',
         amenities: [],
         is_active: true,
         images: [],
@@ -317,7 +304,6 @@ export default {
           form.value = {
             name: props.court.name || '',
             description: props.court.description || '',
-            location: props.court.location || '',
             amenities: amenitiesArray,
             is_active: props.court.is_active !== false,
             images: [],
