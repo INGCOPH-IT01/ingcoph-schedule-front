@@ -313,8 +313,9 @@
               </v-alert>
 
               <!-- Upload Proof of Payment Section (for unpaid bookings) -->
+              <!-- Hidden when booking was created by a User role account, unless current user is the booking owner -->
               <v-card
-                v-if="booking.payment_status !== 'paid' && showAdminFeatures"
+                v-if="booking.payment_status !== 'paid' && showAdminFeatures && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
                 variant="outlined"
                 class="mt-3 pa-3"
               >
@@ -676,6 +677,7 @@ export default {
     const selectedImageUrl = ref('')
     const updatingAttendance = ref(false)
     const userRole = ref(null)
+    const currentUserId = ref(null)
     const playersAttended = ref(null)
     const showPlayersAttendedInput = ref(false)
 
@@ -1171,13 +1173,16 @@ export default {
       return statusService.getStatusColor(bookingStatus.value)
     })
 
-    // Fetch user role on mount
+    // Fetch user role and ID on mount
     onMounted(async () => {
       try {
-        userRole.value = await authService.getUserRole()
+        const user = await authService.getUser()
+        userRole.value = user.role
+        currentUserId.value = user.id
       } catch (error) {
-        console.error('Failed to fetch user role:', error)
+        console.error('Failed to fetch user data:', error)
         userRole.value = 'user' // Default to 'user' role if fetch fails
+        currentUserId.value = null
       }
     })
 
@@ -1205,6 +1210,7 @@ export default {
       imageDialog,
       selectedImageUrl,
       updatingAttendance,
+      currentUserId,
       playersAttended,
       showPlayersAttendedInput,
       isTransaction,
