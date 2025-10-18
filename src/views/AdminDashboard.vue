@@ -4,7 +4,7 @@
     <div class="dashboard-header">
       <div class="header-content">
         <div class="header-badge">
-          <v-icon color="white" size="20" class="mr-2">mdi-shield-crown</v-icon>
+          <v-icon color="#1e293b" size="20" class="mr-2">mdi-shield-crown</v-icon>
           Admin Control Center
         </div>
         <h1 class="header-title">
@@ -310,7 +310,7 @@
           <v-divider></v-divider>
 
           <!-- Results Count -->
-          <div class="px-4 py-2 text-caption text-grey">
+          <div class="px-4 py-2 text-caption" style="color: #475569;">
             Showing {{ filteredTransactions.length }} of {{ pendingBookings.length }} transaction{{ pendingBookings.length !== 1 ? 's' : '' }}
           </div>
 
@@ -328,7 +328,7 @@
                 </v-avatar>
                 <div>
                   <div class="font-weight-medium">{{ item.user.name }}</div>
-                  <div class="text-caption text-grey">{{ item.user.email }}</div>
+                  <div class="text-caption" style="color: #475569;">{{ item.user.email }}</div>
                 </div>
               </div>
             </template>
@@ -357,7 +357,7 @@
             <template v-slot:[`item.created_at`]="{ item }">
               <div>
                 <div class="font-weight-medium">{{ formatDate(item.created_at) }}</div>
-                <div class="text-caption text-grey">{{ formatTime(item.created_at) }}</div>
+                <div class="text-caption" style="color: #475569;">{{ formatTime(item.created_at) }}</div>
               </div>
             </template>
 
@@ -1040,13 +1040,13 @@ export default {
 .header-badge {
   display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: 50px;
   padding: 8px 20px;
   margin-bottom: 24px;
-  color: white;
+  color: #1e293b;
   font-weight: 600;
   font-size: 14px;
   letter-spacing: 0.5px;
@@ -1057,7 +1057,7 @@ export default {
   font-weight: 800;
   line-height: 1.1;
   margin-bottom: 24px;
-  color: white;
+  color: #1e293b;
 }
 
 .title-gradient {
@@ -1069,7 +1069,7 @@ export default {
 
 .header-subtitle {
   font-size: clamp(1.1rem, 2vw, 1.3rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: #475569;
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
@@ -1171,7 +1171,7 @@ export default {
 .stat-label {
   font-size: 1rem;
   font-weight: 600;
-  color: #64748b;
+  color: #475569;
   margin-bottom: 12px;
 }
 
@@ -1210,12 +1210,12 @@ export default {
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 800;
   margin-bottom: 16px;
-  color: white;
+  color: #1e293b;
 }
 
 .section-subtitle {
   font-size: clamp(1rem, 2vw, 1.2rem);
-  color: rgba(255, 255, 255, 0.8);
+  color: #475569;
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
@@ -1286,11 +1286,11 @@ export default {
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #B71C1C;
+  color: #1e293b;
 }
 
 .action-description {
-  color: #64748b;
+  color: #475569;
   line-height: 1.6;
   margin-bottom: 24px;
 }
