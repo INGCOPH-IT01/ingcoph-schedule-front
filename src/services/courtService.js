@@ -167,5 +167,42 @@ export const courtService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to get QR code')
     }
+  },
+
+  // Time-based pricing methods
+  async getTimeBasedPricing(sportId) {
+    try {
+      const response = await api.get(`/sports/${sportId}/time-based-pricing`)
+      return response.data.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch time-based pricing')
+    }
+  },
+
+  async createTimeBasedPricing(sportId, pricingData) {
+    try {
+      const response = await api.post(`/sports/${sportId}/time-based-pricing`, pricingData)
+      return response.data.data
+    } catch (error) {
+      throw error
+    }
+  },
+
+  async updateTimeBasedPricing(sportId, pricingId, pricingData) {
+    try {
+      const response = await api.put(`/sports/${sportId}/time-based-pricing/${pricingId}`, pricingData)
+      return response.data.data
+    } catch (error) {
+      throw error
+    }
+  },
+
+  async deleteTimeBasedPricing(sportId, pricingId) {
+    try {
+      const response = await api.delete(`/sports/${sportId}/time-based-pricing/${pricingId}`)
+      return response.data
+    } catch (error) {
+      throw error
+    }
   }
 }
