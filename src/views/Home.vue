@@ -153,6 +153,102 @@
       </v-container>
     </div>
 
+    <!-- Available Sports Section -->
+    <section class="sports-available-section">
+      <div class="sports-background">
+        <div class="sports-pattern"></div>
+      </div>
+      <v-container class="py-16">
+        <v-row>
+          <v-col cols="12" class="text-center mb-12">
+            <div class="section-badge-light">
+              <v-icon color="white" size="20" class="mr-2">mdi-trophy</v-icon>
+              Our Sports
+            </div>
+            <h2 class="section-title-light">
+              <span class="title-gradient-light">Available</span> Sports
+            </h2>
+            <p class="section-subtitle-light">
+              Choose from our premium sports facilities designed for excellence
+            </p>
+          </v-col>
+        </v-row>
+
+        <v-row v-if="loading">
+          <v-col cols="12" class="text-center">
+            <v-progress-circular indeterminate color="white" size="64"></v-progress-circular>
+          </v-col>
+        </v-row>
+
+        <v-row v-else-if="sports.length > 0" class="justify-center">
+          <v-col
+            v-for="(sport, index) in sports"
+            :key="sport.id"
+            cols="12"
+            md="6"
+            lg="5"
+          >
+            <div class="sport-card" :style="{ animationDelay: `${index * 0.2}s` }">
+              <div class="sport-card-content">
+                <div class="sport-icon-section">
+                  <div class="sport-icon-wrapper" :style="!sport.image ? { background: `linear-gradient(135deg, ${getSportGradientColor(sport.name)})` } : {}">
+                    <!-- Show uploaded image if available -->
+                    <v-img
+                      v-if="sport.image"
+                      :src="getImageUrl(sport.image)"
+                      :alt="sport.name"
+                      max-height="80"
+                      max-width="80"
+                      contain
+                      class="sport-logo-image"
+                    ></v-img>
+                    <!-- Show icon if no image is available -->
+                    <v-icon v-else size="80" color="white">
+                      {{ sportService.getSportIcon(sport.name, sport.icon) }}
+                    </v-icon>
+                  </div>
+                  <h3 class="sport-name">{{ sport.name }}</h3>
+                  <p class="sport-description" v-if="sport.description">
+                    {{ sport.description }}
+                  </p>
+                  <p class="sport-description" v-else>
+                    Professional {{ sport.name.toLowerCase() }} facility with championship-grade equipment
+                  </p>
+                </div>
+                <div class="sport-details">
+                  <div class="sport-price-section">
+                    <div class="sport-price-display">
+                      <span class="sport-price-label">Price per Hour</span>
+                      <span class="sport-price-amount">Starts at {{ formatPriceTemplate(sport.price_per_hour) }}</span>
+                    </div>
+                    <v-chip
+                      :color="sport.is_active ? 'success' : 'error'"
+                      variant="flat"
+                      size="small"
+                      class="mt-2"
+                    >
+                      <v-icon size="16" class="mr-1">
+                        {{ sport.is_active ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                      </v-icon>
+                      {{ sport.is_active ? 'Available' : 'Unavailable' }}
+                    </v-chip>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </v-col>
+        </v-row>
+
+        <v-row v-else>
+          <v-col cols="12" class="text-center">
+            <v-alert type="info" variant="tonal" color="white">
+              No sports available at the moment.
+            </v-alert>
+          </v-col>
+        </v-row>
+      </v-container>
+    </section>
+
     <!-- Features Section with Modern Sports Design -->
     <section class="features-section">
       <v-container class="py-16">
@@ -289,6 +385,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { companySettingService } from '../services/companySettingService'
+import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
 
 export default {
@@ -459,6 +556,37 @@ export default {
       return `${closedDays.join(', ')} & ${lastDay}`
     })
 
+    // Get full image URL for sport logo
+    const getImageUrl = (imagePath) => {
+      if (!imagePath) return ''
+      // If it's already a full URL, return as is
+      if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+        return imagePath
+      }
+      // Otherwise, prepend the API URL
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      return `${apiUrl}${imagePath.startsWith('/') ? '' : '/'}${imagePath}`
+    }
+
+    // Get gradient color based on sport
+    const getSportGradientColor = (sportName) => {
+      const color = sportService.getSportColor(sportName)
+
+      const colorMap = {
+        'blue': '#1976D2 0%, #1565C0 100%',
+        'green': '#388E3C 0%, #2E7D32 100%',
+        'orange': '#F57C00 0%, #EF6C00 100%',
+        'red': '#D32F2F 0%, #C62828 100%',
+        'teal': '#00897B 0%, #00796B 100%',
+        'purple': '#7B1FA2 0%, #6A1B9A 100%',
+        'pink': '#C2185B 0%, #AD1457 100%',
+        'indigo': '#303F9F 0%, #283593 100%',
+        'grey': '#616161 0%, #424242 100%'
+      }
+
+      return colorMap[color] || '#B71C1C 0%, #C62828 100%'
+    }
+
     const openBookingDialog = () => {
       // Emit event to parent (App.vue) to open the global booking dialog
       window.dispatchEvent(new CustomEvent('open-booking-dialog'))
@@ -579,7 +707,10 @@ export default {
       openBookingDialog,
       handleBookNowClick,
       formatPriceTemplate,
-      formatTime
+      formatTime,
+      getImageUrl,
+      getSportGradientColor,
+      sportService
     }
   }
 }
@@ -949,6 +1080,182 @@ export default {
   background: rgba(255, 255, 255, 0.2) !important;
   border-color: rgba(255, 255, 255, 0.5) !important;
   transform: translateY(-4px) !important;
+}
+
+/* Available Sports Section */
+.sports-available-section {
+  position: relative;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 50%, #D32F2F 100%);
+  overflow: hidden;
+}
+
+.sports-available-section .v-container {
+  position: relative;
+  z-index: 2;
+}
+
+.sports-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.sports-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image:
+    radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.1) 1px, transparent 0);
+  background-size: 30px 30px;
+}
+
+.section-badge-light {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 50px;
+  padding: 8px 20px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.section-title-light {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: white;
+  position: relative;
+  z-index: 2;
+}
+
+.title-gradient-light {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFFFFF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-subtitle-light {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+  position: relative;
+  z-index: 2;
+}
+
+.sport-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 2;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+.sport-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.4);
+}
+
+.sport-card-content {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+}
+
+.sport-icon-section {
+  margin-bottom: 24px;
+}
+
+.sport-icon-wrapper {
+  width: 120px;
+  height: 120px;
+  border-radius: 30px;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 24px;
+  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.sport-card:hover .sport-icon-wrapper {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.sport-logo-image {
+  object-fit: contain;
+  padding: 10px;
+}
+
+.sport-name {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #B71C1C 0%, #5F6368 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sport-description {
+  color: #64748b;
+  line-height: 1.6;
+  font-size: 1rem;
+  margin-bottom: 24px;
+}
+
+.sport-details {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-top: 24px;
+}
+
+.sport-price-section {
+  text-align: center;
+}
+
+.sport-price-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sport-price-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sport-price-amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Features Section Styles */
@@ -1352,6 +1659,23 @@ export default {
   .day-hours-grid {
     grid-template-columns: 1fr;
   }
+
+  .sport-card {
+    padding: 32px 24px;
+  }
+
+  .sport-icon-wrapper {
+    width: 100px;
+    height: 100px;
+  }
+
+  .sport-name {
+    font-size: 1.75rem;
+  }
+
+  .sport-price-amount {
+    font-size: 2rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1398,6 +1722,31 @@ export default {
 
   .feature-item {
     padding: 12px;
+  }
+
+  .sport-card {
+    padding: 24px 16px;
+  }
+
+  .sport-icon-wrapper {
+    width: 80px;
+    height: 80px;
+  }
+
+  .sport-icon-wrapper .v-icon {
+    font-size: 50px !important;
+  }
+
+  .sport-name {
+    font-size: 1.5rem;
+  }
+
+  .sport-description {
+    font-size: 0.9rem;
+  }
+
+  .sport-price-amount {
+    font-size: 1.8rem;
   }
 }
 </style>
