@@ -290,7 +290,7 @@
                   Price per Hour
                 </div>
                 <div class="info-value price-value">
-                  ₱{{ court.sport?.price_per_hour }}
+                  {{ getCourtPriceRange(court) }}
                 </div>
               </div>
 
@@ -809,6 +809,38 @@ export default {
       return numHours
     }
 
+    const getCourtPriceRange = (courtData) => {
+      if (!courtData || !courtData.sport) {
+        return '₱0/hr'
+      }
+
+      const sport = courtData.sport
+      const timeBasedPricing = sport.time_based_pricing || []
+
+      // Get all active time-based pricing rules
+      const activePrices = timeBasedPricing
+        .filter(rule => rule.is_active)
+        .map(rule => parseFloat(rule.price_per_hour))
+
+      // If no time-based pricing, return the base price
+      if (activePrices.length === 0) {
+        return `₱${parseFloat(sport.price_per_hour || 0).toFixed(0)}/hr`
+      }
+
+      // Include base price in the range calculation
+      const allPrices = [...activePrices, parseFloat(sport.price_per_hour || 0)]
+      const minPrice = Math.min(...allPrices)
+      const maxPrice = Math.max(...allPrices)
+
+      // If min and max are the same, show single price
+      if (minPrice === maxPrice) {
+        return `₱${minPrice.toFixed(0)}/hr`
+      }
+
+      // Show price range
+      return `₱${minPrice.toFixed(0)} - ₱${maxPrice.toFixed(0)}/hr`
+    }
+
     const viewBookingDetailsDialog = (booking) => {
       selectedBookingForView.value = booking
       bookingViewDialog.value = true
@@ -868,6 +900,7 @@ export default {
       formatDate,
       formatPrice,
       formatDuration,
+      getCourtPriceRange,
       // Booking view dialog
       bookingViewDialog,
       selectedBookingForView,

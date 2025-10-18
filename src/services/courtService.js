@@ -204,5 +204,14 @@ export const courtService = {
     } catch (error) {
       throw error
     }
+  },
+
+  async getTotalBookedHours(courtId) {
+    try {
+      const response = await api.get(`/courts/${courtId}/total-booked-hours`)
+      return response.data.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch total booked hours')
+    }
   }
 }

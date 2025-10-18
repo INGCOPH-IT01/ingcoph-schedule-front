@@ -171,7 +171,7 @@
 
                 <div class="court-info-row">
                   <v-icon size="small" color="success">mdi-cash</v-icon>
-                  <span class="court-info-price">₱{{ court.sport?.price_per_hour }}/hr</span>
+                  <span class="court-info-price">{{ getCourtPriceRange(court) }}</span>
                 </div>
 
                 <div class="court-info-row">
@@ -197,6 +197,32 @@
                   >
                     +{{ court.amenities.split(',').length - 3 }} more
                   </v-chip>
+                </div>
+
+                <!-- Total Booked Hours Display -->
+                <div class="total-booked-hours-section mt-3">
+                  <div class="d-flex align-center justify-space-between mb-2">
+                    <span class="text-caption font-weight-bold">
+                      <v-icon size="small" color="primary" class="mr-1">mdi-clock-check</v-icon>
+                      Total Booked Hours
+                    </span>
+                    <v-chip
+                      v-if="!loadingTotalBookedHours[court.id]"
+                      color="primary"
+                      variant="tonal"
+                      size="small"
+                      class="font-weight-bold"
+                    >
+                      {{ courtTotalBookedHours[court.id] || 0 }} hrs
+                    </v-chip>
+                    <v-progress-circular
+                      v-else
+                      indeterminate
+                      size="16"
+                      width="2"
+                      color="primary"
+                    ></v-progress-circular>
+                  </div>
                 </div>
 
                 <!-- Time Availability Display -->
@@ -330,7 +356,7 @@
         <!-- Price Column -->
         <template v-slot:[`item.price_per_hour`]="{ item }">
           <div class="excel-price">
-            <span class="excel-price-amount">₱{{ item.sport?.price_per_hour }}/hour</span>
+            <span class="excel-price-amount">{{ getCourtPriceRange(item) }}</span>
           </div>
         </template>
 
@@ -621,6 +647,10 @@ export default {
     const courtTimeSlots = ref({})
     const loadingTimeSlots = ref({})
 
+    // Total booked hours state
+    const courtTotalBookedHours = ref({})
+    const loadingTotalBookedHours = ref({})
+
     // Date filter state
     const availabilityDate = ref('')
     const minDate = computed(() => {
@@ -658,7 +688,8 @@ export default {
         loading.value = true
         const courtsData = await courtService.getCourts()
         courts.value = courtsData
-        // Load time slots for all courts after courts are fetched
+        // Load total booked hours and time slots for all courts after courts are fetched
+        await loadAllCourtTotalBookedHours()
         await loadAllCourtTimeSlots()
       } catch (err) {
         error.value = err.message
@@ -710,6 +741,38 @@ export default {
       return '6:00 AM - 10:00 PM'
     }
 
+    const getCourtPriceRange = (court) => {
+      if (!court || !court.sport) {
+        return '₱0/hr'
+      }
+
+      const sport = court.sport
+      const timeBasedPricing = sport.time_based_pricing || []
+
+      // Get all active time-based pricing rules
+      const activePrices = timeBasedPricing
+        .filter(rule => rule.is_active)
+        .map(rule => parseFloat(rule.price_per_hour))
+
+      // If no time-based pricing, return the base price
+      if (activePrices.length === 0) {
+        return `₱${parseFloat(sport.price_per_hour || 0).toFixed(0)}/hr`
+      }
+
+      // Include base price in the range calculation
+      const allPrices = [...activePrices, parseFloat(sport.price_per_hour || 0)]
+      const minPrice = Math.min(...allPrices)
+      const maxPrice = Math.max(...allPrices)
+
+      // If min and max are the same, show single price
+      if (minPrice === maxPrice) {
+        return `₱${minPrice.toFixed(0)}/hr`
+      }
+
+      // Show price range
+      return `₱${minPrice.toFixed(0)} - ₱${maxPrice.toFixed(0)}/hr`
+    }
+
     const editCourt = (court) => {
       openEditDialog(court)
     }
@@ -751,11 +814,33 @@ export default {
       }
     }
 
+    const loadCourtTotalBookedHours = async (courtId) => {
+      try {
+        loadingTotalBookedHours.value[courtId] = true
+        const data = await courtService.getTotalBookedHours(courtId)
+        courtTotalBookedHours.value[courtId] = data.total_booked_hours || 0
+      } catch (err) {
+        console.error('Failed to load total booked hours:', err)
+        courtTotalBookedHours.value[courtId] = 0
+      } finally {
+        loadingTotalBookedHours.value[courtId] = false
+      }
+    }
+
     const loadAllCourtTimeSlots = async () => {
       // Load time slots for all courts
       if (courts.value && courts.value.length > 0) {
         for (const court of courts.value) {
           await loadCourtTimeSlots(court.id)
+        }
+      }
+    }
+
+    const loadAllCourtTotalBookedHours = async () => {
+      // Load total booked hours for all courts
+      if (courts.value && courts.value.length > 0) {
+        for (const court of courts.value) {
+          await loadCourtTotalBookedHours(court.id)
         }
       }
     }
@@ -882,6 +967,7 @@ export default {
       handleCourtSaved,
       deleteCourt,
       getCourtOperatingHours,
+      getCourtPriceRange,
       editCourt,
       toggleCourtStatus,
       navigateToCourtDetails,
@@ -889,6 +975,9 @@ export default {
       courtTimeSlots,
       loadingTimeSlots,
       formatTimeSlot,
+      // Total booked hours
+      courtTotalBookedHours,
+      loadingTotalBookedHours,
       // Date filter
       availabilityDate,
       minDate,
@@ -1380,6 +1469,17 @@ export default {
   border-top: 1px solid #e2e8f0;
   padding: 12px;
   background: #f8fafc;
+}
+
+/* Total Booked Hours Styles */
+.total-booked-hours-section {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 12px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, rgba(33, 150, 243, 0.05) 0%, rgba(21, 101, 192, 0.05) 100%);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(33, 150, 243, 0.1);
 }
 
 /* Time Availability Styles - Booking Dialog Pattern */
