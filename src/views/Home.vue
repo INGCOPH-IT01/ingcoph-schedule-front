@@ -71,6 +71,71 @@
                   <div class="stat-label">Booking</div>
                 </div>
               </div>
+
+              <!-- Operating Hours Card -->
+              <div v-if="operatingHoursEnabled && operatingHours" class="operating-hours-card-hero">
+                <div class="operating-hours-header">
+                  <v-icon size="40" color="white" class="mr-3">mdi-clock-outline</v-icon>
+                  <div>
+                    <h3 class="operating-hours-title">Operating Hours</h3>
+                    <p class="operating-hours-subtitle">We're here to serve you</p>
+                  </div>
+                </div>
+                <v-divider class="my-4" color="white" opacity="0.3"></v-divider>
+                <div class="operating-hours-content">
+                  <!-- Show only general schedule if all days match -->
+                  <div v-if="allDaysMatchGeneral" class="general-hours-only">
+                    <div class="hours-label">
+                      <v-icon color="white" class="mr-2">mdi-calendar-range</v-icon>
+                      <span>{{ hasClosedDays ? 'Open Days' : 'Every Day' }}</span>
+                    </div>
+                    <div class="hours-time">
+                      {{ formatTime(operatingHours.opening) }} - {{ formatTime(operatingHours.closing) }}
+                    </div>
+                    <!-- Show closed days if any -->
+                    <div v-if="hasClosedDays" class="closed-days-info">
+                      <v-icon size="18" color="#ffcdd2" class="mr-1">mdi-information-outline</v-icon>
+                      <span>Closed on: {{ closedDaysList }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Show detailed schedule if days differ -->
+                  <div v-else>
+                    <div class="general-hours mb-4">
+                      <div class="hours-label">
+                        <v-icon color="white" class="mr-2">mdi-calendar-range</v-icon>
+                        <span>General Schedule</span>
+                      </div>
+                      <div class="hours-time">
+                        {{ formatTime(operatingHours.opening) }} - {{ formatTime(operatingHours.closing) }}
+                      </div>
+                    </div>
+                    <div class="day-hours-grid">
+                      <div
+                        v-for="day in displayDays"
+                        :key="day.value"
+                        class="day-hours-item"
+                        :class="{ 'day-closed': !operatingHours[day.value].operational }"
+                      >
+                        <div class="day-label">
+                          <v-icon size="18" color="white" class="mr-1">{{ day.icon }}</v-icon>
+                          {{ day.label }}
+                        </div>
+                        <div class="day-time">
+                          <span v-if="operatingHours[day.value].operational">
+                            {{ formatTime(operatingHours[day.value].open) }} - {{ formatTime(operatingHours[day.value].close) }}
+                          </span>
+                          <span v-else class="closed-badge">
+                            <v-icon size="16" color="white" class="mr-1">mdi-close-circle</v-icon>
+                            CLOSED
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="hero-actions">
                 <v-btn
                     size="x-large"
@@ -220,7 +285,7 @@
 </template>
 
 <script>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { companySettingService } from '../services/companySettingService'
@@ -244,6 +309,20 @@ export default {
       showStats: true,
       showRecentBookings: true
     })
+
+    // Operating hours
+    const operatingHoursEnabled = ref(false)
+    const operatingHours = ref(null)
+
+    const displayDays = [
+      { value: 'monday', label: 'Monday', icon: 'mdi-numeric-1-circle' },
+      { value: 'tuesday', label: 'Tuesday', icon: 'mdi-numeric-2-circle' },
+      { value: 'wednesday', label: 'Wednesday', icon: 'mdi-numeric-3-circle' },
+      { value: 'thursday', label: 'Thursday', icon: 'mdi-numeric-4-circle' },
+      { value: 'friday', label: 'Friday', icon: 'mdi-numeric-5-circle' },
+      { value: 'saturday', label: 'Saturday', icon: 'mdi-numeric-6-circle' },
+      { value: 'sunday', label: 'Sunday', icon: 'mdi-numeric-7-circle' }
+    ]
 
     // Features data for the features section
     const features = ref([
@@ -330,6 +409,56 @@ export default {
       return formatPrice(price)
     }
 
+    // Format time (HH:MM to readable format)
+    const formatTime = (time) => {
+      if (!time) return ''
+      const [hours, minutes] = time.split(':')
+      const hour = parseInt(hours)
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const displayHour = hour % 12 || 12
+      return `${displayHour}:${minutes} ${ampm}`
+    }
+
+    // Computed property to check if all operational days have the same hours as general schedule
+    const allDaysMatchGeneral = computed(() => {
+      if (!operatingHours.value) return false
+
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+      return days.every(day => {
+        // If day is closed, it doesn't affect matching (we'll show closed days separately)
+        if (!operatingHours.value[day].operational) return true
+
+        // Check if operational day matches general schedule
+        return operatingHours.value[day].open === operatingHours.value.opening &&
+               operatingHours.value[day].close === operatingHours.value.closing
+      })
+    })
+
+    // Computed property to check if there are any closed days
+    const hasClosedDays = computed(() => {
+      if (!operatingHours.value) return false
+
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+      return days.some(day => !operatingHours.value[day].operational)
+    })
+
+    // Computed property to get list of closed days
+    const closedDaysList = computed(() => {
+      if (!operatingHours.value) return ''
+
+      const closedDays = displayDays
+        .filter(day => !operatingHours.value[day.value].operational)
+        .map(day => day.label)
+
+      if (closedDays.length === 0) return ''
+      if (closedDays.length === 1) return closedDays[0]
+      if (closedDays.length === 2) return closedDays.join(' & ')
+
+      // For 3 or more days, use comma separation with "and" for the last one
+      const lastDay = closedDays.pop()
+      return `${closedDays.join(', ')} & ${lastDay}`
+    })
+
     const openBookingDialog = () => {
       // Emit event to parent (App.vue) to open the global booking dialog
       window.dispatchEvent(new CustomEvent('open-booking-dialog'))
@@ -364,6 +493,49 @@ export default {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
           companyLogoUrl.value = `${apiUrl}${settings.company_logo_url}`
         }
+        // Load operating hours
+        operatingHoursEnabled.value = settings.operating_hours_enabled !== undefined ? settings.operating_hours_enabled : false
+        if (operatingHoursEnabled.value) {
+          operatingHours.value = {
+            opening: settings.operating_hours_opening || '08:00',
+            closing: settings.operating_hours_closing || '22:00',
+            monday: {
+              open: settings.operating_hours_monday_open || '08:00',
+              close: settings.operating_hours_monday_close || '22:00',
+              operational: settings.operating_hours_monday_operational !== undefined ? settings.operating_hours_monday_operational : true
+            },
+            tuesday: {
+              open: settings.operating_hours_tuesday_open || '08:00',
+              close: settings.operating_hours_tuesday_close || '22:00',
+              operational: settings.operating_hours_tuesday_operational !== undefined ? settings.operating_hours_tuesday_operational : true
+            },
+            wednesday: {
+              open: settings.operating_hours_wednesday_open || '08:00',
+              close: settings.operating_hours_wednesday_close || '22:00',
+              operational: settings.operating_hours_wednesday_operational !== undefined ? settings.operating_hours_wednesday_operational : true
+            },
+            thursday: {
+              open: settings.operating_hours_thursday_open || '08:00',
+              close: settings.operating_hours_thursday_close || '22:00',
+              operational: settings.operating_hours_thursday_operational !== undefined ? settings.operating_hours_thursday_operational : true
+            },
+            friday: {
+              open: settings.operating_hours_friday_open || '08:00',
+              close: settings.operating_hours_friday_close || '22:00',
+              operational: settings.operating_hours_friday_operational !== undefined ? settings.operating_hours_friday_operational : true
+            },
+            saturday: {
+              open: settings.operating_hours_saturday_open || '08:00',
+              close: settings.operating_hours_saturday_close || '22:00',
+              operational: settings.operating_hours_saturday_operational !== undefined ? settings.operating_hours_saturday_operational : true
+            },
+            sunday: {
+              open: settings.operating_hours_sunday_open || '08:00',
+              close: settings.operating_hours_sunday_close || '22:00',
+              operational: settings.operating_hours_sunday_operational !== undefined ? settings.operating_hours_sunday_operational : true
+            }
+          }
+        }
       } catch (error) {
         console.error('Failed to load dashboard settings:', error)
         // Keep default values on error
@@ -397,10 +569,17 @@ export default {
       dashboardSettings,
       companyName,
       companyLogoUrl,
+      operatingHoursEnabled,
+      operatingHours,
+      displayDays,
+      allDaysMatchGeneral,
+      hasClosedDays,
+      closedDaysList,
       getSportPrice,
       openBookingDialog,
       handleBookNowClick,
-      formatPriceTemplate
+      formatPriceTemplate,
+      formatTime
     }
   }
 }
@@ -418,6 +597,157 @@ export default {
   border-radius: 0;
   z-index: 1000;
   animation: slideInDown 0.5s ease-out;
+}
+
+/* Operating Hours Card in Hero Section */
+.operating-hours-card-hero {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin: 48px auto;
+  max-width: 800px;
+  animation: fadeInUp 1.2s ease-out;
+}
+
+.operating-hours-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.operating-hours-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.operating-hours-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+.operating-hours-content {
+  color: white;
+}
+
+.general-hours {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.general-hours-only {
+  text-align: center;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.general-hours-only .hours-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+}
+
+.general-hours-only .hours-time {
+  font-size: 2rem;
+  font-weight: 800;
+  color: white;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.closed-days-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffcdd2;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: rgba(244, 67, 54, 0.15);
+  border-radius: 8px;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.hours-label {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.hours-time {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: white;
+}
+
+.day-hours-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.day-hours-item {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.day-hours-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.day-label {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.day-time {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+.day-closed {
+  opacity: 0.7;
+  background: rgba(244, 67, 54, 0.15) !important;
+  border-color: rgba(244, 67, 54, 0.3) !important;
+}
+
+.closed-badge {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: #ffcdd2;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Hero Company Logo */
@@ -994,6 +1324,34 @@ export default {
   .court-card {
     padding: 32px 24px;
   }
+
+  .operating-hours-card-hero {
+    padding: 24px;
+    margin: 32px auto;
+  }
+
+  .general-hours {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .general-hours-only {
+    padding: 20px;
+  }
+
+  .general-hours-only .hours-time {
+    font-size: 1.5rem;
+  }
+
+  .closed-days-info {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+
+  .day-hours-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1013,6 +1371,25 @@ export default {
 
   .court-card {
     padding: 24px 16px;
+  }
+
+  .operating-hours-card-hero {
+    padding: 20px;
+    margin: 24px auto;
+  }
+
+  .general-hours-only {
+    padding: 16px;
+  }
+
+  .general-hours-only .hours-time {
+    font-size: 1.3rem;
+  }
+
+  .closed-days-info {
+    flex-direction: column;
+    text-align: center;
+    font-size: 0.8rem;
   }
 
   .features-grid {

@@ -399,6 +399,191 @@
             </v-form>
           </v-card-text>
         </v-card>
+
+        <!-- Operating Hours Card -->
+        <v-card class="settings-card mt-6">
+          <v-card-title class="text-h5 pa-6 pb-4">
+            <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
+            Operating Hours
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-alert type="info" variant="tonal" class="mb-4">
+              <v-icon class="mr-2">mdi-information</v-icon>
+              Set your court's operating hours. These will be displayed on the home page.
+            </v-alert>
+
+            <v-form @submit.prevent="saveOperatingHours">
+              <!-- Enable Operating Hours Display -->
+              <div class="mb-4">
+                <v-switch
+                  v-model="operatingHoursEnabled"
+                  label="Display Operating Hours on Home Page"
+                  color="primary"
+                  hide-details
+                  class="mb-2"
+                ></v-switch>
+              </div>
+
+              <v-divider class="mb-4"></v-divider>
+
+              <!-- General Operating Hours -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  General Operating Hours
+                </label>
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="operatingHoursOpening"
+                      label="Opening Time"
+                      type="time"
+                      variant="outlined"
+                      prepend-inner-icon="mdi-clock-start"
+                      hide-details
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-text-field
+                      v-model="operatingHoursClosing"
+                      label="Closing Time"
+                      type="time"
+                      variant="outlined"
+                      prepend-inner-icon="mdi-clock-end"
+                      hide-details
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+              </div>
+
+              <!-- Day-Specific Hours -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-3 d-block">
+                  <v-icon class="mr-1" size="small">mdi-calendar-week</v-icon>
+                  Day-Specific Operating Hours
+                  <v-chip size="x-small" color="info" class="ml-2">Optional</v-chip>
+                </label>
+                <v-alert type="info" density="compact" variant="tonal" class="mb-3">
+                  <small>Customize opening hours for specific days. Leave empty to use general hours.</small>
+                </v-alert>
+
+                <div v-for="day in weekDays" :key="day.value" class="mb-3">
+                  <v-expansion-panels variant="accordion">
+                    <v-expansion-panel>
+                      <v-expansion-panel-title>
+                        <div class="d-flex align-center">
+                          <v-icon class="mr-2" color="primary">{{ day.icon }}</v-icon>
+                          <span class="font-weight-bold">{{ day.label }}</span>
+                          <v-chip
+                            size="x-small"
+                            class="ml-2"
+                            :color="operatingHours[day.value].operational ? 'success' : 'error'"
+                          >
+                            <span v-if="operatingHours[day.value].operational">
+                              {{ operatingHours[day.value].open }} - {{ operatingHours[day.value].close }}
+                            </span>
+                            <span v-else>CLOSED</span>
+                          </v-chip>
+                        </div>
+                      </v-expansion-panel-title>
+                      <v-expansion-panel-text>
+                        <!-- Operational Status Toggle -->
+                        <div class="mb-4">
+                          <v-switch
+                            v-model="operatingHours[day.value].operational"
+                            :label="operatingHours[day.value].operational ? 'Operational' : 'Closed'"
+                            color="success"
+                            hide-details
+                            class="mb-2"
+                          >
+                            <template v-slot:prepend>
+                              <v-icon :color="operatingHours[day.value].operational ? 'success' : 'error'">
+                                {{ operatingHours[day.value].operational ? 'mdi-check-circle' : 'mdi-close-circle' }}
+                              </v-icon>
+                            </template>
+                          </v-switch>
+                        </div>
+
+                        <!-- Time Fields (only show if operational) -->
+                        <v-row v-if="operatingHours[day.value].operational">
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="operatingHours[day.value].open"
+                              label="Opening Time"
+                              type="time"
+                              variant="outlined"
+                              prepend-inner-icon="mdi-clock-start"
+                              hide-details
+                            ></v-text-field>
+                          </v-col>
+                          <v-col cols="12" md="6">
+                            <v-text-field
+                              v-model="operatingHours[day.value].close"
+                              label="Closing Time"
+                              type="time"
+                              variant="outlined"
+                              prepend-inner-icon="mdi-clock-end"
+                              hide-details
+                            ></v-text-field>
+                          </v-col>
+                        </v-row>
+                        <v-alert v-else type="info" density="compact" variant="tonal" class="mt-2">
+                          This day is marked as closed. No operations on {{ day.label }}.
+                        </v-alert>
+                      </v-expansion-panel-text>
+                    </v-expansion-panel>
+                  </v-expansion-panels>
+                </div>
+              </div>
+
+              <v-alert
+                v-if="operatingSuccessMessage"
+                type="success"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="operatingSuccessMessage = ''"
+              >
+                {{ operatingSuccessMessage }}
+              </v-alert>
+
+              <v-alert
+                v-if="operatingErrorMessage"
+                type="error"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="operatingErrorMessage = ''"
+              >
+                {{ operatingErrorMessage }}
+              </v-alert>
+
+              <div class="d-flex justify-end gap-2">
+                <v-btn
+                  color="grey"
+                  variant="outlined"
+                  @click="resetOperatingHours"
+                  :disabled="operatingSaving"
+                >
+                  <v-icon class="mr-2">mdi-refresh</v-icon>
+                  Reset to Default
+                </v-btn>
+                <v-btn
+                  color="primary"
+                  variant="elevated"
+                  type="submit"
+                  :loading="operatingSaving"
+                  :disabled="operatingSaving"
+                >
+                  <v-icon class="mr-2">mdi-content-save</v-icon>
+                  Save Operating Hours
+                </v-btn>
+              </div>
+            </v-form>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
@@ -450,6 +635,33 @@ export default {
     const bgSuccessMessage = ref('')
     const bgErrorMessage = ref('')
 
+    // Operating hours
+    const operatingHoursEnabled = ref(true)
+    const operatingHoursOpening = ref('08:00')
+    const operatingHoursClosing = ref('22:00')
+    const operatingHours = ref({
+      monday: { open: '08:00', close: '22:00', operational: true },
+      tuesday: { open: '08:00', close: '22:00', operational: true },
+      wednesday: { open: '08:00', close: '22:00', operational: true },
+      thursday: { open: '08:00', close: '22:00', operational: true },
+      friday: { open: '08:00', close: '22:00', operational: true },
+      saturday: { open: '08:00', close: '22:00', operational: true },
+      sunday: { open: '08:00', close: '22:00', operational: true }
+    })
+    const operatingSaving = ref(false)
+    const operatingSuccessMessage = ref('')
+    const operatingErrorMessage = ref('')
+
+    const weekDays = [
+      { value: 'monday', label: 'Monday', icon: 'mdi-numeric-1-circle' },
+      { value: 'tuesday', label: 'Tuesday', icon: 'mdi-numeric-2-circle' },
+      { value: 'wednesday', label: 'Wednesday', icon: 'mdi-numeric-3-circle' },
+      { value: 'thursday', label: 'Thursday', icon: 'mdi-numeric-4-circle' },
+      { value: 'friday', label: 'Friday', icon: 'mdi-numeric-5-circle' },
+      { value: 'saturday', label: 'Saturday', icon: 'mdi-numeric-6-circle' },
+      { value: 'sunday', label: 'Sunday', icon: 'mdi-numeric-7-circle' }
+    ]
+
     const snackbar = ref({
       show: false,
       message: '',
@@ -491,6 +703,21 @@ export default {
         bgPrimaryColor.value = settings.bg_primary_color || '#FFFFFF'
         bgSecondaryColor.value = settings.bg_secondary_color || '#FFEBEE'
         bgAccentColor.value = settings.bg_accent_color || '#FFCDD2'
+
+        // Load operating hours
+        operatingHoursEnabled.value = settings.operating_hours_enabled !== undefined ? settings.operating_hours_enabled : true
+        operatingHoursOpening.value = settings.operating_hours_opening || '08:00'
+        operatingHoursClosing.value = settings.operating_hours_closing || '22:00'
+
+        // Load day-specific operating hours
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        days.forEach(day => {
+          operatingHours.value[day].open = settings[`operating_hours_${day}_open`] || '08:00'
+          operatingHours.value[day].close = settings[`operating_hours_${day}_close`] || '22:00'
+          operatingHours.value[day].operational = settings[`operating_hours_${day}_operational`] !== undefined
+            ? settings[`operating_hours_${day}_operational`]
+            : true
+        })
       } catch (error) {
         console.error('Failed to load settings:', error)
         errorMessage.value = 'Failed to load company settings'
@@ -693,6 +920,58 @@ export default {
       bgErrorMessage.value = ''
     }
 
+    // Operating hours functions
+    const saveOperatingHours = async () => {
+      try {
+        operatingSaving.value = true
+        operatingSuccessMessage.value = ''
+        operatingErrorMessage.value = ''
+
+        const data = {
+          operating_hours_opening: operatingHoursOpening.value,
+          operating_hours_closing: operatingHoursClosing.value,
+          operating_hours_enabled: operatingHoursEnabled.value,
+          company_name: companyName.value // Required field
+        }
+
+        // Add day-specific hours
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        days.forEach(day => {
+          data[`operating_hours_${day}_open`] = operatingHours.value[day].open
+          data[`operating_hours_${day}_close`] = operatingHours.value[day].close
+          data[`operating_hours_${day}_operational`] = operatingHours.value[day].operational
+        })
+
+        await companySettingService.updateSettings(data)
+        operatingSuccessMessage.value = 'Operating hours updated successfully!'
+        showSnackbar('Operating hours saved successfully', 'success')
+
+        // Dispatch event to update home page
+        window.dispatchEvent(new CustomEvent('company-settings-updated'))
+
+      } catch (error) {
+        console.error('Failed to save operating hours:', error)
+        operatingErrorMessage.value = error.message || 'Failed to update operating hours'
+        showSnackbar('Failed to save operating hours', 'error')
+      } finally {
+        operatingSaving.value = false
+      }
+    }
+
+    const resetOperatingHours = () => {
+      operatingHoursEnabled.value = true
+      operatingHoursOpening.value = '08:00'
+      operatingHoursClosing.value = '22:00'
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+      days.forEach(day => {
+        operatingHours.value[day].open = '08:00'
+        operatingHours.value[day].close = '22:00'
+        operatingHours.value[day].operational = true
+      })
+      operatingSuccessMessage.value = ''
+      operatingErrorMessage.value = ''
+    }
+
     onMounted(() => {
       loadSettings()
     })
@@ -730,7 +1009,18 @@ export default {
       bgErrorMessage,
       saveBackgroundColors,
       resetBackgroundColors,
-      applyPreset
+      applyPreset,
+      // Operating hours
+      operatingHoursEnabled,
+      operatingHoursOpening,
+      operatingHoursClosing,
+      operatingHours,
+      operatingSaving,
+      operatingSuccessMessage,
+      operatingErrorMessage,
+      weekDays,
+      saveOperatingHours,
+      resetOperatingHours
     }
   }
 }
