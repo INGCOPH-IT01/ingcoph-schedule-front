@@ -872,18 +872,90 @@ export default {
       return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
     }
 
+    /**
+     * Get the price per hour for a specific date and time considering time-based pricing
+     */
+    const getPriceForDateTime = (dateTime) => {
+      if (!selectedSport.value) {
+        return 0
+      }
+
+      // Get all active time-based pricing rules for this sport, ordered by priority (highest first)
+      const pricingRules = (selectedSport.value.time_based_pricing || [])
+        .filter(rule => rule.is_active)
+        .sort((a, b) => (b.priority || 0) - (a.priority || 0))
+
+      // If no pricing rules exist, return the default price
+      if (pricingRules.length === 0) {
+        return parseFloat(selectedSport.value.price_per_hour || 0)
+      }
+
+      const dayOfWeek = dateTime.getDay() // 0 = Sunday, 1 = Monday, etc.
+      const time = dateTime.toTimeString().substring(0, 8) // HH:mm:ss format
+
+      // Find the first matching rule with highest priority
+      for (const rule of pricingRules) {
+        // Check if the rule applies to this day of week
+        const daysOfWeek = rule.days_of_week
+
+        // If days_of_week is null or empty, rule applies to all days
+        if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(dayOfWeek)) {
+          continue
+        }
+
+        // Check if the time falls within the rule's time range
+        // Convert time strings to comparable format
+        const ruleStart = rule.start_time.length === 5 ? `${rule.start_time}:00` : rule.start_time
+        const ruleEnd = rule.end_time.length === 5 ? `${rule.end_time}:00` : rule.end_time
+
+        if (time >= ruleStart && time < ruleEnd) {
+          return parseFloat(rule.price_per_hour)
+        }
+      }
+
+      // If no matching rule found, return the default price
+      return parseFloat(selectedSport.value.price_per_hour || 0)
+    }
+
+    /**
+     * Calculate total price for a time range considering time-based pricing
+     */
+    const calculatePriceForRange = (startDateTime, endDateTime) => {
+      let totalPrice = 0
+      const currentTime = new Date(startDateTime)
+
+      // Calculate price for each hour segment
+      while (currentTime < endDateTime) {
+        const nextHour = new Date(currentTime.getTime() + 60 * 60 * 1000) // Add 1 hour
+
+        // If next hour exceeds end time, calculate partial hour
+        if (nextHour > endDateTime) {
+          const fraction = (endDateTime - currentTime) / (60 * 60 * 1000)
+          totalPrice += getPriceForDateTime(currentTime) * fraction
+          break
+        }
+
+        // Add full hour price
+        totalPrice += getPriceForDateTime(currentTime)
+        currentTime.setTime(nextHour.getTime())
+      }
+
+      return totalPrice
+    }
+
     const calculateTotalPrice = () => {
       let total = 0
       Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
         const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
         if (court) {
           courtData.slots.forEach(slot => {
-            const start = new Date(`2000-01-01 ${slot.start}`)
-            const end = new Date(`2000-01-01 ${slot.end}`)
-            const hours = (end - start) / (1000 * 60 * 60)
-            // Use sport price instead of court price
-            const pricePerHour = selectedSport.value?.price_per_hour || 0
-            total += pricePerHour * hours
+            // Create proper datetime objects with the selected date
+            const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+
+            // Use time-based pricing calculation
+            const slotPrice = calculatePriceForRange(startDateTime, endDateTime)
+            total += slotPrice
           })
         }
       })
@@ -948,12 +1020,19 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court && courtData.slots && courtData.slots.length > 0) {
             courtData.slots.forEach(slot => {
+              // Create proper datetime objects with the selected date for accurate pricing
+              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+
+              // Use time-based pricing calculation
+              const price = calculatePriceForRange(startDateTime, endDateTime)
+
               const cartItem = {
                 court_id: court.id,
                 booking_date: selectedDate.value,
                 start_time: slot.start,
                 end_time: slot.end,
-                price: slot.price || 0,
+                price: price,
                 number_of_players: numberOfPlayers.value || 1
               }
 
@@ -1061,12 +1140,12 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court) {
             courtData.slots.forEach(slot => {
-              const start = new Date(`2000-01-01 ${slot.start}`)
-              const end = new Date(`2000-01-01 ${slot.end}`)
-              const hours = (end - start) / (1000 * 60 * 60)
-              // Use sport price instead of court price
-              const pricePerHour = selectedSport.value?.price_per_hour || 0
-              const price = pricePerHour * hours
+              // Create proper datetime objects with the selected date for accurate pricing
+              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+
+              // Use time-based pricing calculation
+              const price = calculatePriceForRange(startDateTime, endDateTime)
 
               const cartItem = {
                 court_id: parseInt(courtId),
