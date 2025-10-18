@@ -82,22 +82,6 @@
                   class="form-field mb-4"
                 ></v-text-field>
 
-                <v-checkbox
-                  v-model="form.terms"
-                  :rules="[v => !!v || 'You must agree to the terms']"
-                  color="primary"
-                  class="mb-4"
-                >
-                  <template v-slot:label>
-                    <span class="terms-text">
-                      I agree to the
-                      <a href="#" class="terms-link">Terms of Service</a>
-                      and
-                      <a href="#" class="terms-link">Privacy Policy</a>
-                    </span>
-                  </template>
-                </v-checkbox>
-
                 <v-alert
                   v-if="error"
                   type="error"
@@ -160,8 +144,7 @@ export default {
       email: '',
       phone: '',
       password: '',
-      password_confirmation: '',
-      terms: false
+      password_confirmation: ''
     })
     const loading = ref(false)
     const error = ref('')
@@ -203,7 +186,7 @@ export default {
       try {
         loading.value = true
         error.value = ''
-        
+
         const response = await authService.register({
           name: form.value.name,
           email: form.value.email,
@@ -211,12 +194,12 @@ export default {
           password: form.value.password,
           password_confirmation: form.value.password_confirmation
         })
-        
+
         // Dispatch auth change event to update App.vue
-        window.dispatchEvent(new CustomEvent('auth-changed', { 
-          detail: { user: response.user } 
+        window.dispatchEvent(new CustomEvent('auth-changed', {
+          detail: { user: response.user }
         }))
-        
+
         router.push('/')
       } catch (err) {
         error.value = err.message
@@ -268,7 +251,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 40% 40%, rgba(245, 158, 11, 0.1) 0%, transparent 50%);
@@ -281,7 +264,7 @@ export default {
   left: 0;
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
   background-size: 20px 20px;
   z-index: -1;
@@ -389,24 +372,6 @@ export default {
   }
 }
 
-/* Terms Text */
-.terms-text {
-  color: #64748b;
-  font-size: 0.9rem;
-}
-
-.terms-link {
-  color: #B71C1C;
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.3s ease;
-}
-
-.terms-link:hover {
-  color: #C62828;
-  text-decoration: underline;
-}
-
 /* Auth Footer */
 .auth-footer {
   text-align: center;
@@ -437,7 +402,7 @@ export default {
     padding: 32px 24px;
     margin: 16px;
   }
-  
+
   .auth-title {
     font-size: 1.8rem;
   }
@@ -448,7 +413,7 @@ export default {
     padding: 24px 16px;
     margin: 12px;
   }
-  
+
   .auth-title {
     font-size: 1.5rem;
   }
