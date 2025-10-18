@@ -68,7 +68,7 @@
                   closable
                   size="small"
                 >
-                  <span class="sport-icon mr-1">{{ getSportIcon(item.raw.name, item.raw.icon) }}</span>
+                  <span class="sport-icon mr-1">{{ sportService.getSportIcon(item.raw.name, item.raw.icon) }}</span>
                   {{ item.raw.name }}
                 </v-chip>
               </template>
@@ -288,22 +288,48 @@ export default {
 
     const populateForm = () => {
       if (props.court) {
-        // Get sport IDs from the sports relationship (many-to-many)
-        const sportIds = props.court.sports && props.court.sports.length > 0
-          ? props.court.sports.map(sport => sport.id)
-          : (props.court.sport_id ? [props.court.sport_id] : []) // Fallback to single sport_id if exists
+        try {
+          // Get sport IDs from the sports relationship (many-to-many)
+          let sportIds = []
 
-        form.value = {
-          name: props.court.name || '',
-          description: props.court.description || '',
-          location: props.court.location || '',
-          amenities: [...(props.court.amenities || [])],
-          is_active: props.court.is_active !== false,
-          images: [...([])],
-          sport_ids: sportIds,
-          trashImages: [...(props.court.trashImages || [])]
+          if (props.court.sports && Array.isArray(props.court.sports) && props.court.sports.length > 0) {
+            sportIds = props.court.sports.map(sport => sport?.id).filter(id => id)
+          } else if (props.court.sport_id) {
+            // Fallback to single sport_id if exists
+            sportIds = [props.court.sport_id]
+          } else if (props.court.sport?.id) {
+            // Another fallback using the sport object
+            sportIds = [props.court.sport.id]
+          }
+
+          // Handle amenities - can be string (comma-separated) or array
+          let amenitiesArray = []
+          if (props.court.amenities) {
+            if (typeof props.court.amenities === 'string') {
+              // If string, split by comma and trim whitespace
+              amenitiesArray = props.court.amenities.split(',').map(a => a.trim()).filter(a => a)
+            } else if (Array.isArray(props.court.amenities)) {
+              // If already array, use it
+              amenitiesArray = [...props.court.amenities]
+            }
+          }
+
+          form.value = {
+            name: props.court.name || '',
+            description: props.court.description || '',
+            location: props.court.location || '',
+            amenities: amenitiesArray,
+            is_active: props.court.is_active !== false,
+            images: [],
+            sport_ids: sportIds,
+            trashImages: props.court.trashImages || []
+          }
+
+          previewImages.value = Array.isArray(props.court.images) ? [...props.court.images] : []
+        } catch (error) {
+          console.error('Error populating form:', error)
+          error.value = 'Failed to load court data'
         }
-        previewImages.value = [...(props.court.images || [])]
       }
     }
 
@@ -384,7 +410,7 @@ export default {
       if (props.isOpen) {
         populateForm()
       }
-    })
+    }, { deep: true, immediate: false })
 
     onMounted(() => {
       fetchSports()
