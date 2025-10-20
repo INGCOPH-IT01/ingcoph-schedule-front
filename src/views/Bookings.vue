@@ -1986,6 +1986,33 @@ export default {
           console.error('❌ Error fetching cart items:', cartErr)
           bookings.value = []
         }
+        // Also fetch direct bookings (created without cart transactions), so admin-made bookings for a user appear here
+        try {
+          const ts = new Date().getTime()
+          const bookingsResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings?_=${ts}`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          })
+
+          if (bookingsResponse.ok) {
+            const bookingsJson = await bookingsResponse.json()
+            // API may return an array or an object with { success, data }
+            let directBookings = Array.isArray(bookingsJson) ? bookingsJson : (bookingsJson.data || [])
+
+            // Only include direct bookings (no cart transaction) to avoid duplicating items represented by transactions
+            directBookings = directBookings.filter(b => !b.cart_transaction_id)
+
+            // Merge with transaction-backed items we already set
+            bookings.value = [...(bookings.value || []), ...directBookings]
+          } else {
+            console.error('❌ Failed to fetch direct bookings')
+          }
+        } catch (bookingsErr) {
+          console.error('❌ Error fetching direct bookings:', bookingsErr)
+        }
       } catch (err) {
         console.error('❌ Bookings - Error:', err)
         error.value = err.message
