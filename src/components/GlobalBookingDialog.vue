@@ -504,8 +504,12 @@
             variant="tonal"
             class="mt-4"
           >
-
-            {{ getBookingInfoText() }}
+            <div class="font-weight-bold mb-1">Booking Confirmation</div>
+            <div>{{ getBookingInfoText() }}</div>
+            <div class="text-caption mt-2">
+              <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+              <strong>Please note:</strong> There may be a carry over delay in the confirmation of your booking during weekends and holidays. This is normal processing time.
+            </div>
           </v-alert>
 
           <v-alert

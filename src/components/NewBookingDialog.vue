@@ -120,7 +120,7 @@
               </div>
 
               <!-- Selected Sport Info -->
-              <v-card variant="tonal" color="primary" class="mb-4" v-if="selectedSport">
+              <!-- <v-card variant="tonal" color="primary" class="mb-4" v-if="selectedSport">
                 <v-card-text class="pa-4">
                   <div class="d-flex align-center justify-space-between">
                     <div class="d-flex align-center">
@@ -135,7 +135,22 @@
                     </v-chip>
                   </div>
                 </v-card-text>
-              </v-card>
+              </v-card> -->
+
+              <!-- Booking Confirmation Delay Notice -->
+              <v-alert
+                variant="tonal"
+                class="mb-4"
+                density="compact"
+              >
+                <div class="d-flex align-center">
+                  <v-icon class="mr-2">mdi-information</v-icon>
+                  <div>
+                    <div class="font-weight-bold">Important Notice</div>
+                    <div class="text-caption">There may be a carry over delay in the confirmation of your booking during weekends and holidays. This is normal processing time.</div>
+                  </div>
+                </div>
+              </v-alert>
 
               <!-- Date Selection -->
               <v-row class="mb-4">
@@ -609,12 +624,21 @@
               </v-card>
 
               <v-alert v-if="!skipPayment" type="info" class="mt-4" icon="mdi-information">
-                Your booking will be confirmed immediately after GCash payment verification.
+                <div class="font-weight-bold mb-1">Booking Confirmation Process</div>
+                <div>Your booking will be confirmed after GCash payment verification.</div>
+                <div class="text-caption mt-2">
+                  <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+                  Please note: There may be a carry over delay in the confirmation of your booking. This is normal processing time.
+                </div>
               </v-alert>
 
               <v-alert v-if="skipPayment && isAdminOrStaff" type="warning" class="mt-4" icon="mdi-alert">
                 <div class="font-weight-bold">Booking without payment</div>
                 <div class="text-caption">Time slots will be marked as booked, but cannot be marked as "showed up" until payment is completed.</div>
+                <div class="text-caption mt-2">
+                  <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+                  Please note: There may be a carry over delay in the confirmation of your booking.
+                </div>
               </v-alert>
             </div>
           </v-window-item>
