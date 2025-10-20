@@ -246,6 +246,13 @@
             </v-alert>
           </v-col>
         </v-row>
+
+        <!-- Pricing Disclaimer Note -->
+        <v-row v-if="sports.length > 0" class="mt-4">
+          <v-col cols="12" class="text-center">
+            <PriceDisclaimerNote theme="dark" />
+          </v-col>
+        </v-row>
       </v-container>
     </section>
 
@@ -366,6 +373,9 @@
                       >
                           Book Your Session
                       </v-btn>
+                      <div class="mt-3">
+                        <PriceDisclaimerNote theme="light" />
+                      </div>
                     </div>
                   </div>
                 </v-col>
@@ -387,9 +397,13 @@ import { courtService } from '../services/courtService'
 import { companySettingService } from '../services/companySettingService'
 import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
+import PriceDisclaimerNote from '../components/PriceDisclaimerNote.vue'
 
 export default {
   name: 'Home',
+  components: {
+    PriceDisclaimerNote
+  },
   setup() {
     const router = useRouter()
     const sports = ref([])
