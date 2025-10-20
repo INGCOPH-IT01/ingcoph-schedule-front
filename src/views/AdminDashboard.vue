@@ -255,7 +255,7 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="dateFromFilter"
-                  label="From Date"
+                  label="Booking Date From"
                   type="date"
                   prepend-inner-icon="mdi-calendar-start"
                   variant="outlined"
@@ -268,7 +268,7 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="dateToFilter"
-                  label="To Date"
+                  label="Booking Date To"
                   type="date"
                   prepend-inner-icon="mdi-calendar-end"
                   variant="outlined"
@@ -549,7 +549,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
@@ -588,8 +588,12 @@ export default {
     const statusFilter = ref('all')
     const userFilter = ref('')
     const sportFilter = ref(null)
-    const dateFromFilter = ref('')
-    const dateToFilter = ref('')
+
+    // Initialize date filters with today's date as default
+    const today = new Date()
+    const todayString = today.toISOString().split('T')[0]
+    const dateFromFilter = ref(todayString)
+    const dateToFilter = ref(todayString)
 
     const headers = [
       { title: 'ID', key: 'id', sortable: true },
@@ -627,8 +631,17 @@ export default {
     const loadPendingBookings = async () => {
       try {
         loading.value = true
-        // Fetch all cart transactions instead of just pending
-        const transactions = await cartService.getAllTransactions()
+        // Prepare filters for backend
+        const filters = {}
+        if (dateFromFilter.value) {
+          filters.date_from = dateFromFilter.value
+        }
+        if (dateToFilter.value) {
+          filters.date_to = dateToFilter.value
+        }
+
+        // Fetch all cart transactions with date filters
+        const transactions = await cartService.getAllTransactions(filters)
         pendingBookings.value = transactions.map(transaction => ({
           ...transaction,
           approving: false,
@@ -895,25 +908,8 @@ export default {
         })
       }
 
-      // Filter by date range
-      if (dateFromFilter.value) {
-        const fromDate = new Date(dateFromFilter.value)
-        fromDate.setHours(0, 0, 0, 0)
-        filtered = filtered.filter(transaction => {
-          const transactionDate = new Date(transaction.created_at)
-          transactionDate.setHours(0, 0, 0, 0)
-          return transactionDate >= fromDate
-        })
-      }
-
-      if (dateToFilter.value) {
-        const toDate = new Date(dateToFilter.value)
-        toDate.setHours(23, 59, 59, 999)
-        filtered = filtered.filter(transaction => {
-          const transactionDate = new Date(transaction.created_at)
-          return transactionDate <= toDate
-        })
-      }
+      // Note: Date range filtering is now handled by the backend API
+      // when loadPendingBookings() is called
 
       return filtered
     })
@@ -1047,10 +1043,60 @@ export default {
       loadPendingBookings()
     }
 
+    // Track if component is mounted to prevent watcher from firing during initial setup
+    const isMounted = ref(false)
+
+    // Watch date filters and reload data when they change (with debounce)
+    let dateFilterTimeout = null
+    watch([dateFromFilter, dateToFilter], ([newDateFrom, newDateTo]) => {
+      // Only react to changes after the component has mounted
+      // This prevents the watcher from interfering with the initial load
+      if (!isMounted.value) {
+        return
+      }
+
+      // Update URL params to persist filters on page reload
+      const url = new URL(window.location)
+      if (newDateFrom) {
+        url.searchParams.set('date_from', newDateFrom)
+      } else {
+        url.searchParams.delete('date_from')
+      }
+      if (newDateTo) {
+        url.searchParams.set('date_to', newDateTo)
+      } else {
+        url.searchParams.delete('date_to')
+      }
+      window.history.replaceState({}, '', url)
+
+      // Debounce the API call to avoid multiple rapid requests when setting both dates
+      if (dateFilterTimeout) {
+        clearTimeout(dateFilterTimeout)
+      }
+      dateFilterTimeout = setTimeout(() => {
+        loadPendingBookings()
+      }, 500) // Wait 500ms after the last change
+    })
+
     onMounted(() => {
+      // Check URL params for date filters (to restore state on page reload)
+      const urlParams = new URLSearchParams(window.location.search)
+      if (urlParams.has('date_from')) {
+        dateFromFilter.value = urlParams.get('date_from')
+      }
+      if (urlParams.has('date_to')) {
+        dateToFilter.value = urlParams.get('date_to')
+      }
+
       loadStats()
       loadSports()
       loadPendingBookings()
+
+      // Mark as mounted after initial load completes
+      // Use nextTick to ensure the initial load has started
+      setTimeout(() => {
+        isMounted.value = true
+      }, 100)
 
       // Listen for custom events to refresh admin data
       window.addEventListener('booking-created', handleBookingRefresh)
@@ -1059,6 +1105,11 @@ export default {
     })
 
     onUnmounted(() => {
+      // Clean up timeout
+      if (dateFilterTimeout) {
+        clearTimeout(dateFilterTimeout)
+      }
+
       // Clean up event listeners
       window.removeEventListener('booking-created', handleBookingRefresh)
       window.removeEventListener('booking-updated', handleBookingRefresh)
