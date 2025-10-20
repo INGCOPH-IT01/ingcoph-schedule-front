@@ -705,7 +705,7 @@ export default {
         ['User', 'Court', 'Sport', 'Date', 'Start Time', 'End Time', 'Total Price', 'Status', 'Notes'],
         ...pendingBookings.value.map(booking => [
           booking.user.name,
-          booking.court.name,
+          booking.court.surface_type ? `${booking.court.name} (${booking.court.surface_type})` : booking.court.name,
           booking.sport?.name || booking.court?.sport?.name || 'Unknown Sport',
           formatDate(booking.start_time),
           formatTime(booking.start_time),

@@ -349,7 +349,7 @@
                   </div>
 
                   <!-- Pricing Breakdown by Rate -->
-                  <div v-if="getPricingBreakdown().length > 1" class="pricing-breakdown mb-4">
+                  <div class="pricing-breakdown mb-4">
                     <h5 class="text-subtitle-1 font-weight-bold mb-3">
                       <v-icon class="mr-2" color="info">mdi-cash-multiple</v-icon>
                       Pricing Breakdown
@@ -386,6 +386,9 @@
                             <div class="d-flex align-center flex-grow-1">
                               <v-icon size="16" class="mr-2" color="grey">mdi-stadium</v-icon>
                               <span class="text-body-2">{{ slot.courtName }}</span>
+                              <span v-if="slot.surfaceType" class="text-caption text-grey ml-1">
+                                ({{ slot.surfaceType }})
+                              </span>
                               <v-icon size="12" class="mx-2" color="grey">mdi-circle-small</v-icon>
                               <span class="text-body-2">
                                 {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
@@ -406,66 +409,6 @@
                           <span class="text-body-2 font-weight-bold">
                             Subtotal: ₱{{ rateGroup.totalPrice.toFixed(2) }}
                           </span>
-                        </div>
-                      </v-card>
-                    </div>
-                  </div>
-
-                  <!-- List all bookings grouped by time slot (shown when no rate breakdown or single rate) -->
-                  <div v-else>
-                    <div
-                      v-for="(timeSlot, index) in timeSlotGroupedBookings"
-                      :key="index"
-                      class="time-slot-bookings-section mb-4"
-                    >
-                      <v-card variant="tonal" class="pa-3">
-                        <!-- Time slot header -->
-                        <div class="d-flex align-center justify-space-between mb-2">
-                          <div class="d-flex align-center">
-                            <v-icon class="mr-2" color="primary" size="28">mdi-clock-outline</v-icon>
-                            <div>
-                              <h5 class="text-subtitle-1 font-weight-bold mb-0">
-                                {{ formatTime(timeSlot.start) }} - {{ formatTime(timeSlot.end) }}
-                              </h5>
-                              <div class="text-caption text-grey">
-                                <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
-                                {{ formatDate(selectedDate) }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="text-right">
-                            <div class="text-caption text-grey">Subtotal</div>
-                            <div class="text-h6 font-weight-bold text-success">
-                              ₱{{ timeSlot.totalPrice.toFixed(2) }}
-                            </div>
-                          </div>
-                        </div>
-
-                        <v-divider class="my-2"></v-divider>
-
-                        <!-- Courts for this time slot -->
-                        <div class="text-caption text-grey mb-2 font-weight-medium">
-                          <v-icon size="14" class="mr-1">mdi-stadium</v-icon>
-                          Courts ({{ timeSlot.courts.length }}):
-                        </div>
-
-                        <div class="courts-list">
-                          <v-chip
-                            v-for="(court, courtIndex) in timeSlot.courts"
-                            :key="courtIndex"
-                            color="primary"
-                            variant="tonal"
-                            size="small"
-                            class="mr-2 mb-2"
-                          >
-                            <v-icon start size="16">mdi-stadium</v-icon>
-                            {{ court.name }}
-                            <span v-if="court.surface_type" class="ml-1 text-caption">
-                              ({{ court.surface_type }})
-                            </span>
-                            <v-divider vertical class="mx-2"></v-divider>
-                            <span class="font-weight-bold">₱{{ court.price.toFixed(2) }}</span>
-                          </v-chip>
                         </div>
                       </v-card>
                     </div>
@@ -880,48 +823,6 @@ export default {
       return Object.values(courtTimeSlots.value).reduce((total, ct) => total + ct.slots.length, 0)
     })
 
-    // Group bookings by time slot for better UX when multiple courts are booked at the same time
-    const timeSlotGroupedBookings = computed(() => {
-      const grouped = {}
-
-      Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
-        const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
-        if (court && courtData.slots && courtData.slots.length > 0) {
-          courtData.slots.forEach(slot => {
-            const timeKey = `${slot.start}-${slot.end}`
-
-            if (!grouped[timeKey]) {
-              grouped[timeKey] = {
-                start: slot.start,
-                end: slot.end,
-                courts: [],
-                totalPrice: 0
-              }
-            }
-
-            // Create proper datetime objects with the selected date for accurate pricing
-            const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-            const price = calculatePriceForRange(startDateTime, endDateTime)
-
-            grouped[timeKey].courts.push({
-              id: court.id,
-              name: court.name,
-              surface_type: court.surface_type,
-              price: price
-            })
-
-            grouped[timeKey].totalPrice += price
-          })
-        }
-      })
-
-      // Sort by start time
-      return Object.values(grouped).sort((a, b) => {
-        return a.start.localeCompare(b.start)
-      })
-    })
-
     // Calculate the overall time range from all selected slots (adjacent time sensitive)
     const overallTimeRange = computed(() => {
       const allSlots = []
@@ -1319,6 +1220,7 @@ export default {
             group.slots.push({
               courtId,
               courtName: court.name,
+              surfaceType: court.surface_type,
               start: slot.start,
               end: slot.end,
               price: slotPrice
@@ -2046,7 +1948,6 @@ export default {
       filteredCourts,
       canProceed,
       totalBookings,
-      timeSlotGroupedBookings,
       overallTimeRange,
       getCourtSports,
       selectSport,

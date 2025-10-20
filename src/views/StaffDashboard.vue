@@ -180,7 +180,12 @@
 
             <template v-slot:[`item.court_name`]="{ item }">
               <div>
-                <div class="font-weight-medium">{{ item.court.name }}</div>
+                <div class="font-weight-medium">
+                  {{ item.court.name }}
+                  <span v-if="item.court.surface_type" class="text-caption text-grey ml-1">
+                    ({{ item.court.surface_type }})
+                  </span>
+                </div>
                 <div class="text-caption text-grey">{{ item.sport?.name || item.court?.sport?.name || 'Unknown Sport' }}</div>
               </div>
             </template>

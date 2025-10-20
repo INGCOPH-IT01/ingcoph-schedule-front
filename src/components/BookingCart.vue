@@ -116,6 +116,9 @@
                   <div v-if="group.court" class="text-body-2 mb-1">
                     <v-icon size="small" class="mr-1">mdi-stadium</v-icon>
                     <strong>Court:</strong> {{ group.court.name }}
+                    <span v-if="group.court.surface_type" class="text-caption text-grey ml-1">
+                      ({{ group.court.surface_type }})
+                    </span>
                   </div>
 
                   <div v-if="group.date" class="text-body-2 mb-1">
