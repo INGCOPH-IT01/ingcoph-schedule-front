@@ -363,11 +363,10 @@
               </v-chip>
             </template>
 
-            <template v-slot:[`item.number_of_players`]="{ item }">
-              <v-chip color="primary" variant="tonal" size="small">
-                <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ item.cart_items?.[0]?.number_of_players || 1 }}
-              </v-chip>
+            <template v-slot:[`item.booking_date`]="{ item }">
+              <div>
+                <div class="font-weight-medium">{{ formatDate(item.cart_items?.[0]?.booking_date) }}</div>
+              </div>
             </template>
 
             <template v-slot:[`item.created_at`]="{ item }">
@@ -572,10 +571,10 @@ export default {
     const dateToFilter = ref('')
 
     const headers = [
-      { title: 'Transaction ID', key: 'id', sortable: true },
+      { title: 'ID', key: 'id', sortable: true },
       { title: 'User', key: 'user_name', sortable: false },
       { title: 'Sport', key: 'sport_name', sortable: false },
-      { title: 'Players', key: 'number_of_players', sortable: false },
+      { title: 'Booking Date', key: 'booking_date', sortable: true },
       { title: 'Created At', key: 'created_at', sortable: true },
       { title: 'Total Price', key: 'total_price', sortable: true },
       { title: 'Payment Status', key: 'payment_status', sortable: false },
