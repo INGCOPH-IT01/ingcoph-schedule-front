@@ -350,7 +350,7 @@
             <template v-slot:[`item.number_of_players`]="{ item }">
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ item.number_of_players || 1 }}
+                {{ item.cart_items?.[0]?.number_of_players || 1 }}
               </v-chip>
             </template>
 

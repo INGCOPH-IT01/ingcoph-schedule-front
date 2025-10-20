@@ -132,7 +132,13 @@
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Court:</span>
-              <span class="detail-value">{{ courtName || 'N/A' }}</span>
+              <div class="detail-value text-right">
+                <div>{{ courtName || 'N/A' }}</div>
+                <div v-if="booking.court?.surface_type" class="text-caption text-grey">
+                  <v-icon size="12" class="mr-1">mdi-texture-box</v-icon>
+                  {{ booking.court.surface_type }}
+                </div>
+              </div>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
@@ -186,6 +192,9 @@
                 </template>
                 <v-list-item-title class="font-weight-bold">
                   {{ item.court?.name || 'Unknown Court' }}
+                  <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-2">
+                    (<v-icon size="12">mdi-texture-box</v-icon> {{ item.court.surface_type }})
+                  </span>
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   {{ item.sport?.name || 'Unknown Sport' }} •

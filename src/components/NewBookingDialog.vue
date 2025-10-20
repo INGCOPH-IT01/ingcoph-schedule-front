@@ -87,7 +87,7 @@
                   Number of Players
                 </h4>
                 <v-text-field
-                  v-model.number="numberOfPlayers"
+                  v-model="numberOfPlayers"
                   type="number"
                   label="How many players?"
                   variant="outlined"
@@ -95,6 +95,9 @@
                   :rules="[v => v >= 1 || 'At least 1 player required']"
                   persistent-hint
                   min="1"
+                  @update:model-value="(val) => {
+                    numberOfPlayers.value = parseInt(val) || 1
+                  }"
                 ></v-text-field>
               </v-card>
             </div>
@@ -174,11 +177,17 @@
                   <v-card variant="outlined" class="pa-4">
                     <div class="d-flex align-center justify-space-between mb-3">
                       <div class="d-flex align-center flex-wrap">
-                        <h4 class="text-subtitle-1">
-                          <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                          {{ court.name }}
-                        </h4>
-                        <div class="d-flex flex-wrap ml-2">
+                        <div class="mr-3">
+                          <h4 class="text-subtitle-1 mb-0">
+                            <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
+                            {{ court.name }}
+                          </h4>
+                          <div v-if="court.surface_type" class="text-caption text-grey ml-7">
+                            <v-icon size="12" class="mr-1">mdi-texture-box</v-icon>
+                            {{ court.surface_type }}
+                          </div>
+                        </div>
+                        <div class="d-flex flex-wrap">
                           <!-- Show all sports this court supports -->
                           <v-chip
                             v-for="sport in getCourtSports(court)"
@@ -358,9 +367,15 @@
                       <v-card variant="tonal" class="pa-3">
                         <div class="d-flex align-center mb-2">
                           <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                          <h5 class="text-subtitle-1 font-weight-bold">
-                            {{ filteredCourts.find(c => c.id === parseInt(courtId))?.name }}
-                          </h5>
+                          <div>
+                            <h5 class="text-subtitle-1 font-weight-bold mb-0">
+                              {{ filteredCourts.find(c => c.id === parseInt(courtId))?.name }}
+                            </h5>
+                            <div v-if="filteredCourts.find(c => c.id === parseInt(courtId))?.surface_type" class="text-caption text-grey">
+                              <v-icon size="12" class="mr-1">mdi-texture-box</v-icon>
+                              {{ filteredCourts.find(c => c.id === parseInt(courtId))?.surface_type }}
+                            </div>
+                          </div>
                         </div>
 
                         <div class="text-caption text-grey mb-2">
@@ -1213,6 +1228,8 @@ export default {
               // Use time-based pricing calculation
               const price = calculatePriceForRange(startDateTime, endDateTime)
 
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
               const cartItem = {
                 court_id: court.id,
                 sport_id: selectedSport.value.id,
@@ -1220,7 +1237,7 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numberOfPlayers.value || 1
+                number_of_players: numPlayers
               }
 
               // Add admin booking fields to each cart item if admin is booking for someone
@@ -1334,6 +1351,8 @@ export default {
               // Use time-based pricing calculation
               const price = calculatePriceForRange(startDateTime, endDateTime)
 
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
               const cartItem = {
                 court_id: parseInt(courtId),
                 sport_id: selectedSport.value.id,
@@ -1341,7 +1360,7 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numberOfPlayers.value || 1
+                number_of_players: numPlayers
               }
 
               // Add admin booking fields to each cart item
@@ -1467,6 +1486,8 @@ export default {
               // Use time-based pricing calculation
               const price = calculatePriceForRange(startDateTime, endDateTime)
 
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
               const cartItem = {
                 court_id: parseInt(courtId),
                 sport_id: selectedSport.value.id,
@@ -1474,7 +1495,7 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numberOfPlayers.value || 1
+                number_of_players: numPlayers
               }
 
               // Add admin booking fields to each cart item
