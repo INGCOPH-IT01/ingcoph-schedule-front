@@ -23,15 +23,30 @@
 
             <div class="auth-form">
               <v-form @submit.prevent="handleRegister">
-                <v-text-field
-                  v-model="form.name"
-                  label="Full Name"
-                  :rules="nameRules"
-                  required
-                  variant="outlined"
-                  prepend-inner-icon="mdi-account"
-                  class="form-field mb-4"
-                ></v-text-field>
+                <v-row>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="form.first_name"
+                      label="First Name"
+                      :rules="firstNameRules"
+                      required
+                      variant="outlined"
+                      prepend-inner-icon="mdi-account"
+                      class="form-field mb-4"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <v-text-field
+                      v-model="form.last_name"
+                      label="Last Name"
+                      :rules="lastNameRules"
+                      required
+                      variant="outlined"
+                      prepend-inner-icon="mdi-account"
+                      class="form-field mb-4"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
 
                 <v-text-field
                   v-model="form.email"
@@ -141,7 +156,8 @@ export default {
   setup() {
     const router = useRouter()
     const form = ref({
-      name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
       password: '',
@@ -153,9 +169,14 @@ export default {
     const showPasswordConfirm = ref(false)
     const companyName = ref('Perfect Smash')
 
-    const nameRules = [
-      v => !!v || 'Name is required',
-      v => v.length >= 2 || 'Name must be at least 2 characters'
+    const firstNameRules = [
+      v => !!v || 'First name is required',
+      v => v.length >= 2 || 'First name must be at least 2 characters'
+    ]
+
+    const lastNameRules = [
+      v => !!v || 'Last name is required',
+      v => v.length >= 2 || 'Last name must be at least 2 characters'
     ]
 
     const emailRules = [
@@ -190,7 +211,8 @@ export default {
         error.value = ''
 
         const response = await authService.register({
-          name: form.value.name,
+          first_name: form.value.first_name,
+          last_name: form.value.last_name,
           email: form.value.email,
           phone: form.value.phone,
           password: form.value.password,
@@ -232,7 +254,8 @@ export default {
       showPassword,
       showPasswordConfirm,
       companyName,
-      nameRules,
+      firstNameRules,
+      lastNameRules,
       emailRules,
       phoneRules,
       passwordRules,

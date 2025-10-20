@@ -164,14 +164,28 @@
 
         <v-card-text class="pt-4">
           <v-form ref="formRef">
-            <v-text-field
-              v-model="formData.name"
-              label="Full Name"
-              :rules="[v => !!v || 'Name is required']"
-              variant="outlined"
-              prepend-inner-icon="mdi-account"
-              class="mb-4"
-            ></v-text-field>
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.first_name"
+                  label="First Name"
+                  :rules="[v => !!v || 'First name is required']"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-account"
+                  class="mb-4"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="formData.last_name"
+                  label="Last Name"
+                  :rules="[v => !!v || 'Last name is required']"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-account"
+                  class="mb-4"
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
             <v-text-field
               v-model="formData.email"
@@ -275,7 +289,8 @@ export default {
     const currentUserId = ref(null)
 
     const formData = ref({
-      name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
       user_type: 'user',
@@ -328,7 +343,8 @@ export default {
     const openCreateDialog = () => {
       editMode.value = false
       formData.value = {
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
         user_type: 'user',
@@ -342,7 +358,8 @@ export default {
       editMode.value = true
       formData.value = {
         id: user.id,
-        name: user.name,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
         email: user.email,
         phone: user.phone || '',
         user_type: user.role, // Map role to user_type for display
@@ -355,7 +372,8 @@ export default {
     const closeDialog = () => {
       dialog.value = false
       formData.value = {
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
         user_type: 'user',
@@ -371,7 +389,8 @@ export default {
         saving.value = true
 
         const payload = {
-          name: formData.value.name,
+          first_name: formData.value.first_name,
+          last_name: formData.value.last_name,
           email: formData.value.email,
           phone: formData.value.phone,
           user_type: formData.value.user_type
