@@ -116,16 +116,16 @@
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
-              <span class="detail-label">Items Count:</span>
-              <span class="detail-value">{{ booking.items_count || booking.cart_items?.length || 0 }} slot{{ (booking.items_count || booking.cart_items?.length || 0) > 1 ? 's' : '' }}</span>
-            </div>
-            <v-divider class="my-2"></v-divider>
-            <div class="detail-row">
               <span class="detail-label">Number of Players:</span>
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ booking.number_of_players || 1 }} player{{ (booking.number_of_players || 1) > 1 ? 's' : '' }}
+                {{ numberOfPlayers }}
               </v-chip>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Items Count:</span>
+              <span class="detail-value">{{ booking.items_count || booking.cart_items?.length || 0 }} slot{{ (booking.items_count || booking.cart_items?.length || 0) > 1 ? 's' : '' }}</span>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
@@ -183,7 +183,7 @@
               <span class="detail-label">Number of Players:</span>
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ booking.number_of_players || 1 }} player{{ (booking.number_of_players || 1) > 1 ? 's' : '' }}
+                {{ booking.number_of_players || 1 }} player
               </v-chip>
             </div>
             <v-divider class="my-2"></v-divider>
@@ -505,14 +505,14 @@
               <span class="detail-label">Number of Players:</span>
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ booking.number_of_players || 1 }} player(s)
+                {{ numberOfPlayers }}
               </v-chip>
             </div>
             <div class="detail-row mb-3" v-if="booking.attendance_scan_count !== undefined">
               <span class="detail-label">Scan Count:</span>
-              <v-chip :color="booking.attendance_scan_count >= (booking.number_of_players || 1) ? 'success' : 'warning'" variant="tonal" size="small">
+              <v-chip :color="booking.attendance_scan_count >= numberOfPlayers ? 'success' : 'warning'" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-qrcode-scan</v-icon>
-                {{ booking.attendance_scan_count || 0 }} / {{ booking.number_of_players || 1 }} scanned
+                {{ booking.attendance_scan_count || 0 }} / {{ numberOfPlayers }} scanned
               </v-chip>
             </div>
             <div class="detail-row mb-3">
@@ -540,8 +540,8 @@
                   density="compact"
                   prepend-inner-icon="mdi-account-multiple"
                   :min="0"
-                  :max="booking.number_of_players || 100"
-                  :rules="[v => v >= 0 || 'Cannot be negative', v => v <= (booking.number_of_players || 100) || `Cannot exceed ${booking.number_of_players || 100}`]"
+                  :max="numberOfPlayers"
+                  :rules="[v => v >= 0 || 'Cannot be negative', v => v <= numberOfPlayers || `Cannot exceed ${numberOfPlayers}`]"
                   hint="Enter the number of players who attended"
                   persistent-hint
                 ></v-text-field>
@@ -1025,7 +1025,7 @@ export default {
         showPlayersAttendedInput.value = true
         // Pre-fill with the current number of players or existing value
         if (!playersAttended.value) {
-          playersAttended.value = props.booking.players_attended || props.booking.number_of_players || 1
+          playersAttended.value = props.booking.players_attended || numberOfPlayers.value
         }
         return
       }
@@ -1269,6 +1269,12 @@ export default {
       return status.toLowerCase() === 'approved'
     })
 
+    const numberOfPlayers = computed(() => {
+      if (!props.booking) return 1
+      // For transactions, get from first cart item; for regular bookings, get from booking itself
+      return props.booking.cart_items?.[0]?.number_of_players || props.booking.number_of_players || 1
+    })
+
     const formattedDate = computed(() => {
       if (!props.booking) return ''
       return formatBookingDate(getBookingDate(props.booking))
@@ -1394,6 +1400,7 @@ export default {
       formattedCreatedAt,
       bookingStatus,
       statusColor,
+      numberOfPlayers,
       // Services
       sportService,
       statusService
