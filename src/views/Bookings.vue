@@ -988,7 +988,7 @@
                   </v-row>
 
                   <!-- Proof of Payment Upload -->
-                  <v-row v-if="editForm?.payment_method === 'gcash'">
+                  <v-row v-if="editForm?.payment_method === 'gcash' && (editingBooking?.status || editingBooking?.approval_status) !== 'rejected'">
                     <v-col cols="12">
                       <v-file-input
                         v-model="editForm.proof_of_payment"

@@ -444,7 +444,7 @@
               </v-row>
 
               <!-- Proof of Payment Upload -->
-              <v-row>
+              <v-row v-if="!isRejected">
                 <v-col cols="12">
                   <v-file-input
                     v-model="form.proof_of_payment"
@@ -635,6 +635,10 @@ export default {
 
     // Computed property to determine if we're in edit mode
     const isEditMode = computed(() => !!props.editBooking)
+    const isRejected = computed(() => {
+      const status = (props.editBooking?.status || props.editBooking?.approval_status || '').toLowerCase()
+      return status === 'rejected'
+    })
 
 
     const form = ref({
@@ -1491,6 +1495,10 @@ export default {
     }
 
     const uploadProofOfPayment = async (bookingId, file) => {
+      if (isRejected.value) {
+        showSnackbar('Cannot upload proof: booking is rejected', 'error')
+        return
+      }
       try {
         const result = await bookingService.uploadProofOfPayment(
           bookingId,
@@ -1682,6 +1690,7 @@ export default {
       totalPrice,
       isFrequencyFormValid,
       isEditMode,
+      isRejected,
       durationOptions,
       frequencyOptions,
       dayOptions,

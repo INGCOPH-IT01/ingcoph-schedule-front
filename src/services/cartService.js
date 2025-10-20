@@ -91,7 +91,7 @@ export const cartService = {
    * @param {string} reason - Rejection reason
    */
   async rejectTransaction(transactionId, reason) {
-    const response = await api.post(`/admin/cart-transactions/${transactionId}/reject`, { rejection_reason: reason })
+    const response = await api.post(`/admin/cart-transactions/${transactionId}/reject`, { reason })
     return response.data
   },
 

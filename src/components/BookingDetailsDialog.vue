@@ -138,6 +138,11 @@
                 {{ bookingStatus }}
               </v-chip>
             </div>
+            <!-- Rejection Reason (Transaction) -->
+            <div class="detail-row" v-if="isRejected && rejectionReason">
+              <span class="detail-label">Rejection Reason:</span>
+              <div class="detail-value" style="white-space: pre-wrap; text-align: left;">{{ rejectionReason }}</div>
+            </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Total Price:</span>
@@ -196,6 +201,11 @@
               >
                 {{ bookingStatus }}
               </v-chip>
+            </div>
+            <!-- Rejection Reason (Regular Booking) -->
+            <div class="detail-row" v-if="isRejected && rejectionReason">
+              <span class="detail-label">Rejection Reason:</span>
+              <div class="detail-value" style="white-space: pre-wrap; text-align: left;">{{ rejectionReason }}</div>
             </div>
           </v-card>
         </div>
@@ -404,7 +414,7 @@
               </div>
               <!-- Warning for unpaid bookings -->
               <v-alert
-                v-if="booking.payment_status !== 'paid'"
+                v-if="booking.payment_status !== 'paid' && !isRejected"
                 type="warning"
                 variant="tonal"
                 class="mt-3"
@@ -418,7 +428,7 @@
               <!-- Upload Proof of Payment Section (for unpaid bookings) -->
               <!-- Hidden when booking was created by a User role account, unless current user is the booking owner -->
               <v-card
-                v-if="booking.payment_status !== 'paid' && showAdminFeatures && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
+                v-if="booking.payment_status !== 'paid' && showAdminFeatures && !isRejected && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
                 variant="outlined"
                 class="mt-3 pa-3"
               >
@@ -1289,6 +1299,10 @@ export default {
     }
 
     const uploadProofOfPayment = async () => {
+      if (isRejected.value) {
+        alert('Cannot upload proof of payment: This booking/transaction has been rejected.')
+        return
+      }
       if (!proofFile.value || !props.booking?.id) {
         return
       }
@@ -1533,6 +1547,27 @@ export default {
       return status.toLowerCase() === 'approved'
     })
 
+    const isRejected = computed(() => {
+      if (!props.booking) return false
+      const status = (props.booking.approval_status || props.booking.status || '').toLowerCase()
+      return status === 'rejected'
+    })
+
+    const rejectionReason = computed(() => {
+      if (!props.booking) return ''
+      // Transaction-based (cart) view: backend stores rejection reason on transaction
+      if (isTransaction.value) {
+        return props.booking.rejection_reason || ''
+      }
+      // Regular booking: reason appended in notes as "Rejection reason: ..."
+      const notes = props.booking.notes || ''
+      const marker = 'Rejection reason:'
+      if (!notes.toLowerCase().includes(marker.toLowerCase())) return ''
+      // Extract text after marker
+      const idx = notes.toLowerCase().indexOf(marker.toLowerCase())
+      return notes.substring(idx + marker.length).trim()
+    })
+
     const numberOfPlayers = computed(() => {
       if (!props.booking) return 1
       // For transactions, get from first cart item; for regular bookings, get from booking itself
@@ -1687,6 +1722,9 @@ export default {
       qrCodeError,
       qrCodeImageUrl,
       qrCodeData,
+      // Rejection state
+      isRejected,
+      rejectionReason,
       // Proof of Payment Upload state
       uploadingProof,
       proofFile,
