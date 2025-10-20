@@ -78,14 +78,6 @@
             <div class="excel-features-grid">
               <div class="excel-feature-item">
                 <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
-                <span>Air Conditioning</span>
-              </div>
-              <div class="excel-feature-item">
-                <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
-                <span>Equipment Rental</span>
-              </div>
-              <div class="excel-feature-item">
-                <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
                 <span>Parking Available</span>
               </div>
               <div class="excel-feature-item">
@@ -95,6 +87,10 @@
               <div class="excel-feature-item">
                 <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
                 <span>Sound System</span>
+              </div>
+              <div class="excel-feature-item">
+                <v-icon size="20" color="success" class="mr-2">mdi-check-circle</v-icon>
+                <span>Air Conditioned Restrooms</span>
               </div>
               <div class="excel-feature-item">
                 <v-icon size="20" color="success" class="mr-2">mdi-cash</v-icon>
