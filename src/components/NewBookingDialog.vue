@@ -419,16 +419,20 @@
                       </v-card>
                     </div>
                   </div>
+                </v-card-text>
+              </v-card>
 
-                  <v-divider class="my-4"></v-divider>
-
-                  <div class="summary-total">
+              <!-- Total Price Section (moved outside the booking summary card) -->
+              <v-card variant="elevated" color="success" class="mt-4">
+                <v-card-text class="pa-4">
+                  <div class="d-flex justify-space-between align-center">
                     <div>
-                      <div class="text-caption text-grey">Total Price</div>
-                      <div class="text-h5 font-weight-bold text-success">
+                      <div class="text-caption text-white">Total Price</div>
+                      <div class="text-h4 font-weight-bold text-white">
                         ₱{{ calculateTotalPrice() }}
                       </div>
                     </div>
+                    <v-icon size="48" color="white">mdi-cash-multiple</v-icon>
                   </div>
                 </v-card-text>
               </v-card>
