@@ -508,7 +508,7 @@
             <div>{{ getBookingInfoText() }}</div>
             <div class="text-caption mt-2">
               <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
-              <strong>Please note:</strong> There may be a carry over delay in the confirmation of your booking during weekends and holidays. This is normal processing time.
+              <strong>Please note:</strong> There may be a carry over delay in the confirmation of your booking during weekends and holidays.
             </div>
           </v-alert>
 

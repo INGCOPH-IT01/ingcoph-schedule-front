@@ -561,12 +561,6 @@
                         <div class="text-body-2 mb-2">
                           <strong>Amount to Pay:</strong> ₱{{ calculateTotalPrice() }}
                         </div>
-                        <div class="text-body-2 mb-2">
-                          <strong>GCash Number:</strong> {{ paymentSettings.payment_gcash_number }}
-                        </div>
-                        <div class="text-body-2 mb-3">
-                          <strong>Account Name:</strong> {{ paymentSettings.payment_gcash_name }}
-                        </div>
 
                         <v-file-input
                           v-model="proofOfPayment"
@@ -616,7 +610,7 @@
                       <div class="text-caption">
                         <strong>Instructions:</strong>
                         <ol class="pl-4 mb-0">
-                          <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to {{ paymentSettings.payment_gcash_number }}</li>
+                          <li>Scan QR code to pay ₱{{ calculateTotalPrice() }}</li>
                           <li>Take a screenshot of your GCash payment receipt</li>
                           <li>Upload the screenshot above</li>
                           <li>Click "Checkout with GCash" to complete</li>
@@ -632,7 +626,7 @@
                 <div>Your booking will be confirmed after GCash payment verification.</div>
                 <div class="text-caption mt-2">
                   <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
-                  Please note: There may be a carry over delay in the confirmation of your booking. This is normal processing time.
+                  Please note: There may be a carry over delay in the confirmation of your booking during weekends and holidays.
                 </div>
               </v-alert>
 
@@ -641,7 +635,7 @@
                 <div class="text-caption">Time slots will be marked as booked, but cannot be marked as "showed up" until payment is completed.</div>
                 <div class="text-caption mt-2">
                   <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
-                  Please note: There may be a carry over delay in the confirmation of your booking.
+                  Please note: There may be a carry over delay in the confirmation of your booking during weekends and holidays.
                 </div>
               </v-alert>
             </div>
