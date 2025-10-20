@@ -27,23 +27,51 @@
           <v-card variant="outlined" class="pa-4">
             <div class="detail-row">
               <span class="detail-label">Name:</span>
-              <span class="detail-value">{{ booking.user?.name || 'N/A' }}</span>
+              <div class="detail-value">
+                {{ getDisplayUserName(booking) }}
+                <v-chip
+                  v-if="isAdminBooking(booking)"
+                  size="x-small"
+                  :color="getBookedByUserRoleColor(booking)"
+                  variant="tonal"
+                  class="ml-2"
+                >
+                  <v-icon size="x-small" class="mr-1">{{ getBookedByUserRoleIcon(booking) }}</v-icon>
+                  Booked by {{ booking.user?.role || 'Admin' }}
+                </v-chip>
+              </div>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Email:</span>
-              <span class="detail-value">{{ booking.user?.email || 'N/A' }}</span>
+              <span class="detail-value">{{ getDisplayUserEmail(booking) }}</span>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Phone:</span>
-              <span class="detail-value">{{ booking.user?.phone || 'N/A' }}</span>
+              <span class="detail-value">{{ getDisplayUserPhone(booking) }}</span>
             </div>
+            <template v-if="isAdminBooking(booking)">
+              <v-divider class="my-2"></v-divider>
+              <div class="detail-row">
+                <span class="detail-label">Created By:</span>
+                <div class="detail-value">
+                  <v-chip
+                    :color="getBookedByUserRoleColor(booking)"
+                    size="small"
+                    variant="tonal"
+                  >
+                    <v-icon size="small" class="mr-1">{{ getBookedByUserRoleIcon(booking) }}</v-icon>
+                    {{ booking.user?.name || 'N/A' }} ({{ booking.user?.role || 'Admin' }})
+                  </v-chip>
+                </div>
+              </div>
+            </template>
             <template v-if="showAdminFeatures">
               <v-divider class="my-2"></v-divider>
               <div class="detail-row">
                 <span class="detail-label">User ID:</span>
-                <span class="detail-value">#{{ booking.user?.id || 'N/A' }}</span>
+                <span class="detail-value">#{{ getDisplayUserId(booking) }}</span>
               </div>
               <v-divider class="my-2"></v-divider>
               <div class="detail-row">
@@ -897,6 +925,92 @@ export default {
       return labels[status] || 'Not Set'
     }
 
+    // Helper functions to determine display user for admin bookings
+    const isAdminBooking = (booking) => {
+      if (!booking) return false
+      // Check if the first cart item has booking_for_user_id or booking_for_user_name
+      const firstCartItem = booking.cart_items?.[0]
+      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
+    }
+
+    const getDisplayUserName = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking, return the "booking for" user
+      if (firstCartItem?.booking_for_user_name) {
+        return firstCartItem.booking_for_user_name
+      }
+
+      // Otherwise, return the transaction creator
+      return booking.user?.name || 'N/A'
+    }
+
+    const getDisplayUserEmail = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their email
+      if (firstCartItem?.booking_for_user_id && firstCartItem?.booking_for_user) {
+        return firstCartItem.booking_for_user.email || 'No email'
+      }
+
+      // If this is an admin booking for a walk-in customer, show that
+      if (firstCartItem?.booking_for_user_name && !firstCartItem?.booking_for_user_id) {
+        return 'Walk-in customer'
+      }
+
+      // Otherwise, return the transaction creator's email
+      return booking.user?.email || 'N/A'
+    }
+
+    const getDisplayUserPhone = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their phone
+      if (firstCartItem?.booking_for_user_id && firstCartItem?.booking_for_user) {
+        return firstCartItem.booking_for_user.phone || 'N/A'
+      }
+
+      // If this is an admin booking for a walk-in customer, show N/A
+      if (firstCartItem?.booking_for_user_name && !firstCartItem?.booking_for_user_id) {
+        return 'N/A'
+      }
+
+      // Otherwise, return the transaction creator's phone
+      return booking.user?.phone || 'N/A'
+    }
+
+    const getDisplayUserId = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their ID
+      if (firstCartItem?.booking_for_user_id) {
+        return firstCartItem.booking_for_user_id
+      }
+
+      // Otherwise, return the transaction creator's ID
+      return booking.user?.id || 'N/A'
+    }
+
+    const getBookedByUserRoleColor = (booking) => {
+      if (!booking) return 'info'
+      const role = booking.user?.role?.toLowerCase()
+      if (role === 'admin') return 'purple'
+      if (role === 'staff') return 'blue'
+      return 'info'
+    }
+
+    const getBookedByUserRoleIcon = (booking) => {
+      if (!booking) return 'mdi-account-tie'
+      const role = booking.user?.role?.toLowerCase()
+      if (role === 'admin') return 'mdi-shield-crown'
+      if (role === 'staff') return 'mdi-account-badge'
+      return 'mdi-account-tie'
+    }
+
     const handleAttendanceUpdate = async (status) => {
       if (!props.booking?.id) return
 
@@ -1264,6 +1378,14 @@ export default {
       getAttendanceColor,
       getAttendanceIcon,
       getAttendanceLabel,
+      // Admin booking display helpers
+      isAdminBooking,
+      getDisplayUserName,
+      getDisplayUserEmail,
+      getDisplayUserPhone,
+      getDisplayUserId,
+      getBookedByUserRoleColor,
+      getBookedByUserRoleIcon,
       // Computed
       isApprovedBooking,
       formattedDate,

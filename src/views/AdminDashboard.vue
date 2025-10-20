@@ -324,11 +324,27 @@
             <template v-slot:[`item.user_name`]="{ item }">
               <div class="d-flex align-center">
                 <v-avatar size="32" color="primary" class="mr-3">
-                  <span class="text-white">{{ item.user.name.charAt(0).toUpperCase() }}</span>
+                  <span class="text-white">{{ getDisplayUserName(item).charAt(0).toUpperCase() }}</span>
                 </v-avatar>
                 <div>
-                  <div class="font-weight-medium">{{ item.user.name }}</div>
-                  <div class="text-caption" style="color: #475569;">{{ item.user.email }}</div>
+                  <div class="font-weight-medium">
+                    {{ getDisplayUserName(item) }}
+                    <v-chip
+                      v-if="isAdminBooking(item)"
+                      size="x-small"
+                      :color="getBookedByUserRoleColor(item)"
+                      variant="tonal"
+                      class="ml-2"
+                    >
+                      <v-icon size="x-small" class="mr-1">{{ getBookedByUserRoleIcon(item) }}</v-icon>
+                      Booked by {{ item.user?.role || 'Admin' }}
+                    </v-chip>
+                  </div>
+                  <div class="text-caption" style="color: #475569;">{{ getDisplayUserEmail(item) }}</div>
+                  <div v-if="isAdminBooking(item)" class="text-caption" style="color: #94a3b8;">
+                    <v-icon size="x-small" class="mr-1">mdi-account-tie</v-icon>
+                    Created by: {{ item.user?.name || 'N/A' }}
+                  </div>
                 </div>
               </div>
             </template>
@@ -927,6 +943,55 @@ export default {
       return labels[status] || 'Not Set'
     }
 
+    // Helper functions to determine display user for admin bookings
+    const isAdminBooking = (transaction) => {
+      // Check if the first cart item has booking_for_user_id or booking_for_user_name
+      const firstCartItem = transaction.cart_items?.[0]
+      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
+    }
+
+    const getDisplayUserName = (transaction) => {
+      const firstCartItem = transaction.cart_items?.[0]
+
+      // If this is an admin booking, return the "booking for" user
+      if (firstCartItem?.booking_for_user_name) {
+        return firstCartItem.booking_for_user_name
+      }
+
+      // Otherwise, return the transaction creator
+      return transaction.user?.name || 'N/A'
+    }
+
+    const getDisplayUserEmail = (transaction) => {
+      const firstCartItem = transaction.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their email
+      if (firstCartItem?.booking_for_user_id && firstCartItem?.booking_for_user) {
+        return firstCartItem.booking_for_user.email || 'No email'
+      }
+
+      // If this is an admin booking for a walk-in customer, show that
+      if (firstCartItem?.booking_for_user_name && !firstCartItem?.booking_for_user_id) {
+        return 'Walk-in customer'
+      }
+
+      // Otherwise, return the transaction creator's email
+      return transaction.user?.email || 'No email'
+    }
+
+    const getBookedByUserRoleColor = (transaction) => {
+      const role = transaction.user?.role?.toLowerCase()
+      if (role === 'admin') return 'purple'
+      if (role === 'staff') return 'blue'
+      return 'info'
+    }
+
+    const getBookedByUserRoleIcon = (transaction) => {
+      const role = transaction.user?.role?.toLowerCase()
+      if (role === 'admin') return 'mdi-shield-crown'
+      if (role === 'staff') return 'mdi-account-badge'
+      return 'mdi-account-tie'
+    }
 
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
@@ -1001,6 +1066,12 @@ export default {
       getAttendanceColor,
       getAttendanceIcon,
       getAttendanceLabel,
+      // Admin booking display functions
+      isAdminBooking,
+      getDisplayUserName,
+      getDisplayUserEmail,
+      getBookedByUserRoleColor,
+      getBookedByUserRoleIcon,
       // Services
       sportService
     }
