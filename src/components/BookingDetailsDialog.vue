@@ -206,6 +206,38 @@
             <v-icon class="mr-2" color="primary">mdi-cart</v-icon>
             Cart Items ({{ booking.cart_items.length }})
           </h4>
+
+          <!-- Overall Time Range (Adjacent Time Sensitive) -->
+          <div v-if="adjacentTimeRanges.length > 0">
+            <v-card
+              v-for="(range, index) in adjacentTimeRanges"
+              :key="index"
+              variant="tonal"
+              color="primary"
+              :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
+            >
+              <v-card-text class="pa-3">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-center">
+                    <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
+                    <div>
+                      <div class="text-caption text-grey-darken-1 mb-1">
+                        {{ adjacentTimeRanges.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
+                      </div>
+                      <div class="text-h6 font-weight-bold">
+                        {{ formatTimeSlot(range.start) }} - {{ formatTimeSlot(range.end) }}
+                      </div>
+                    </div>
+                  </div>
+                  <v-chip color="primary" size="small">
+                    <v-icon start size="16">mdi-calendar-clock</v-icon>
+                    {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
+                  </v-chip>
+                </div>
+              </v-card-text>
+            </v-card>
+          </div>
+
           <v-card variant="outlined" class="pa-4">
             <v-list>
               <v-list-item
@@ -241,6 +273,38 @@
             <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
             Time Slots
           </h4>
+
+          <!-- Overall Time Range (Adjacent Time Sensitive) -->
+          <div v-if="adjacentTimeRanges.length > 0">
+            <v-card
+              v-for="(range, index) in adjacentTimeRanges"
+              :key="index"
+              variant="tonal"
+              color="primary"
+              :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
+            >
+              <v-card-text class="pa-3">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-center">
+                    <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
+                    <div>
+                      <div class="text-caption text-grey-darken-1 mb-1">
+                        {{ adjacentTimeRanges.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
+                      </div>
+                      <div class="text-h6 font-weight-bold">
+                        {{ formatTimeSlot(range.start) }} - {{ formatTimeSlot(range.end) }}
+                      </div>
+                    </div>
+                  </div>
+                  <v-chip color="primary" size="small">
+                    <v-icon start size="16">mdi-calendar-clock</v-icon>
+                    {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
+                  </v-chip>
+                </div>
+              </v-card-text>
+            </v-card>
+          </div>
+
           <v-card variant="outlined" class="pa-4">
             <v-list dense>
               <v-list-item
@@ -1473,6 +1537,71 @@ export default {
       return getBookingTimeRange(props.booking)
     })
 
+    // Adjacent time sensitive time ranges
+    const adjacentTimeRanges = computed(() => {
+      if (!props.booking || !props.booking.cart_items || props.booking.cart_items.length === 0) {
+        return []
+      }
+
+      const items = props.booking.cart_items
+
+      // Remove duplicates and sort by start time
+      const uniqueSlots = []
+      const seenSlots = new Set()
+      items.forEach(item => {
+        const key = `${item.start_time}-${item.end_time}`
+        if (!seenSlots.has(key)) {
+          seenSlots.add(key)
+          uniqueSlots.push({
+            start: item.start_time,
+            end: item.end_time
+          })
+        }
+      })
+      uniqueSlots.sort((a, b) => a.start.localeCompare(b.start))
+
+      // Group consecutive/adjacent slots
+      const timeRanges = []
+      let currentRange = null
+      let currentSlots = []
+
+      uniqueSlots.forEach(slot => {
+        if (!currentRange) {
+          // Start a new range
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+          currentSlots = [slot]
+        } else if (currentRange.end === slot.start) {
+          // Slot is consecutive (end of current range matches start of this slot)
+          currentRange.end = slot.end
+          currentSlots.push(slot)
+        } else {
+          // Gap detected, save current range and start new one
+          timeRanges.push({
+            ...currentRange,
+            slotCount: currentSlots.length
+          })
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+          currentSlots = [slot]
+        }
+      })
+
+      // Add the last range
+      if (currentRange) {
+        timeRanges.push({
+          ...currentRange,
+          slotCount: currentSlots.length
+        })
+      }
+
+      return timeRanges
+    })
+
     const totalPrice = computed(() => {
       if (!props.booking) return '0.00'
       return getTotalPrice(props.booking)
@@ -1597,6 +1726,7 @@ export default {
       isApprovedBooking,
       formattedDate,
       formattedTimeRange,
+      adjacentTimeRanges,
       totalPrice,
       formattedCreatedAt,
       bookingStatus,
@@ -1620,6 +1750,12 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* Overall Time Range */
+.overall-time-range {
+  border-left: 4px solid #1976d2;
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(25, 118, 210, 0.04) 100%);
 }
 
 .booking-view-dialog .dialog-title .v-icon {
