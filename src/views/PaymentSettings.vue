@@ -191,9 +191,8 @@
                     <v-icon size="32" color="success">mdi-cellphone</v-icon>
                   </v-avatar>
                   <div>
-                    <div class="text-caption text-grey-darken-1">Send payment to</div>
-                    <div class="text-h6 font-weight-bold">{{ paymentSettings.payment_gcash_number }}</div>
-                    <div class="text-body-2">{{ paymentSettings.payment_gcash_name }}</div>
+                    <div class="text-caption text-grey-darken-1">Payment Preview</div>
+                    <div class="text-body-2 mt-1">GCash payment details configured</div>
                   </div>
                 </div>
                 <v-alert type="info" density="compact">

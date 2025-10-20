@@ -313,6 +313,26 @@
             </v-col>
 
             <v-col cols="12" md="6">
+              <v-text-field
+                v-model="form.number_of_players"
+                type="number"
+                label="Number of Players"
+                placeholder="How many players?"
+                variant="outlined"
+                prepend-inner-icon="mdi-account-group"
+                :rules="[v => v >= 1 || 'At least 1 player required', v => v <= 100 || 'Maximum 100 players']"
+                min="1"
+                max="100"
+                required
+                @update:model-value="(val) => {
+                  form.number_of_players = parseInt(val) || 1
+                }"
+              ></v-text-field>
+            </v-col>
+          </v-row>
+
+          <v-row>
+            <v-col cols="12">
               <v-textarea
                 v-model="form.notes"
                 label="Notes (Optional)"
@@ -484,8 +504,12 @@
             variant="tonal"
             class="mt-4"
           >
-
-            {{ getBookingInfoText() }}
+            <div class="font-weight-bold mb-1">Booking Confirmation</div>
+            <div>{{ getBookingInfoText() }}</div>
+            <div class="text-caption mt-2">
+              <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+              <strong>Please note:</strong> There may be a carry over delay in the confirmation of your booking during weekends and holidays.
+            </div>
           </v-alert>
 
           <v-alert
@@ -618,6 +642,7 @@ export default {
       date: '',
       start_time: '',
       duration: 1,
+      number_of_players: 1,
       notes: '',
       frequency_days: [],
       frequency_times: [],
@@ -997,6 +1022,7 @@ export default {
       // Set start_time to the full datetime format
       form.value.start_time = startTimeValue
       form.value.duration = getDuration(booking.start_time, booking.end_time)
+      form.value.number_of_players = booking.number_of_players || 1
       form.value.notes = booking.notes || ''
 
       // Set frequency data
@@ -1085,6 +1111,7 @@ export default {
         date: '',
         start_time: '',
         duration: 1,
+        number_of_players: 1,
         notes: '',
         frequency_days: [],
         frequency_times: [],
@@ -1223,11 +1250,14 @@ export default {
         const startDateTime = `${year}-${month}-${day} ${startHours.padStart(2, '0')}:${startMinutes.padStart(2, '0')}:00`
         const endDateTime = `${year}-${month}-${day} ${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}:00`
 
+        const numPlayers = parseInt(form.value.number_of_players) || 1
+
         const bookingData = {
           court_id: form.value.court_id,
           start_time: startDateTime,
           end_time: endDateTime,
           total_price: totalPrice.value,
+          number_of_players: numPlayers,
           status: isEditMode.value ? props.editBooking.status : 'pending',
           notes: form.value.notes,
           frequency_type: frequencyType.value,

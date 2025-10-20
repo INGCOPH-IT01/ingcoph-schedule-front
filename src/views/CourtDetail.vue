@@ -87,6 +87,13 @@
                   {{ court.description }}
                 </p>
 
+                <div v-if="court.surface_type" class="mb-4">
+                  <div class="d-flex align-center">
+                    <v-icon class="mr-2" color="primary">mdi-texture-box</v-icon>
+                    <span class="text-subtitle-1 font-weight-medium">Surface: {{ court.surface_type }}</span>
+                  </div>
+                </div>
+
                 <div class="d-flex flex-wrap gap-4 mb-4">
                   <div class="d-flex align-center">
                     <span class="text-h5 font-weight-bold text-primary">{{ getCourtPriceRange(court) }}</span>

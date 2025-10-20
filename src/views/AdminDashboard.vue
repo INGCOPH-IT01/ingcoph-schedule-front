@@ -324,34 +324,56 @@
             <template v-slot:[`item.user_name`]="{ item }">
               <div class="d-flex align-center">
                 <v-avatar size="32" color="primary" class="mr-3">
-                  <span class="text-white">{{ item.user.name.charAt(0).toUpperCase() }}</span>
+                  <span class="text-white">{{ getDisplayUserName(item).charAt(0).toUpperCase() }}</span>
                 </v-avatar>
                 <div>
-                  <div class="font-weight-medium">{{ item.user.name }}</div>
-                  <div class="text-caption" style="color: #475569;">{{ item.user.email }}</div>
+                  <div class="font-weight-medium">
+                    {{ getDisplayUserName(item) }}
+                    <v-chip
+                      v-if="isAdminBooking(item)"
+                      size="x-small"
+                      :color="getBookedByUserRoleColor(item)"
+                      variant="tonal"
+                      class="ml-2"
+                    >
+                      <v-icon size="x-small" class="mr-1">{{ getBookedByUserRoleIcon(item) }}</v-icon>
+                      Booked by {{ item.user?.role || 'Admin' }}
+                    </v-chip>
+                  </div>
+                  <div class="text-caption" style="color: #475569;">{{ getDisplayUserEmail(item) }}</div>
+                  <div v-if="isAdminBooking(item)" class="text-caption" style="color: #94a3b8;">
+                    <v-icon size="x-small" class="mr-1">mdi-account-tie</v-icon>
+                    Created by: {{ item.user?.name || 'N/A' }}
+                  </div>
                 </div>
               </div>
             </template>
 
             <template v-slot:[`item.sport_name`]="{ item }">
-              <v-chip
-                :color="sportService.getSportColor(item.cart_items?.[0]?.court?.sport?.name)"
-                variant="tonal"
-                size="small"
-              >
-                <!-- Use MDI icon from sport if available, otherwise use fallback -->
-                <v-icon class="mr-1" size="small">
-                  {{ sportService.getSportIcon(item.cart_items?.[0]?.court?.sport?.name, item.cart_items?.[0]?.court?.sport?.icon) }}
-                </v-icon>
-                {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
-              </v-chip>
+              <div class="d-flex flex-wrap gap-1">
+                <v-chip
+                  v-for="sport in getUniqueSports(item)"
+                  :key="sport.name"
+                  :color="sportService.getSportColor(sport.name)"
+                  variant="tonal"
+                  size="small"
+                >
+                  <!-- Use MDI icon from sport if available, otherwise use fallback -->
+                  <v-icon class="mr-1" size="small">
+                    {{ sportService.getSportIcon(sport.name, sport.icon) }}
+                  </v-icon>
+                  {{ sport.name }}
+                </v-chip>
+                <span v-if="!getUniqueSports(item).length" class="text-caption text-grey">
+                  No sport
+                </span>
+              </div>
             </template>
 
-            <template v-slot:[`item.number_of_players`]="{ item }">
-              <v-chip color="primary" variant="tonal" size="small">
-                <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ item.number_of_players || 1 }}
-              </v-chip>
+            <template v-slot:[`item.booking_date`]="{ item }">
+              <div>
+                <div class="font-weight-medium">{{ formatDate(item.cart_items?.[0]?.booking_date) }}</div>
+              </div>
             </template>
 
             <template v-slot:[`item.created_at`]="{ item }">
@@ -556,10 +578,10 @@ export default {
     const dateToFilter = ref('')
 
     const headers = [
-      { title: 'Transaction ID', key: 'id', sortable: true },
+      { title: 'ID', key: 'id', sortable: true },
       { title: 'User', key: 'user_name', sortable: false },
       { title: 'Sport', key: 'sport_name', sortable: false },
-      { title: 'Players', key: 'number_of_players', sortable: false },
+      { title: 'Booking Date', key: 'booking_date', sortable: true },
       { title: 'Created At', key: 'created_at', sortable: true },
       { title: 'Total Price', key: 'total_price', sortable: true },
       { title: 'Payment Status', key: 'payment_status', sortable: false },
@@ -927,6 +949,82 @@ export default {
       return labels[status] || 'Not Set'
     }
 
+    // Helper function to get unique sports from a transaction
+    const getUniqueSports = (transaction) => {
+      if (!transaction.cart_items || transaction.cart_items.length === 0) {
+        return []
+      }
+
+      // Extract all sports from cart items
+      const sportsMap = new Map()
+      transaction.cart_items.forEach(item => {
+        // Use item.sport directly - this is the sport that was actually selected for the booking
+        // NOT item.court.sport which is just the default sport for the court
+        const sport = item.sport
+        if (sport && sport.name) {
+          // Use sport name as key to avoid duplicates
+          if (!sportsMap.has(sport.name)) {
+            sportsMap.set(sport.name, {
+              name: sport.name,
+              icon: sport.icon
+            })
+          }
+        }
+      })
+
+      // Return array of unique sports
+      return Array.from(sportsMap.values())
+    }
+
+    // Helper functions to determine display user for admin bookings
+    const isAdminBooking = (transaction) => {
+      // Check if the first cart item has booking_for_user_id or booking_for_user_name
+      const firstCartItem = transaction.cart_items?.[0]
+      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
+    }
+
+    const getDisplayUserName = (transaction) => {
+      const firstCartItem = transaction.cart_items?.[0]
+
+      // If this is an admin booking, return the "booking for" user
+      if (firstCartItem?.booking_for_user_name) {
+        return firstCartItem.booking_for_user_name
+      }
+
+      // Otherwise, return the transaction creator
+      return transaction.user?.name || 'N/A'
+    }
+
+    const getDisplayUserEmail = (transaction) => {
+      const firstCartItem = transaction.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their email
+      if (firstCartItem?.booking_for_user_id && firstCartItem?.booking_for_user) {
+        return firstCartItem.booking_for_user.email || 'No email'
+      }
+
+      // If this is an admin booking for a walk-in customer, show that
+      if (firstCartItem?.booking_for_user_name && !firstCartItem?.booking_for_user_id) {
+        return 'Walk-in customer'
+      }
+
+      // Otherwise, return the transaction creator's email
+      return transaction.user?.email || 'No email'
+    }
+
+    const getBookedByUserRoleColor = (transaction) => {
+      const role = transaction.user?.role?.toLowerCase()
+      if (role === 'admin') return 'purple'
+      if (role === 'staff') return 'blue'
+      return 'info'
+    }
+
+    const getBookedByUserRoleIcon = (transaction) => {
+      const role = transaction.user?.role?.toLowerCase()
+      if (role === 'admin') return 'mdi-shield-crown'
+      if (role === 'staff') return 'mdi-account-badge'
+      return 'mdi-account-tie'
+    }
 
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
@@ -1001,6 +1099,14 @@ export default {
       getAttendanceColor,
       getAttendanceIcon,
       getAttendanceLabel,
+      // Sport display functions
+      getUniqueSports,
+      // Admin booking display functions
+      isAdminBooking,
+      getDisplayUserName,
+      getDisplayUserEmail,
+      getBookedByUserRoleColor,
+      getBookedByUserRoleIcon,
       // Services
       sportService
     }
@@ -1316,6 +1422,10 @@ export default {
 }
 
 /* Utility Classes */
+.gap-1 {
+  gap: 4px;
+}
+
 .gap-2 {
   gap: 8px;
 }

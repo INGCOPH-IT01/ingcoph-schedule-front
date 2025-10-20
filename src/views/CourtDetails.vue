@@ -298,6 +298,18 @@
 
               <div class="info-item">
                 <div class="info-label">
+                  <v-icon size="small" class="mr-2">mdi-texture-box</v-icon>
+                  Surface Type
+                </div>
+                <div class="info-value">
+                  {{ court.surface_type || 'Not specified' }}
+                </div>
+              </div>
+
+              <v-divider class="my-3"></v-divider>
+
+              <div class="info-item">
+                <div class="info-label">
                   <v-icon size="small" class="mr-2">mdi-ruler</v-icon>
                   Court Size
                 </div>

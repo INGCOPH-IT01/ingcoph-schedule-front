@@ -174,6 +174,11 @@
                   <span class="court-info-time">{{ getCourtOperatingHours(court) }}</span>
                 </div>
 
+                <div v-if="court.surface_type" class="court-info-row">
+                  <v-icon size="small" color="primary">mdi-texture-box</v-icon>
+                  <span class="court-info-text">{{ court.surface_type }}</span>
+                </div>
+
                 <div v-if="court.amenities && typeof court.amenities === 'string'" class="court-amenities">
                   <v-chip
                     v-for="(amenity, index) in court.amenities.split(',').slice(0, 3)"
@@ -344,6 +349,14 @@
             >
               {{ sport?.name }}
             </v-chip>
+          </div>
+        </template>
+
+        <!-- Surface Type Column -->
+        <template v-slot:[`item.surface_type`]="{ item }">
+          <div class="excel-cell-text">
+            <span v-if="item.surface_type" class="excel-cell-title">{{ item.surface_type }}</span>
+            <span v-else class="excel-empty">-</span>
           </div>
         </template>
 
@@ -665,12 +678,13 @@ export default {
     const selectedCourtForBooking = ref(null)
 
     const headers = [
-      { title: 'Court Name', key: 'name', sortable: true, width: '25%' },
-      { title: 'Type', key: 'sport_name', sortable: true, width: '15%' },
-      { title: 'Price/Hour', key: 'price_per_hour', sortable: true, width: '15%' },
-      { title: 'Amenities', key: 'amenities', sortable: false, width: '25%' },
+      { title: 'Court Name', key: 'name', sortable: true, width: '20%' },
+      { title: 'Type', key: 'sport_name', sortable: true, width: '12%' },
+      { title: 'Surface', key: 'surface_type', sortable: true, width: '12%' },
+      { title: 'Price/Hour', key: 'price_per_hour', sortable: true, width: '12%' },
+      { title: 'Amenities', key: 'amenities', sortable: false, width: '20%' },
       { title: 'Status', key: 'is_active', sortable: true, width: '10%' },
-      { title: 'Actions', key: 'actions', sortable: false, width: '10%' }
+      { title: 'Actions', key: 'actions', sortable: false, width: '14%' }
     ]
 
     const filteredCourts = computed(() => {

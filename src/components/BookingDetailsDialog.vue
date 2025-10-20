@@ -27,23 +27,51 @@
           <v-card variant="outlined" class="pa-4">
             <div class="detail-row">
               <span class="detail-label">Name:</span>
-              <span class="detail-value">{{ booking.user?.name || 'N/A' }}</span>
+              <div class="detail-value">
+                {{ getDisplayUserName(booking) }}
+                <v-chip
+                  v-if="isAdminBooking(booking)"
+                  size="x-small"
+                  :color="getBookedByUserRoleColor(booking)"
+                  variant="tonal"
+                  class="ml-2"
+                >
+                  <v-icon size="x-small" class="mr-1">{{ getBookedByUserRoleIcon(booking) }}</v-icon>
+                  Booked by {{ booking.user?.role || 'Admin' }}
+                </v-chip>
+              </div>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Email:</span>
-              <span class="detail-value">{{ booking.user?.email || 'N/A' }}</span>
+              <span class="detail-value">{{ getDisplayUserEmail(booking) }}</span>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Phone:</span>
-              <span class="detail-value">{{ booking.user?.phone || 'N/A' }}</span>
+              <span class="detail-value">{{ getDisplayUserPhone(booking) }}</span>
             </div>
+            <template v-if="isAdminBooking(booking)">
+              <v-divider class="my-2"></v-divider>
+              <div class="detail-row">
+                <span class="detail-label">Created By:</span>
+                <div class="detail-value">
+                  <v-chip
+                    :color="getBookedByUserRoleColor(booking)"
+                    size="small"
+                    variant="tonal"
+                  >
+                    <v-icon size="small" class="mr-1">{{ getBookedByUserRoleIcon(booking) }}</v-icon>
+                    {{ booking.user?.name || 'N/A' }} ({{ booking.user?.role || 'Admin' }})
+                  </v-chip>
+                </div>
+              </div>
+            </template>
             <template v-if="showAdminFeatures">
               <v-divider class="my-2"></v-divider>
               <div class="detail-row">
                 <span class="detail-label">User ID:</span>
-                <span class="detail-value">#{{ booking.user?.id || 'N/A' }}</span>
+                <span class="detail-value">#{{ getDisplayUserId(booking) }}</span>
               </div>
               <v-divider class="my-2"></v-divider>
               <div class="detail-row">
@@ -88,16 +116,16 @@
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
-              <span class="detail-label">Items Count:</span>
-              <span class="detail-value">{{ booking.items_count || booking.cart_items?.length || 0 }} slot{{ (booking.items_count || booking.cart_items?.length || 0) > 1 ? 's' : '' }}</span>
-            </div>
-            <v-divider class="my-2"></v-divider>
-            <div class="detail-row">
               <span class="detail-label">Number of Players:</span>
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ booking.number_of_players || 1 }} player{{ (booking.number_of_players || 1) > 1 ? 's' : '' }}
+                {{ numberOfPlayers }}
               </v-chip>
+            </div>
+            <v-divider class="my-2"></v-divider>
+            <div class="detail-row">
+              <span class="detail-label">Items Count:</span>
+              <span class="detail-value">{{ booking.items_count || booking.cart_items?.length || 0 }} slot{{ (booking.items_count || booking.cart_items?.length || 0) > 1 ? 's' : '' }}</span>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
@@ -132,7 +160,13 @@
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Court:</span>
-              <span class="detail-value">{{ courtName || 'N/A' }}</span>
+              <div class="detail-value text-right">
+                <div>{{ courtName || 'N/A' }}</div>
+                <div v-if="booking.court?.surface_type" class="text-caption text-grey">
+                  <v-icon size="12" class="mr-1">mdi-texture-box</v-icon>
+                  {{ booking.court.surface_type }}
+                </div>
+              </div>
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
@@ -149,7 +183,7 @@
               <span class="detail-label">Number of Players:</span>
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ booking.number_of_players || 1 }} player{{ (booking.number_of_players || 1) > 1 ? 's' : '' }}
+                {{ booking.number_of_players || 1 }} player
               </v-chip>
             </div>
             <v-divider class="my-2"></v-divider>
@@ -172,6 +206,38 @@
             <v-icon class="mr-2" color="primary">mdi-cart</v-icon>
             Cart Items ({{ booking.cart_items.length }})
           </h4>
+
+          <!-- Overall Time Range (Adjacent Time Sensitive) -->
+          <div v-if="adjacentTimeRanges.length > 0">
+            <v-card
+              v-for="(range, index) in adjacentTimeRanges"
+              :key="index"
+              variant="tonal"
+              color="primary"
+              :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
+            >
+              <v-card-text class="pa-3">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-center">
+                    <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
+                    <div>
+                      <div class="text-caption text-grey-darken-1 mb-1">
+                        {{ adjacentTimeRanges.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
+                      </div>
+                      <div class="text-h6 font-weight-bold">
+                        {{ formatTimeSlot(range.start) }} - {{ formatTimeSlot(range.end) }}
+                      </div>
+                    </div>
+                  </div>
+                  <v-chip color="primary" size="small">
+                    <v-icon start size="16">mdi-calendar-clock</v-icon>
+                    {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
+                  </v-chip>
+                </div>
+              </v-card-text>
+            </v-card>
+          </div>
+
           <v-card variant="outlined" class="pa-4">
             <v-list>
               <v-list-item
@@ -186,6 +252,9 @@
                 </template>
                 <v-list-item-title class="font-weight-bold">
                   {{ item.court?.name || 'Unknown Court' }}
+                  <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-2">
+                    (<v-icon size="12">mdi-texture-box</v-icon> {{ item.court.surface_type }})
+                  </span>
                 </v-list-item-title>
                 <v-list-item-subtitle>
                   {{ item.sport?.name || 'Unknown Sport' }} •
@@ -204,6 +273,38 @@
             <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
             Time Slots
           </h4>
+
+          <!-- Overall Time Range (Adjacent Time Sensitive) -->
+          <div v-if="adjacentTimeRanges.length > 0">
+            <v-card
+              v-for="(range, index) in adjacentTimeRanges"
+              :key="index"
+              variant="tonal"
+              color="primary"
+              :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
+            >
+              <v-card-text class="pa-3">
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-center">
+                    <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
+                    <div>
+                      <div class="text-caption text-grey-darken-1 mb-1">
+                        {{ adjacentTimeRanges.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
+                      </div>
+                      <div class="text-h6 font-weight-bold">
+                        {{ formatTimeSlot(range.start) }} - {{ formatTimeSlot(range.end) }}
+                      </div>
+                    </div>
+                  </div>
+                  <v-chip color="primary" size="small">
+                    <v-icon start size="16">mdi-calendar-clock</v-icon>
+                    {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
+                  </v-chip>
+                </div>
+              </v-card-text>
+            </v-card>
+          </div>
+
           <v-card variant="outlined" class="pa-4">
             <v-list dense>
               <v-list-item
@@ -468,14 +569,14 @@
               <span class="detail-label">Number of Players:</span>
               <v-chip color="primary" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-account-group</v-icon>
-                {{ booking.number_of_players || 1 }} player(s)
+                {{ numberOfPlayers }}
               </v-chip>
             </div>
             <div class="detail-row mb-3" v-if="booking.attendance_scan_count !== undefined">
               <span class="detail-label">Scan Count:</span>
-              <v-chip :color="booking.attendance_scan_count >= (booking.number_of_players || 1) ? 'success' : 'warning'" variant="tonal" size="small">
+              <v-chip :color="booking.attendance_scan_count >= numberOfPlayers ? 'success' : 'warning'" variant="tonal" size="small">
                 <v-icon class="mr-1" size="small">mdi-qrcode-scan</v-icon>
-                {{ booking.attendance_scan_count || 0 }} / {{ booking.number_of_players || 1 }} scanned
+                {{ booking.attendance_scan_count || 0 }} / {{ numberOfPlayers }} scanned
               </v-chip>
             </div>
             <div class="detail-row mb-3">
@@ -503,8 +604,8 @@
                   density="compact"
                   prepend-inner-icon="mdi-account-multiple"
                   :min="0"
-                  :max="booking.number_of_players || 100"
-                  :rules="[v => v >= 0 || 'Cannot be negative', v => v <= (booking.number_of_players || 100) || `Cannot exceed ${booking.number_of_players || 100}`]"
+                  :max="numberOfPlayers"
+                  :rules="[v => v >= 0 || 'Cannot be negative', v => v <= numberOfPlayers || `Cannot exceed ${numberOfPlayers}`]"
                   hint="Enter the number of players who attended"
                   persistent-hint
                 ></v-text-field>
@@ -574,6 +675,29 @@
       </v-card-text>
 
       <v-card-actions class="pa-4">
+        <!-- Approve and Reject buttons for Admin only -->
+        <template v-if="isAdmin && booking.approval_status === 'pending'">
+          <v-btn
+            color="success"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-check"
+            @click="approveBooking"
+            :loading="approving"
+            :disabled="getBookingPaymentStatus(booking) !== 'complete'"
+          >
+            Approve
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-close"
+            @click="showRejectDialog"
+          >
+            Reject
+          </v-btn>
+        </template>
         <v-spacer></v-spacer>
         <v-btn
           color="primary"
@@ -636,6 +760,58 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Reject Dialog -->
+    <v-dialog v-model="rejectDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 pa-6 pb-4">
+          <v-icon class="mr-2" color="error">mdi-close-circle</v-icon>
+          Reject Booking
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-6">
+          <p class="text-body-1 mb-4">
+            Are you sure you want to reject this booking? Please provide a reason:
+          </p>
+          <v-textarea
+            v-model="rejectReason"
+            label="Rejection Reason"
+            placeholder="Enter reason for rejection..."
+            variant="outlined"
+            rows="3"
+            counter="500"
+            :rules="[v => v.length <= 500 || 'Reason must be less than 500 characters']"
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="rejectDialog = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="elevated"
+            @click="confirmReject"
+            :loading="rejecting"
+          >
+            Reject Booking
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Success/Error Snackbar -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="3000"
+    >
+      {{ snackbar.message }}
+    </v-snackbar>
   </v-dialog>
 </template>
 
@@ -689,6 +865,17 @@ export default {
     const playersAttended = ref(null)
     const showPlayersAttendedInput = ref(false)
 
+    // Approve/Reject state
+    const approving = ref(false)
+    const rejecting = ref(false)
+    const rejectDialog = ref(false)
+    const rejectReason = ref('')
+    const snackbar = ref({
+      show: false,
+      message: '',
+      color: 'success'
+    })
+
     // QR Code state
     const loadingQrCode = ref(false)
     const qrCodeError = ref('')
@@ -713,6 +900,11 @@ export default {
     // Check if user has staff or admin role
     const isStaffOrAdmin = computed(() => {
       return userRole.value === 'staff' || userRole.value === 'admin'
+    })
+
+    // Check if user is admin
+    const isAdmin = computed(() => {
+      return userRole.value === 'admin'
     })
 
     // Check if this is a transaction (cart-based) booking
@@ -888,6 +1080,92 @@ export default {
       return labels[status] || 'Not Set'
     }
 
+    // Helper functions to determine display user for admin bookings
+    const isAdminBooking = (booking) => {
+      if (!booking) return false
+      // Check if the first cart item has booking_for_user_id or booking_for_user_name
+      const firstCartItem = booking.cart_items?.[0]
+      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
+    }
+
+    const getDisplayUserName = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking, return the "booking for" user
+      if (firstCartItem?.booking_for_user_name) {
+        return firstCartItem.booking_for_user_name
+      }
+
+      // Otherwise, return the transaction creator
+      return booking.user?.name || 'N/A'
+    }
+
+    const getDisplayUserEmail = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their email
+      if (firstCartItem?.booking_for_user_id && firstCartItem?.booking_for_user) {
+        return firstCartItem.booking_for_user.email || 'No email'
+      }
+
+      // If this is an admin booking for a walk-in customer, show that
+      if (firstCartItem?.booking_for_user_name && !firstCartItem?.booking_for_user_id) {
+        return 'Walk-in customer'
+      }
+
+      // Otherwise, return the transaction creator's email
+      return booking.user?.email || 'N/A'
+    }
+
+    const getDisplayUserPhone = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their phone
+      if (firstCartItem?.booking_for_user_id && firstCartItem?.booking_for_user) {
+        return firstCartItem.booking_for_user.phone || 'N/A'
+      }
+
+      // If this is an admin booking for a walk-in customer, show N/A
+      if (firstCartItem?.booking_for_user_name && !firstCartItem?.booking_for_user_id) {
+        return 'N/A'
+      }
+
+      // Otherwise, return the transaction creator's phone
+      return booking.user?.phone || 'N/A'
+    }
+
+    const getDisplayUserId = (booking) => {
+      if (!booking) return 'N/A'
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking with a registered user, return their ID
+      if (firstCartItem?.booking_for_user_id) {
+        return firstCartItem.booking_for_user_id
+      }
+
+      // Otherwise, return the transaction creator's ID
+      return booking.user?.id || 'N/A'
+    }
+
+    const getBookedByUserRoleColor = (booking) => {
+      if (!booking) return 'info'
+      const role = booking.user?.role?.toLowerCase()
+      if (role === 'admin') return 'purple'
+      if (role === 'staff') return 'blue'
+      return 'info'
+    }
+
+    const getBookedByUserRoleIcon = (booking) => {
+      if (!booking) return 'mdi-account-tie'
+      const role = booking.user?.role?.toLowerCase()
+      if (role === 'admin') return 'mdi-shield-crown'
+      if (role === 'staff') return 'mdi-account-badge'
+      return 'mdi-account-tie'
+    }
+
     const handleAttendanceUpdate = async (status) => {
       if (!props.booking?.id) return
 
@@ -902,7 +1180,7 @@ export default {
         showPlayersAttendedInput.value = true
         // Pre-fill with the current number of players or existing value
         if (!playersAttended.value) {
-          playersAttended.value = props.booking.players_attended || props.booking.number_of_players || 1
+          playersAttended.value = props.booking.players_attended || numberOfPlayers.value
         }
         return
       }
@@ -1139,11 +1417,114 @@ export default {
       }
     }
 
+    // Show snackbar helper
+    const showSnackbar = (message, color = 'success') => {
+      snackbar.value = {
+        show: true,
+        message,
+        color
+      }
+    }
+
+    // Approve booking method
+    const approveBooking = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        approving.value = true
+
+        // Validate payment requirements before approval
+        const hasPaymentMethod = props.booking.payment_method && props.booking.payment_method.trim() !== ''
+        const hasProofOfPayment = props.booking.proof_of_payment && props.booking.proof_of_payment.trim() !== ''
+
+        if (!hasPaymentMethod) {
+          showSnackbar('Cannot approve transaction: Payment method is missing. Please ensure the user has selected GCash as payment method.', 'error')
+          return
+        }
+
+        if (!hasProofOfPayment) {
+          showSnackbar('Cannot approve transaction: Proof of payment is missing. Please ensure the user has uploaded a screenshot of their GCash payment confirmation.', 'error')
+          return
+        }
+
+        // Approve cart transaction
+        await cartService.approveTransaction(props.booking.id)
+        showSnackbar('Transaction approved successfully', 'success')
+
+        // Update the booking object
+        if (props.booking) {
+          props.booking.approval_status = 'approved'
+        }
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'approved' })
+
+        // Close dialog after successful approval
+        setTimeout(() => {
+          closeDialog()
+        }, 1500)
+      } catch (error) {
+        console.error('Failed to approve booking:', error)
+        showSnackbar('Failed to approve booking', 'error')
+      } finally {
+        approving.value = false
+      }
+    }
+
+    // Show reject dialog
+    const showRejectDialogFunc = () => {
+      rejectReason.value = ''
+      rejectDialog.value = true
+    }
+
+    // Confirm reject method
+    const confirmReject = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        rejecting.value = true
+        // Reject cart transaction
+        await cartService.rejectTransaction(props.booking.id, rejectReason.value)
+        showSnackbar('Transaction rejected successfully', 'success')
+        rejectDialog.value = false
+
+        // Update the booking object
+        if (props.booking) {
+          props.booking.approval_status = 'rejected'
+        }
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'rejected' })
+
+        // Close dialog after successful rejection
+        setTimeout(() => {
+          closeDialog()
+        }, 1500)
+      } catch (error) {
+        console.error('Failed to reject transaction:', error)
+        showSnackbar('Failed to reject transaction', 'error')
+      } finally {
+        rejecting.value = false
+      }
+    }
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
       const status = props.booking.approval_status || props.booking.status || ''
       return status.toLowerCase() === 'approved'
+    })
+
+    const numberOfPlayers = computed(() => {
+      if (!props.booking) return 1
+      // For transactions, get from first cart item; for regular bookings, get from booking itself
+      return props.booking.cart_items?.[0]?.number_of_players || props.booking.number_of_players || 1
     })
 
     const formattedDate = computed(() => {
@@ -1154,6 +1535,71 @@ export default {
     const formattedTimeRange = computed(() => {
       if (!props.booking) return ''
       return getBookingTimeRange(props.booking)
+    })
+
+    // Adjacent time sensitive time ranges
+    const adjacentTimeRanges = computed(() => {
+      if (!props.booking || !props.booking.cart_items || props.booking.cart_items.length === 0) {
+        return []
+      }
+
+      const items = props.booking.cart_items
+
+      // Remove duplicates and sort by start time
+      const uniqueSlots = []
+      const seenSlots = new Set()
+      items.forEach(item => {
+        const key = `${item.start_time}-${item.end_time}`
+        if (!seenSlots.has(key)) {
+          seenSlots.add(key)
+          uniqueSlots.push({
+            start: item.start_time,
+            end: item.end_time
+          })
+        }
+      })
+      uniqueSlots.sort((a, b) => a.start.localeCompare(b.start))
+
+      // Group consecutive/adjacent slots
+      const timeRanges = []
+      let currentRange = null
+      let currentSlots = []
+
+      uniqueSlots.forEach(slot => {
+        if (!currentRange) {
+          // Start a new range
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+          currentSlots = [slot]
+        } else if (currentRange.end === slot.start) {
+          // Slot is consecutive (end of current range matches start of this slot)
+          currentRange.end = slot.end
+          currentSlots.push(slot)
+        } else {
+          // Gap detected, save current range and start new one
+          timeRanges.push({
+            ...currentRange,
+            slotCount: currentSlots.length
+          })
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+          currentSlots = [slot]
+        }
+      })
+
+      // Add the last range
+      if (currentRange) {
+        timeRanges.push({
+          ...currentRange,
+          slotCount: currentSlots.length
+        })
+      }
+
+      return timeRanges
     })
 
     const totalPrice = computed(() => {
@@ -1217,6 +1663,13 @@ export default {
       showPlayersAttendedInput,
       isTransaction,
       isStaffOrAdmin,
+      isAdmin,
+      // Approve/Reject state
+      approving,
+      rejecting,
+      rejectDialog,
+      rejectReason,
+      snackbar,
       // QR Code state
       loadingQrCode,
       qrCodeError,
@@ -1243,6 +1696,12 @@ export default {
       loadQrCode,
       downloadQrCode,
       copyQrCodeData,
+      // Approve/Reject methods
+      showSnackbar,
+      approveBooking,
+      showRejectDialog: showRejectDialogFunc,
+      confirmReject,
+      getBookingPaymentStatus,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
@@ -1255,14 +1714,24 @@ export default {
       getAttendanceColor,
       getAttendanceIcon,
       getAttendanceLabel,
+      // Admin booking display helpers
+      isAdminBooking,
+      getDisplayUserName,
+      getDisplayUserEmail,
+      getDisplayUserPhone,
+      getDisplayUserId,
+      getBookedByUserRoleColor,
+      getBookedByUserRoleIcon,
       // Computed
       isApprovedBooking,
       formattedDate,
       formattedTimeRange,
+      adjacentTimeRanges,
       totalPrice,
       formattedCreatedAt,
       bookingStatus,
       statusColor,
+      numberOfPlayers,
       // Services
       sportService,
       statusService
@@ -1281,6 +1750,12 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* Overall Time Range */
+.overall-time-range {
+  border-left: 4px solid #1976d2;
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(25, 118, 210, 0.04) 100%);
 }
 
 .booking-view-dialog .dialog-title .v-icon {

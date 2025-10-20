@@ -35,9 +35,20 @@
               <v-row>
                 <v-col cols="12" md="6">
                   <v-text-field
-                    v-model="formData.name"
-                    label="Full Name"
-                    :rules="[v => !!v || 'Name is required']"
+                    v-model="formData.first_name"
+                    label="First Name"
+                    :rules="[v => !!v || 'First name is required']"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-account"
+                    :disabled="updating"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="formData.last_name"
+                    label="Last Name"
+                    :rules="[v => !!v || 'Last name is required']"
                     variant="outlined"
                     prepend-inner-icon="mdi-account"
                     :disabled="updating"
@@ -68,7 +79,7 @@
                   ></v-text-field>
                 </v-col>
 
-                <v-col cols="12" md="6">
+                <v-col v-if="isAdminOrStaff" cols="12" md="6">
                   <v-chip
                     :color="getUserTypeColor(user?.role)"
                     size="large"
@@ -192,23 +203,25 @@
               <div class="info-value">{{ user?.id }}</div>
             </div>
 
-            <v-divider class="my-4"></v-divider>
+            <template v-if="isAdminOrStaff">
+              <v-divider class="my-4"></v-divider>
 
-            <div class="info-item">
-              <div class="info-label">
-                <v-icon size="small" class="mr-2">mdi-shield-account</v-icon>
-                Account Type
+              <div class="info-item">
+                <div class="info-label">
+                  <v-icon size="small" class="mr-2">mdi-shield-account</v-icon>
+                  Account Type
+                </div>
+                <div class="info-value">
+                  <v-chip
+                    :color="getUserTypeColor(user?.role)"
+                    size="small"
+                    variant="flat"
+                  >
+                    {{ user?.role || 'User' }}
+                  </v-chip>
+                </div>
               </div>
-              <div class="info-value">
-                <v-chip
-                  :color="getUserTypeColor(user?.role)"
-                  size="small"
-                  variant="flat"
-                >
-                  {{ user?.role || 'User' }}
-                </v-chip>
-              </div>
-            </div>
+            </template>
 
             <v-divider class="my-4"></v-divider>
 
@@ -254,7 +267,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Swal from 'sweetalert2'
 import api from '../services/api'
 
@@ -269,8 +282,14 @@ export default {
     const showPassword = ref(false)
     const showPasswordConfirm = ref(false)
 
+    // Check if user is admin or staff
+    const isAdminOrStaff = computed(() => {
+      return user.value?.role === 'admin' || user.value?.role === 'staff'
+    })
+
     const formData = ref({
-      name: '',
+      first_name: '',
+      last_name: '',
       email: '',
       phone: '',
       current_password: '',
@@ -284,7 +303,8 @@ export default {
         user.value = response.data.user
 
         // Populate form
-        formData.value.name = user.value.name
+        formData.value.first_name = user.value.first_name || ''
+        formData.value.last_name = user.value.last_name || ''
         formData.value.email = user.value.email
         formData.value.phone = user.value.phone || ''
       } catch (error) {
@@ -298,7 +318,8 @@ export default {
     }
 
     const resetForm = () => {
-      formData.value.name = user.value.name
+      formData.value.first_name = user.value.first_name || ''
+      formData.value.last_name = user.value.last_name || ''
       formData.value.email = user.value.email
       formData.value.phone = user.value.phone || ''
       formData.value.current_password = ''
@@ -312,7 +333,8 @@ export default {
         updating.value = true
 
         const payload = {
-          name: formData.value.name,
+          first_name: formData.value.first_name,
+          last_name: formData.value.last_name,
           email: formData.value.email,
           phone: formData.value.phone
         }
@@ -411,6 +433,7 @@ export default {
       showCurrentPassword,
       showPassword,
       showPasswordConfirm,
+      isAdminOrStaff,
       updateProfile,
       resetForm,
       getUserTypeColor,

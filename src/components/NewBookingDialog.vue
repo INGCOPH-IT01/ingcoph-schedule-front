@@ -87,7 +87,7 @@
                   Number of Players
                 </h4>
                 <v-text-field
-                  v-model.number="numberOfPlayers"
+                  v-model="numberOfPlayers"
                   type="number"
                   label="How many players?"
                   variant="outlined"
@@ -95,6 +95,9 @@
                   :rules="[v => v >= 1 || 'At least 1 player required']"
                   persistent-hint
                   min="1"
+                  @update:model-value="(val) => {
+                    numberOfPlayers.value = parseInt(val) || 1
+                  }"
                 ></v-text-field>
               </v-card>
             </div>
@@ -117,7 +120,7 @@
               </div>
 
               <!-- Selected Sport Info -->
-              <v-card variant="tonal" color="primary" class="mb-4" v-if="selectedSport">
+              <!-- <v-card variant="tonal" color="primary" class="mb-4" v-if="selectedSport">
                 <v-card-text class="pa-4">
                   <div class="d-flex align-center justify-space-between">
                     <div class="d-flex align-center">
@@ -132,7 +135,22 @@
                     </v-chip>
                   </div>
                 </v-card-text>
-              </v-card>
+              </v-card> -->
+
+              <!-- Booking Confirmation Delay Notice -->
+              <v-alert
+                variant="tonal"
+                class="mb-4"
+                density="compact"
+              >
+                <div class="d-flex align-center">
+                  <v-icon class="mr-2">mdi-information</v-icon>
+                  <div>
+                    <div class="font-weight-bold">Important Notice</div>
+                    <div class="text-caption">There may be a carry over delay in the confirmation of your booking during weekends and holidays. This is normal processing time.</div>
+                  </div>
+                </div>
+              </v-alert>
 
               <!-- Date Selection -->
               <v-row class="mb-4">
@@ -174,11 +192,17 @@
                   <v-card variant="outlined" class="pa-4">
                     <div class="d-flex align-center justify-space-between mb-3">
                       <div class="d-flex align-center flex-wrap">
-                        <h4 class="text-subtitle-1">
-                          <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                          {{ court.name }}
-                        </h4>
-                        <div class="d-flex flex-wrap ml-2">
+                        <div class="mr-3">
+                          <h4 class="text-subtitle-1 mb-0">
+                            <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
+                            {{ court.name }}
+                          </h4>
+                          <div v-if="court.surface_type" class="text-caption text-grey ml-7">
+                            <v-icon size="12" class="mr-1">mdi-texture-box</v-icon>
+                            {{ court.surface_type }}
+                          </div>
+                        </div>
+                        <div class="d-flex flex-wrap">
                           <!-- Show all sports this court supports -->
                           <v-chip
                             v-for="sport in getCourtSports(court)"
@@ -285,6 +309,45 @@
 
                   <v-divider class="mb-4"></v-divider>
 
+                  <!-- Overall Time Range (Adjacent Time Sensitive) -->
+                  <div v-if="overallTimeRange.length > 0">
+                    <v-card
+                      v-for="(range, index) in overallTimeRange"
+                      :key="index"
+                      variant="tonal"
+                      color="primary"
+                      :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
+                    >
+                      <v-card-text class="pa-3">
+                        <div class="d-flex align-center justify-space-between">
+                          <div class="d-flex align-center">
+                            <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
+                            <div>
+                              <div class="text-caption text-grey-darken-1 mb-1">
+                                {{ overallTimeRange.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
+                              </div>
+                              <div class="text-h6 font-weight-bold">
+                                {{ formatTime(range.start) }} - {{ formatTime(range.end) }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <v-chip color="primary" size="small" class="mb-1">
+                              <v-icon start size="16">mdi-calendar-clock</v-icon>
+                              {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
+                            </v-chip>
+                            <div>
+                              <v-chip color="primary" size="small" variant="tonal">
+                                <v-icon start size="16">mdi-calendar</v-icon>
+                                {{ formatDate(selectedDate) }}
+                              </v-chip>
+                            </div>
+                          </div>
+                        </div>
+                      </v-card-text>
+                    </v-card>
+                  </div>
+
                   <!-- Pricing Breakdown by Rate -->
                   <div v-if="getPricingBreakdown().length > 1" class="pricing-breakdown mb-4">
                     <h5 class="text-subtitle-1 font-weight-bold mb-3">
@@ -348,57 +411,79 @@
                     </div>
                   </div>
 
-                  <!-- List all bookings by court (shown when no rate breakdown or single rate) -->
+                  <!-- List all bookings grouped by time slot (shown when no rate breakdown or single rate) -->
                   <div v-else>
                     <div
-                      v-for="(courtData, courtId) in courtTimeSlots"
-                      :key="courtId"
-                      class="court-bookings-section mb-4"
+                      v-for="(timeSlot, index) in timeSlotGroupedBookings"
+                      :key="index"
+                      class="time-slot-bookings-section mb-4"
                     >
                       <v-card variant="tonal" class="pa-3">
-                        <div class="d-flex align-center mb-2">
-                          <v-icon class="mr-2" color="primary">mdi-stadium</v-icon>
-                          <h5 class="text-subtitle-1 font-weight-bold">
-                            {{ filteredCourts.find(c => c.id === parseInt(courtId))?.name }}
-                          </h5>
-                        </div>
-
-                        <div class="text-caption text-grey mb-2">
-                          <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
-                          {{ formatDate(selectedDate) }}
+                        <!-- Time slot header -->
+                        <div class="d-flex align-center justify-space-between mb-2">
+                          <div class="d-flex align-center">
+                            <v-icon class="mr-2" color="primary" size="28">mdi-clock-outline</v-icon>
+                            <div>
+                              <h5 class="text-subtitle-1 font-weight-bold mb-0">
+                                {{ formatTime(timeSlot.start) }} - {{ formatTime(timeSlot.end) }}
+                              </h5>
+                              <div class="text-caption text-grey">
+                                <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
+                                {{ formatDate(selectedDate) }}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="text-right">
+                            <div class="text-caption text-grey">Subtotal</div>
+                            <div class="text-h6 font-weight-bold text-success">
+                              ₱{{ timeSlot.totalPrice.toFixed(2) }}
+                            </div>
+                          </div>
                         </div>
 
                         <v-divider class="my-2"></v-divider>
 
-                        <div class="time-slots-list">
+                        <!-- Courts for this time slot -->
+                        <div class="text-caption text-grey mb-2 font-weight-medium">
+                          <v-icon size="14" class="mr-1">mdi-stadium</v-icon>
+                          Courts ({{ timeSlot.courts.length }}):
+                        </div>
+
+                        <div class="courts-list">
                           <v-chip
-                            v-for="(slot, index) in courtData.slots"
-                            :key="index"
-                            color="success"
+                            v-for="(court, courtIndex) in timeSlot.courts"
+                            :key="courtIndex"
+                            color="primary"
+                            variant="tonal"
                             size="small"
                             class="mr-2 mb-2"
                           >
-                            <v-icon start size="16">mdi-clock-outline</v-icon>
-                            {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
+                            <v-icon start size="16">mdi-stadium</v-icon>
+                            {{ court.name }}
+                            <span v-if="court.surface_type" class="ml-1 text-caption">
+                              ({{ court.surface_type }})
+                            </span>
+                            <v-divider vertical class="mx-2"></v-divider>
+                            <span class="font-weight-bold">₱{{ court.price.toFixed(2) }}</span>
                           </v-chip>
-                        </div>
-
-                        <div class="text-caption text-grey mt-2">
-                          {{ courtData.slots.length }} time slot(s) selected
                         </div>
                       </v-card>
                     </div>
                   </div>
+                </v-card-text>
+              </v-card>
 
-                  <v-divider class="my-4"></v-divider>
-
-                  <div class="summary-total">
+              <!-- Total Price Section (moved outside the booking summary card) -->
+              <v-card variant="elevated" color="success" class="mt-4">
+                <v-card-text class="pa-4">
+                  <div class="d-flex justify-space-between align-center">
                     <div>
-                      <div class="text-caption text-grey">Total Price</div>
-                      <div class="text-h5 font-weight-bold text-success">
+                      <div class="text-caption text-white">Total Price</div>
+                      <div class="text-h4 font-weight-bold text-white">
                         ₱{{ calculateTotalPrice() }}
                       </div>
                     </div>
+                    <v-icon size="48" color="white">mdi-cash-multiple</v-icon>
                   </div>
                 </v-card-text>
               </v-card>
@@ -527,12 +612,6 @@
                         <div class="text-body-2 mb-2">
                           <strong>Amount to Pay:</strong> ₱{{ calculateTotalPrice() }}
                         </div>
-                        <div class="text-body-2 mb-2">
-                          <strong>GCash Number:</strong> {{ paymentSettings.payment_gcash_number }}
-                        </div>
-                        <div class="text-body-2 mb-3">
-                          <strong>Account Name:</strong> {{ paymentSettings.payment_gcash_name }}
-                        </div>
 
                         <v-file-input
                           v-model="proofOfPayment"
@@ -582,7 +661,7 @@
                       <div class="text-caption">
                         <strong>Instructions:</strong>
                         <ol class="pl-4 mb-0">
-                          <li>Scan QR code or send ₱{{ calculateTotalPrice() }} to {{ paymentSettings.payment_gcash_number }}</li>
+                          <li>Scan QR code to pay ₱{{ calculateTotalPrice() }}</li>
                           <li>Take a screenshot of your GCash payment receipt</li>
                           <li>Upload the screenshot above</li>
                           <li>Click "Checkout with GCash" to complete</li>
@@ -594,12 +673,21 @@
               </v-card>
 
               <v-alert v-if="!skipPayment" type="info" class="mt-4" icon="mdi-information">
-                Your booking will be confirmed immediately after GCash payment verification.
+                <div class="font-weight-bold mb-1">Booking Confirmation Process</div>
+                <div>Your booking will be confirmed after GCash payment verification.</div>
+                <div class="text-caption mt-2">
+                  <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+                  Please note: There may be a carry over delay in the confirmation of your booking during weekends and holidays.
+                </div>
               </v-alert>
 
               <v-alert v-if="skipPayment && isAdminOrStaff" type="warning" class="mt-4" icon="mdi-alert">
                 <div class="font-weight-bold">Booking without payment</div>
                 <div class="text-caption">Time slots will be marked as booked, but cannot be marked as "showed up" until payment is completed.</div>
+                <div class="text-caption mt-2">
+                  <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
+                  Please note: There may be a carry over delay in the confirmation of your booking during weekends and holidays.
+                </div>
               </v-alert>
             </div>
           </v-window-item>
@@ -790,6 +878,121 @@ export default {
 
     const totalBookings = computed(() => {
       return Object.values(courtTimeSlots.value).reduce((total, ct) => total + ct.slots.length, 0)
+    })
+
+    // Group bookings by time slot for better UX when multiple courts are booked at the same time
+    const timeSlotGroupedBookings = computed(() => {
+      const grouped = {}
+
+      Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
+        const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
+        if (court && courtData.slots && courtData.slots.length > 0) {
+          courtData.slots.forEach(slot => {
+            const timeKey = `${slot.start}-${slot.end}`
+
+            if (!grouped[timeKey]) {
+              grouped[timeKey] = {
+                start: slot.start,
+                end: slot.end,
+                courts: [],
+                totalPrice: 0
+              }
+            }
+
+            // Create proper datetime objects with the selected date for accurate pricing
+            const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+            const price = calculatePriceForRange(startDateTime, endDateTime)
+
+            grouped[timeKey].courts.push({
+              id: court.id,
+              name: court.name,
+              surface_type: court.surface_type,
+              price: price
+            })
+
+            grouped[timeKey].totalPrice += price
+          })
+        }
+      })
+
+      // Sort by start time
+      return Object.values(grouped).sort((a, b) => {
+        return a.start.localeCompare(b.start)
+      })
+    })
+
+    // Calculate the overall time range from all selected slots (adjacent time sensitive)
+    const overallTimeRange = computed(() => {
+      const allSlots = []
+
+      Object.values(courtTimeSlots.value).forEach(courtData => {
+        if (courtData.slots && courtData.slots.length > 0) {
+          courtData.slots.forEach(slot => {
+            allSlots.push({
+              start: slot.start,
+              end: slot.end
+            })
+          })
+        }
+      })
+
+      if (allSlots.length === 0) {
+        return []
+      }
+
+      // Remove duplicates and sort by start time
+      const uniqueSlots = []
+      const seenSlots = new Set()
+      allSlots.forEach(slot => {
+        const key = `${slot.start}-${slot.end}`
+        if (!seenSlots.has(key)) {
+          seenSlots.add(key)
+          uniqueSlots.push(slot)
+        }
+      })
+      uniqueSlots.sort((a, b) => a.start.localeCompare(b.start))
+
+      // Group consecutive/adjacent slots
+      const timeRanges = []
+      let currentRange = null
+      let currentSlots = []
+
+      uniqueSlots.forEach(slot => {
+        if (!currentRange) {
+          // Start a new range
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+          currentSlots = [slot]
+        } else if (currentRange.end === slot.start) {
+          // Slot is consecutive (end of current range matches start of this slot)
+          currentRange.end = slot.end
+          currentSlots.push(slot)
+        } else {
+          // Gap detected, save current range and start new one
+          timeRanges.push({
+            ...currentRange,
+            slotCount: currentSlots.length
+          })
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+          currentSlots = [slot]
+        }
+      })
+
+      // Add the last range
+      if (currentRange) {
+        timeRanges.push({
+          ...currentRange,
+          slotCount: currentSlots.length
+        })
+      }
+
+      return timeRanges
     })
 
     // Methods
@@ -1213,6 +1416,8 @@ export default {
               // Use time-based pricing calculation
               const price = calculatePriceForRange(startDateTime, endDateTime)
 
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
               const cartItem = {
                 court_id: court.id,
                 sport_id: selectedSport.value.id,
@@ -1220,7 +1425,7 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numberOfPlayers.value || 1
+                number_of_players: numPlayers
               }
 
               // Add admin booking fields to each cart item if admin is booking for someone
@@ -1334,6 +1539,8 @@ export default {
               // Use time-based pricing calculation
               const price = calculatePriceForRange(startDateTime, endDateTime)
 
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
               const cartItem = {
                 court_id: parseInt(courtId),
                 sport_id: selectedSport.value.id,
@@ -1341,7 +1548,7 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numberOfPlayers.value || 1
+                number_of_players: numPlayers
               }
 
               // Add admin booking fields to each cart item
@@ -1467,6 +1674,8 @@ export default {
               // Use time-based pricing calculation
               const price = calculatePriceForRange(startDateTime, endDateTime)
 
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
               const cartItem = {
                 court_id: parseInt(courtId),
                 sport_id: selectedSport.value.id,
@@ -1474,7 +1683,7 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numberOfPlayers.value || 1
+                number_of_players: numPlayers
               }
 
               // Add admin booking fields to each cart item
@@ -1837,6 +2046,8 @@ export default {
       filteredCourts,
       canProceed,
       totalBookings,
+      timeSlotGroupedBookings,
+      overallTimeRange,
       getCourtSports,
       selectSport,
       toggleTimeSlot,
@@ -2289,6 +2500,12 @@ export default {
   align-items: center;
 }
 
+/* Overall Time Range */
+.overall-time-range {
+  border-left: 4px solid #1976d2;
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.08) 0%, rgba(25, 118, 210, 0.04) 100%);
+}
+
 /* Pricing Breakdown */
 .pricing-breakdown {
   margin-bottom: 16px;
@@ -2404,7 +2621,16 @@ export default {
   margin-bottom: 16px;
 }
 
+.time-slot-bookings-section {
+  margin-bottom: 16px;
+}
+
 .time-slots-list {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.courts-list {
   display: flex;
   flex-wrap: wrap;
 }
