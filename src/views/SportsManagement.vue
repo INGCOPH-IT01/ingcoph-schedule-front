@@ -675,8 +675,8 @@ export default {
       pricingFormData.value = {
         id: pricing.id,
         name: pricing.name,
-        start_time: pricing.start_time,
-        end_time: pricing.end_time,
+        start_time: pricing.start_time ? pricing.start_time.substring(0, 5) : '',
+        end_time: pricing.end_time ? pricing.end_time.substring(0, 5) : '',
         price_per_hour: pricing.price_per_hour,
         days_of_week: pricing.days_of_week || [],
         is_active: pricing.is_active,
@@ -689,17 +689,24 @@ export default {
       try {
         savingPricing.value = true
 
+        // Ensure time format is HH:MM (strip seconds if present)
+        const formattedData = {
+          ...pricingFormData.value,
+          start_time: pricingFormData.value.start_time ? pricingFormData.value.start_time.substring(0, 5) : '',
+          end_time: pricingFormData.value.end_time ? pricingFormData.value.end_time.substring(0, 5) : ''
+        }
+
         if (pricingRuleEditMode.value) {
           await courtService.updateTimeBasedPricing(
             selectedSport.value.id,
-            pricingFormData.value.id,
-            pricingFormData.value
+            formattedData.id,
+            formattedData
           )
           showSnackbar('Pricing rule updated successfully', 'success')
         } else {
           await courtService.createTimeBasedPricing(
             selectedSport.value.id,
-            pricingFormData.value
+            formattedData
           )
           showSnackbar('Pricing rule created successfully', 'success')
         }

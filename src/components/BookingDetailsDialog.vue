@@ -138,6 +138,11 @@
                 {{ bookingStatus }}
               </v-chip>
             </div>
+            <!-- Rejection Reason (Transaction) -->
+            <div class="detail-row" v-if="isRejected && rejectionReason">
+              <span class="detail-label">Rejection Reason:</span>
+              <div class="detail-value" style="white-space: pre-wrap; text-align: left;">{{ rejectionReason }}</div>
+            </div>
             <v-divider class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Total Price:</span>
@@ -197,6 +202,11 @@
                 {{ bookingStatus }}
               </v-chip>
             </div>
+            <!-- Rejection Reason (Regular Booking) -->
+            <div class="detail-row" v-if="isRejected && rejectionReason">
+              <span class="detail-label">Rejection Reason:</span>
+              <div class="detail-value" style="white-space: pre-wrap; text-align: left;">{{ rejectionReason }}</div>
+            </div>
           </v-card>
         </div>
 
@@ -238,33 +248,49 @@
             </v-card>
           </div>
 
-          <v-card variant="outlined" class="pa-4">
-            <v-list>
-              <v-list-item
-                v-for="item in booking.cart_items"
-                :key="item.id"
-                class="mb-2"
-              >
-                <template v-slot:prepend>
-                  <v-avatar :color="sportService.getSportColor(item.sport?.name)" size="40">
-                    <v-icon color="white">{{ sportService.getSportIcon(item.sport?.name, item.sport?.icon) }}</v-icon>
+          <!-- Pricing Breakdown -->
+          <div class="pricing-breakdown">
+            <!-- Group items by date and court for better organization -->
+            <v-card
+              v-for="(item, index) in booking.cart_items"
+              :key="index"
+              variant="outlined"
+              class="pa-3 mb-3"
+            >
+              <div class="d-flex align-center justify-space-between mb-2">
+                <div class="d-flex align-center flex-grow-1">
+                  <v-avatar :color="sportService.getSportColor(item.sport?.name)" size="32" class="mr-3">
+                    <v-icon color="white" size="20">{{ sportService.getSportIcon(item.sport?.name, item.sport?.icon) }}</v-icon>
                   </v-avatar>
-                </template>
-                <v-list-item-title class="font-weight-bold">
-                  {{ item.court?.name || 'Unknown Court' }}
-                  <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-2">
-                    (<v-icon size="12">mdi-texture-box</v-icon> {{ item.court.surface_type }})
+                  <div>
+                    <div class="text-subtitle-2 font-weight-bold">
+                      {{ item.court?.name || 'Unknown Court' }}
+                      <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-1">
+                        ({{ item.court.surface_type }})
+                      </span>
+                    </div>
+                    <div class="text-caption text-grey">
+                      {{ item.sport?.name || 'Unknown Sport' }} • {{ formatBookingDate(item.booking_date) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <v-divider class="my-2"></v-divider>
+
+              <div class="d-flex align-center justify-space-between">
+                <div class="d-flex align-center">
+                  <v-icon size="16" class="mr-2" color="grey">mdi-clock-outline</v-icon>
+                  <span class="text-body-2">
+                    {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
                   </span>
-                </v-list-item-title>
-                <v-list-item-subtitle>
-                  {{ item.sport?.name || 'Unknown Sport' }} •
-                  {{ formatBookingDate(item.booking_date) }} •
-                  {{ item.start_time }} - {{ item.end_time }} •
-                  <strong class="text-success">₱{{ parseFloat(item.price).toFixed(2) }}</strong>
-                </v-list-item-subtitle>
-              </v-list-item>
-            </v-list>
-          </v-card>
+                </div>
+                <span class="text-body-1 font-weight-bold text-success">
+                  ₱{{ parseFloat(item.price).toFixed(2) }}
+                </span>
+              </div>
+            </v-card>
+          </div>
         </div>
 
         <!-- Time Slots Details (Simple view for non-admin) -->
@@ -369,6 +395,22 @@
           </v-card>
         </div>
 
+        <!-- Notes -->
+        <div class="detail-section mb-4" v-if="booking.notes || (booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes)">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
+            Notes / Special Requests
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div v-if="booking.notes" class="mb-0 text-body-1">
+              {{ booking.notes }}
+            </div>
+            <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes" class="mb-0 text-body-1">
+              {{ booking.cart_items[0].notes }}
+            </div>
+          </v-card>
+        </div>
+
         <!-- Payment Information -->
         <div class="detail-section mb-4">
           <h4 class="detail-section-title">
@@ -404,7 +446,7 @@
               </div>
               <!-- Warning for unpaid bookings -->
               <v-alert
-                v-if="booking.payment_status !== 'paid'"
+                v-if="booking.payment_status !== 'paid' && !isRejected"
                 type="warning"
                 variant="tonal"
                 class="mt-3"
@@ -418,7 +460,7 @@
               <!-- Upload Proof of Payment Section (for unpaid bookings) -->
               <!-- Hidden when booking was created by a User role account, unless current user is the booking owner -->
               <v-card
-                v-if="booking.payment_status !== 'paid' && showAdminFeatures && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
+                v-if="booking.payment_status !== 'paid' && showAdminFeatures && !isRejected && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
                 variant="outlined"
                 class="mt-3 pa-3"
               >
@@ -659,17 +701,6 @@
                 {{ booking.players_attended }} player(s) attended
               </v-chip>
             </div>
-          </v-card>
-        </div>
-
-        <!-- Notes -->
-        <div class="detail-section" v-if="booking.notes">
-          <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
-            Notes
-          </h4>
-          <v-card variant="outlined" class="pa-4">
-            <p class="mb-0">{{ booking.notes }}</p>
           </v-card>
         </div>
       </v-card-text>
@@ -1289,6 +1320,10 @@ export default {
     }
 
     const uploadProofOfPayment = async () => {
+      if (isRejected.value) {
+        alert('Cannot upload proof of payment: This booking/transaction has been rejected.')
+        return
+      }
       if (!proofFile.value || !props.booking?.id) {
         return
       }
@@ -1533,6 +1568,27 @@ export default {
       return status.toLowerCase() === 'approved'
     })
 
+    const isRejected = computed(() => {
+      if (!props.booking) return false
+      const status = (props.booking.approval_status || props.booking.status || '').toLowerCase()
+      return status === 'rejected'
+    })
+
+    const rejectionReason = computed(() => {
+      if (!props.booking) return ''
+      // Transaction-based (cart) view: backend stores rejection reason on transaction
+      if (isTransaction.value) {
+        return props.booking.rejection_reason || ''
+      }
+      // Regular booking: reason appended in notes as "Rejection reason: ..."
+      const notes = props.booking.notes || ''
+      const marker = 'Rejection reason:'
+      if (!notes.toLowerCase().includes(marker.toLowerCase())) return ''
+      // Extract text after marker
+      const idx = notes.toLowerCase().indexOf(marker.toLowerCase())
+      return notes.substring(idx + marker.length).trim()
+    })
+
     const numberOfPlayers = computed(() => {
       if (!props.booking) return 1
       // For transactions, get from first cart item; for regular bookings, get from booking itself
@@ -1687,6 +1743,9 @@ export default {
       qrCodeError,
       qrCodeImageUrl,
       qrCodeData,
+      // Rejection state
+      isRejected,
+      rejectionReason,
       // Proof of Payment Upload state
       uploadingProof,
       proofFile,
@@ -1836,6 +1895,20 @@ export default {
   background: white;
   padding: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Pricing Breakdown Styles */
+.pricing-breakdown {
+  margin-top: 16px;
+}
+
+.pricing-breakdown .v-card {
+  transition: all 0.3s ease;
+}
+
+.pricing-breakdown .v-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
 }
 
 /* Utility Classes */

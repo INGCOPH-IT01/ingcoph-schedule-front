@@ -424,6 +424,20 @@
               </v-chip>
             </template>
 
+            <template v-slot:[`item.notes`]="{ item }">
+              <div v-if="item.cart_items && item.cart_items.length > 0 && item.cart_items[0].notes" class="notes-cell">
+                <v-tooltip location="top">
+                  <template v-slot:activator="{ props }">
+                    <div v-bind="props" class="notes-preview">
+                      {{ item.cart_items[0].notes }}
+                    </div>
+                  </template>
+                  <span>{{ item.cart_items[0].notes }}</span>
+                </v-tooltip>
+              </div>
+              <span v-else class="text-caption text-grey">No notes</span>
+            </template>
+
             <template v-slot:[`item.actions`]="{ item }">
               <div class="d-flex gap-2">
                 <v-btn
@@ -587,6 +601,7 @@ export default {
       { title: 'Payment Status', key: 'payment_status', sortable: false },
       { title: 'Approval Status', key: 'approval_status', sortable: false },
       { title: 'Attendance', key: 'attendance_status', sortable: false },
+      { title: 'Notes', key: 'notes', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false }
     ]
 
@@ -1465,5 +1480,24 @@ export default {
   .action-card {
     padding: 20px;
   }
+}
+
+/* Notes cell styling */
+.notes-cell {
+  max-width: 250px;
+}
+
+.notes-preview {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.notes-preview:hover {
+  color: #1976d2;
+  text-decoration: underline;
 }
 </style>

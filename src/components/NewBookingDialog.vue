@@ -500,12 +500,36 @@
                 </v-card-text>
               </v-card>
 
+              <!-- Notes / Special Requests Section -->
+              <v-card variant="outlined" class="mt-4 notes-section">
+                <v-card-text>
+                  <h4 class="text-h6 mb-4">
+                    <v-icon class="mr-2" color="info">mdi-message-text</v-icon>
+                    Special Requests or Notes
+                  </h4>
+
+                  <v-textarea
+                    v-model="bookingNotes"
+                    label="Notes (Optional)"
+                    placeholder="Any special requests or additional information? (e.g., preferred court location, accessibility requirements)"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-note-text-outline"
+                    rows="3"
+                    auto-grow
+                    counter="500"
+                    :rules="[v => !v || v.length <= 500 || 'Notes must be less than 500 characters']"
+                    hint="Optional - Add any special requests or information for your booking"
+                    persistent-hint
+                  ></v-textarea>
+                </v-card-text>
+              </v-card>
+
               <!-- Payment Options -->
               <v-card variant="outlined" class="mt-4 payment-options">
                 <v-card-text>
                   <h4 class="text-h6 mb-4">
                     <v-icon class="mr-2" color="success">mdi-cellphone-check</v-icon>
-                    {{ isAdminOrStaff ? 'Payment Options' : 'GCash Payment Required' }}
+                    {{ isAdminOrStaff ? 'Payment Options' : 'Payment Required' }}
                   </h4>
 
                   <v-alert v-if="!isAdminOrStaff" type="info" variant="tonal" class="mb-4">
@@ -764,6 +788,7 @@ export default {
     const selectedDate = ref('')
     const courtTimeSlots = ref({}) // Store time slots per court: { courtId: { date: '', slots: [] } }
     const numberOfPlayers = ref(1) // Number of players for the booking
+    const bookingNotes = ref('') // Customer notes/special requests
 
     // Admin booking fields
     const bookingForUser = ref(null)
@@ -1328,7 +1353,8 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numPlayers
+                number_of_players: numPlayers,
+                notes: bookingNotes.value || null
               }
 
               // Add admin booking fields to each cart item if admin is booking for someone
@@ -1515,7 +1541,8 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numPlayers
+                number_of_players: numPlayers,
+                notes: bookingNotes.value || null
               }
 
               // Add admin booking fields to each cart item
@@ -1650,7 +1677,8 @@ export default {
                 start_time: slot.start,
                 end_time: slot.end,
                 price: price,
-                number_of_players: numPlayers
+                number_of_players: numPlayers,
+                notes: bookingNotes.value || null
               }
 
               // Add admin booking fields to each cart item
@@ -1813,6 +1841,7 @@ export default {
       courtTimeSlots.value = {}
       timeSlots.value = {}
       numberOfPlayers.value = 1
+      bookingNotes.value = ''
       paymentMethod.value = 'gcash'
       proofOfPayment.value = null
       proofPreview.value = null
@@ -2009,6 +2038,7 @@ export default {
       selectedDate,
       courtTimeSlots,
       numberOfPlayers,
+      bookingNotes,
       minDate,
       filteredCourts,
       canProceed,
@@ -2556,6 +2586,21 @@ export default {
   background: rgba(76, 175, 80, 0.1);
   border-radius: 8px;
   color: #1f2937 !important;
+}
+
+/* Notes Section */
+.notes-section {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.notes-section h4 {
+  color: #1e40af !important;
+}
+
+.notes-section .v-textarea {
+  background: white;
+  border-radius: 8px;
 }
 
 /* Payment Options */
