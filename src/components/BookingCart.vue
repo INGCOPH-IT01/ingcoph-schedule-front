@@ -146,7 +146,7 @@
                     class="mt-2"
                   >
                     <v-icon start size="small">mdi-cellphone</v-icon>
-                    GCash Payment
+                    Payment
                   </v-chip>
                 </div>
 
@@ -231,7 +231,7 @@
       </v-card-actions>
     </v-card>
 
-    <!-- GCash Payment Dialog -->
+    <!-- Payment Dialog -->
     <v-dialog
       v-model="paymentDialog"
       max-width="600px"
@@ -242,7 +242,7 @@
       <v-card>
         <v-card-title class="text-h5 bg-success text-white pa-4">
           <v-icon class="mr-2" color="white">mdi-cellphone-check</v-icon>
-          GCash Payment Required
+          Payment Required
         </v-card-title>
 
         <v-card-text class="pa-6">
@@ -253,7 +253,7 @@
             <div class="text-caption mt-2">{{ groupedCartItems.length }} booking(s) • {{ cartItems.length }} time slot(s)</div>
           </v-alert>
 
-          <!-- GCash Instructions -->
+          <!-- Instructions -->
           <v-card variant="outlined" class="mb-4">
             <v-card-text>
               <h3 class="text-h6 mb-3">
@@ -304,7 +304,7 @@
                     ></v-img>
                     <canvas v-else ref="gcashQrCanvas" class="gcash-qr-code"></canvas>
                     <div class="text-caption text-center mt-2 text-grey-darken-1">
-                      GCash QR Code
+                      QR Code
                     </div>
                   </div>
                 </v-col>

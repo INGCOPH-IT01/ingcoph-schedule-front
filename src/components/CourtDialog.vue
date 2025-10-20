@@ -63,13 +63,10 @@
                   <v-list-item-subtitle>{{ item.raw.description }}</v-list-item-subtitle>
                 </v-list-item>
               </template>
-              <template v-slot:chip="{ item }">
-                <v-chip
-                  closable
-                  size="small"
-                >
-                  <span class="sport-icon mr-1">{{ sportService.getSportIcon(item.raw.name, item.raw.icon) }}</span>
-                  {{ item.raw.name }}
+              <template v-slot:chip="{ item, props }">
+                <v-chip v-bind="props" size="small">
+                  <v-icon start size="small">{{ sportService.getSportIcon(item?.raw?.name, item?.raw?.icon) }}</v-icon>
+                  {{ item?.title }}
                 </v-chip>
               </template>
             </v-select>
@@ -264,7 +261,12 @@ export default {
 
     const fetchSports = async () => {
       try {
-        sports.value = await courtService.getSports()
+        const sportsData = await courtService.getSports()
+        // Ensure sport IDs are numbers for proper matching
+        sports.value = sportsData.map(sport => ({
+          ...sport,
+          id: Number(sport.id)
+        }))
       } catch (err) {
         console.error('Failed to fetch sports:', err)
       }
@@ -293,13 +295,14 @@ export default {
           let sportIds = []
 
           if (props.court.sports && Array.isArray(props.court.sports) && props.court.sports.length > 0) {
-            sportIds = props.court.sports.map(sport => sport?.id).filter(id => id)
+            // Ensure IDs are numbers for proper matching
+            sportIds = props.court.sports.map(sport => Number(sport?.id)).filter(id => id && !isNaN(id))
           } else if (props.court.sport_id) {
             // Fallback to single sport_id if exists
-            sportIds = [props.court.sport_id]
+            sportIds = [Number(props.court.sport_id)]
           } else if (props.court.sport?.id) {
             // Another fallback using the sport object
-            sportIds = [props.court.sport.id]
+            sportIds = [Number(props.court.sport.id)]
           }
 
           // Handle amenities - can be string (comma-separated) or array
@@ -400,8 +403,12 @@ export default {
       previewImages.value.splice(index, 1)
     }
 
-    watch(() => props.isOpen, (isOpen) => {
+    watch(() => props.isOpen, async (isOpen) => {
       if (isOpen) {
+        // Ensure sports are loaded before populating form
+        if (!sports.value || sports.value.length === 0) {
+          await fetchSports()
+        }
         populateForm()
       }
     })

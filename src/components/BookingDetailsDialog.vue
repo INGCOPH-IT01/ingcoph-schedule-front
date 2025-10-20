@@ -1302,11 +1302,23 @@ export default {
           ? props.booking.payment_method
           : 'gcash'
 
-        const response = await bookingService.uploadProofOfPayment(
-          props.booking.id,
-          file,
-          paymentMethod
-        )
+        // Use the appropriate service based on whether this is a transaction or booking
+        let response
+        if (isTransaction.value) {
+          // For cart transactions, use cartService
+          response = await cartService.uploadProofOfPayment(
+            props.booking.id,
+            file,
+            paymentMethod
+          )
+        } else {
+          // For regular bookings, use bookingService
+          response = await bookingService.uploadProofOfPayment(
+            props.booking.id,
+            file,
+            paymentMethod
+          )
+        }
 
         // Update the booking object with new payment info
         if (props.booking) {
