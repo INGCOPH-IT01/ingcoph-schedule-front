@@ -350,17 +350,24 @@
             </template>
 
             <template v-slot:[`item.sport_name`]="{ item }">
-              <v-chip
-                :color="sportService.getSportColor(item.cart_items?.[0]?.court?.sport?.name)"
-                variant="tonal"
-                size="small"
-              >
-                <!-- Use MDI icon from sport if available, otherwise use fallback -->
-                <v-icon class="mr-1" size="small">
-                  {{ sportService.getSportIcon(item.cart_items?.[0]?.court?.sport?.name, item.cart_items?.[0]?.court?.sport?.icon) }}
-                </v-icon>
-                {{ item.cart_items?.[0]?.court?.sport?.name || 'Multiple Sports' }}
-              </v-chip>
+              <div class="d-flex flex-wrap gap-1">
+                <v-chip
+                  v-for="sport in getUniqueSports(item)"
+                  :key="sport.name"
+                  :color="sportService.getSportColor(sport.name)"
+                  variant="tonal"
+                  size="small"
+                >
+                  <!-- Use MDI icon from sport if available, otherwise use fallback -->
+                  <v-icon class="mr-1" size="small">
+                    {{ sportService.getSportIcon(sport.name, sport.icon) }}
+                  </v-icon>
+                  {{ sport.name }}
+                </v-chip>
+                <span v-if="!getUniqueSports(item).length" class="text-caption text-grey">
+                  No sport
+                </span>
+              </div>
             </template>
 
             <template v-slot:[`item.booking_date`]="{ item }">
@@ -942,6 +949,33 @@ export default {
       return labels[status] || 'Not Set'
     }
 
+    // Helper function to get unique sports from a transaction
+    const getUniqueSports = (transaction) => {
+      if (!transaction.cart_items || transaction.cart_items.length === 0) {
+        return []
+      }
+
+      // Extract all sports from cart items
+      const sportsMap = new Map()
+      transaction.cart_items.forEach(item => {
+        // Use item.sport directly - this is the sport that was actually selected for the booking
+        // NOT item.court.sport which is just the default sport for the court
+        const sport = item.sport
+        if (sport && sport.name) {
+          // Use sport name as key to avoid duplicates
+          if (!sportsMap.has(sport.name)) {
+            sportsMap.set(sport.name, {
+              name: sport.name,
+              icon: sport.icon
+            })
+          }
+        }
+      })
+
+      // Return array of unique sports
+      return Array.from(sportsMap.values())
+    }
+
     // Helper functions to determine display user for admin bookings
     const isAdminBooking = (transaction) => {
       // Check if the first cart item has booking_for_user_id or booking_for_user_name
@@ -1065,6 +1099,8 @@ export default {
       getAttendanceColor,
       getAttendanceIcon,
       getAttendanceLabel,
+      // Sport display functions
+      getUniqueSports,
       // Admin booking display functions
       isAdminBooking,
       getDisplayUserName,
@@ -1386,6 +1422,10 @@ export default {
 }
 
 /* Utility Classes */
+.gap-1 {
+  gap: 4px;
+}
+
 .gap-2 {
   gap: 8px;
 }
