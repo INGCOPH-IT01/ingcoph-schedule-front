@@ -379,6 +379,22 @@
           </v-card>
         </div>
 
+        <!-- Notes -->
+        <div class="detail-section mb-4" v-if="booking.notes || (booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes)">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
+            Notes / Special Requests
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div v-if="booking.notes" class="mb-0 text-body-1">
+              {{ booking.notes }}
+            </div>
+            <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes" class="mb-0 text-body-1">
+              {{ booking.cart_items[0].notes }}
+            </div>
+          </v-card>
+        </div>
+
         <!-- Payment Information -->
         <div class="detail-section mb-4">
           <h4 class="detail-section-title">
@@ -669,17 +685,6 @@
                 {{ booking.players_attended }} player(s) attended
               </v-chip>
             </div>
-          </v-card>
-        </div>
-
-        <!-- Notes -->
-        <div class="detail-section" v-if="booking.notes">
-          <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
-            Notes
-          </h4>
-          <v-card variant="outlined" class="pa-4">
-            <p class="mb-0">{{ booking.notes }}</p>
           </v-card>
         </div>
       </v-card-text>
