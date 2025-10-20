@@ -611,6 +611,29 @@
       </v-card-text>
 
       <v-card-actions class="pa-4">
+        <!-- Approve and Reject buttons for Admin only -->
+        <template v-if="isAdmin && booking.approval_status === 'pending'">
+          <v-btn
+            color="success"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-check"
+            @click="approveBooking"
+            :loading="approving"
+            :disabled="getBookingPaymentStatus(booking) !== 'complete'"
+          >
+            Approve
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-close"
+            @click="showRejectDialog"
+          >
+            Reject
+          </v-btn>
+        </template>
         <v-spacer></v-spacer>
         <v-btn
           color="primary"
@@ -673,6 +696,58 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Reject Dialog -->
+    <v-dialog v-model="rejectDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 pa-6 pb-4">
+          <v-icon class="mr-2" color="error">mdi-close-circle</v-icon>
+          Reject Booking
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-6">
+          <p class="text-body-1 mb-4">
+            Are you sure you want to reject this booking? Please provide a reason:
+          </p>
+          <v-textarea
+            v-model="rejectReason"
+            label="Rejection Reason"
+            placeholder="Enter reason for rejection..."
+            variant="outlined"
+            rows="3"
+            counter="500"
+            :rules="[v => v.length <= 500 || 'Reason must be less than 500 characters']"
+          ></v-textarea>
+        </v-card-text>
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="rejectDialog = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="elevated"
+            @click="confirmReject"
+            :loading="rejecting"
+          >
+            Reject Booking
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Success/Error Snackbar -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      :timeout="3000"
+    >
+      {{ snackbar.message }}
+    </v-snackbar>
   </v-dialog>
 </template>
 
@@ -726,6 +801,17 @@ export default {
     const playersAttended = ref(null)
     const showPlayersAttendedInput = ref(false)
 
+    // Approve/Reject state
+    const approving = ref(false)
+    const rejecting = ref(false)
+    const rejectDialog = ref(false)
+    const rejectReason = ref('')
+    const snackbar = ref({
+      show: false,
+      message: '',
+      color: 'success'
+    })
+
     // QR Code state
     const loadingQrCode = ref(false)
     const qrCodeError = ref('')
@@ -750,6 +836,11 @@ export default {
     // Check if user has staff or admin role
     const isStaffOrAdmin = computed(() => {
       return userRole.value === 'staff' || userRole.value === 'admin'
+    })
+
+    // Check if user is admin
+    const isAdmin = computed(() => {
+      return userRole.value === 'admin'
     })
 
     // Check if this is a transaction (cart-based) booking
@@ -1262,6 +1353,103 @@ export default {
       }
     }
 
+    // Show snackbar helper
+    const showSnackbar = (message, color = 'success') => {
+      snackbar.value = {
+        show: true,
+        message,
+        color
+      }
+    }
+
+    // Approve booking method
+    const approveBooking = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        approving.value = true
+
+        // Validate payment requirements before approval
+        const hasPaymentMethod = props.booking.payment_method && props.booking.payment_method.trim() !== ''
+        const hasProofOfPayment = props.booking.proof_of_payment && props.booking.proof_of_payment.trim() !== ''
+
+        if (!hasPaymentMethod) {
+          showSnackbar('Cannot approve transaction: Payment method is missing. Please ensure the user has selected GCash as payment method.', 'error')
+          return
+        }
+
+        if (!hasProofOfPayment) {
+          showSnackbar('Cannot approve transaction: Proof of payment is missing. Please ensure the user has uploaded a screenshot of their GCash payment confirmation.', 'error')
+          return
+        }
+
+        // Approve cart transaction
+        await cartService.approveTransaction(props.booking.id)
+        showSnackbar('Transaction approved successfully', 'success')
+
+        // Update the booking object
+        if (props.booking) {
+          props.booking.approval_status = 'approved'
+        }
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'approved' })
+
+        // Close dialog after successful approval
+        setTimeout(() => {
+          closeDialog()
+        }, 1500)
+      } catch (error) {
+        console.error('Failed to approve booking:', error)
+        showSnackbar('Failed to approve booking', 'error')
+      } finally {
+        approving.value = false
+      }
+    }
+
+    // Show reject dialog
+    const showRejectDialogFunc = () => {
+      rejectReason.value = ''
+      rejectDialog.value = true
+    }
+
+    // Confirm reject method
+    const confirmReject = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        rejecting.value = true
+        // Reject cart transaction
+        await cartService.rejectTransaction(props.booking.id, rejectReason.value)
+        showSnackbar('Transaction rejected successfully', 'success')
+        rejectDialog.value = false
+
+        // Update the booking object
+        if (props.booking) {
+          props.booking.approval_status = 'rejected'
+        }
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'rejected' })
+
+        // Close dialog after successful rejection
+        setTimeout(() => {
+          closeDialog()
+        }, 1500)
+      } catch (error) {
+        console.error('Failed to reject transaction:', error)
+        showSnackbar('Failed to reject transaction', 'error')
+      } finally {
+        rejecting.value = false
+      }
+    }
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -1346,6 +1534,13 @@ export default {
       showPlayersAttendedInput,
       isTransaction,
       isStaffOrAdmin,
+      isAdmin,
+      // Approve/Reject state
+      approving,
+      rejecting,
+      rejectDialog,
+      rejectReason,
+      snackbar,
       // QR Code state
       loadingQrCode,
       qrCodeError,
@@ -1372,6 +1567,12 @@ export default {
       loadQrCode,
       downloadQrCode,
       copyQrCodeData,
+      // Approve/Reject methods
+      showSnackbar,
+      approveBooking,
+      showRejectDialog: showRejectDialogFunc,
+      confirmReject,
+      getBookingPaymentStatus,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
