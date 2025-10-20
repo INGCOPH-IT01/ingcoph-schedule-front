@@ -239,10 +239,11 @@
                         :key="slot.start"
                         :class="['time-slot-card', {
                           'selected': isTimeSlotSelected(court.id, slot.start),
-                          'unavailable': !slot.available
+                          'unavailable': !slot.available && !slot.is_waitlist_available,
+                          'waitlist': slot.is_waitlist_available
                         }]"
-                        @click="slot.available && toggleTimeSlot(court.id, slot)"
-                        :disabled="!slot.available"
+                        @click="(slot.available || slot.is_waitlist_available) && toggleTimeSlot(court.id, slot)"
+                        :disabled="!slot.available && !slot.is_waitlist_available"
                       >
                         <v-icon
                           v-if="isTimeSlotSelected(court.id, slot.start)"
@@ -257,11 +258,11 @@
                           <div class="text-caption">to</div>
                           <div class="text-body-2 font-weight-bold">{{ formatTime(slot.end) }}</div>
                           <v-chip
-                            :color="slot.available ? 'success' : 'error'"
+                            :color="slot.is_booked ? 'error' : (slot.is_waitlist_available ? 'warning' : 'success')"
                             size="x-small"
                             class="mt-2"
                           >
-                            {{ slot.available ? 'Available' : 'Booked' }}
+                            {{ slot.is_booked ? 'Booked' : (slot.is_waitlist_available ? 'Waitlist' : 'Available') }}
                           </v-chip>
                         </v-card-text>
                       </v-card>
@@ -349,7 +350,7 @@
                   </div>
 
                   <!-- Pricing Breakdown by Rate -->
-                  <div v-if="getPricingBreakdown().length > 1" class="pricing-breakdown mb-4">
+                  <div class="pricing-breakdown mb-4">
                     <h5 class="text-subtitle-1 font-weight-bold mb-3">
                       <v-icon class="mr-2" color="info">mdi-cash-multiple</v-icon>
                       Pricing Breakdown
@@ -386,6 +387,9 @@
                             <div class="d-flex align-center flex-grow-1">
                               <v-icon size="16" class="mr-2" color="grey">mdi-stadium</v-icon>
                               <span class="text-body-2">{{ slot.courtName }}</span>
+                              <span v-if="slot.surfaceType" class="text-caption text-grey ml-1">
+                                ({{ slot.surfaceType }})
+                              </span>
                               <v-icon size="12" class="mx-2" color="grey">mdi-circle-small</v-icon>
                               <span class="text-body-2">
                                 {{ formatTime(slot.start) }} - {{ formatTime(slot.end) }}
@@ -406,66 +410,6 @@
                           <span class="text-body-2 font-weight-bold">
                             Subtotal: ₱{{ rateGroup.totalPrice.toFixed(2) }}
                           </span>
-                        </div>
-                      </v-card>
-                    </div>
-                  </div>
-
-                  <!-- List all bookings grouped by time slot (shown when no rate breakdown or single rate) -->
-                  <div v-else>
-                    <div
-                      v-for="(timeSlot, index) in timeSlotGroupedBookings"
-                      :key="index"
-                      class="time-slot-bookings-section mb-4"
-                    >
-                      <v-card variant="tonal" class="pa-3">
-                        <!-- Time slot header -->
-                        <div class="d-flex align-center justify-space-between mb-2">
-                          <div class="d-flex align-center">
-                            <v-icon class="mr-2" color="primary" size="28">mdi-clock-outline</v-icon>
-                            <div>
-                              <h5 class="text-subtitle-1 font-weight-bold mb-0">
-                                {{ formatTime(timeSlot.start) }} - {{ formatTime(timeSlot.end) }}
-                              </h5>
-                              <div class="text-caption text-grey">
-                                <v-icon size="14" class="mr-1">mdi-calendar</v-icon>
-                                {{ formatDate(selectedDate) }}
-                              </div>
-                            </div>
-                          </div>
-                          <div class="text-right">
-                            <div class="text-caption text-grey">Subtotal</div>
-                            <div class="text-h6 font-weight-bold text-success">
-                              ₱{{ timeSlot.totalPrice.toFixed(2) }}
-                            </div>
-                          </div>
-                        </div>
-
-                        <v-divider class="my-2"></v-divider>
-
-                        <!-- Courts for this time slot -->
-                        <div class="text-caption text-grey mb-2 font-weight-medium">
-                          <v-icon size="14" class="mr-1">mdi-stadium</v-icon>
-                          Courts ({{ timeSlot.courts.length }}):
-                        </div>
-
-                        <div class="courts-list">
-                          <v-chip
-                            v-for="(court, courtIndex) in timeSlot.courts"
-                            :key="courtIndex"
-                            color="primary"
-                            variant="tonal"
-                            size="small"
-                            class="mr-2 mb-2"
-                          >
-                            <v-icon start size="16">mdi-stadium</v-icon>
-                            {{ court.name }}
-                            <span v-if="court.surface_type" class="ml-1 text-caption">
-                              ({{ court.surface_type }})
-                            </span>
-                            <v-divider vertical class="mx-2"></v-divider>
-                            <span class="font-weight-bold">₱{{ court.price.toFixed(2) }}</span>
-                          </v-chip>
                         </div>
                       </v-card>
                     </div>
@@ -662,9 +606,9 @@
                         <strong>Instructions:</strong>
                         <ol class="pl-4 mb-0">
                           <li>Scan QR code to pay ₱{{ calculateTotalPrice() }}</li>
-                          <li>Take a screenshot of your GCash payment receipt</li>
+                          <li>Take a screenshot of your payment receipt</li>
                           <li>Upload the screenshot above</li>
-                          <li>Click "Checkout with GCash" to complete</li>
+                          <li>Click "Checkout" to complete</li>
                         </ol>
                       </div>
                     </v-alert>
@@ -674,7 +618,7 @@
 
               <v-alert v-if="!skipPayment" type="info" class="mt-4" icon="mdi-information">
                 <div class="font-weight-bold mb-1">Booking Confirmation Process</div>
-                <div>Your booking will be confirmed after GCash payment verification.</div>
+                <div>Your booking will be confirmed after payment verification.</div>
                 <div class="text-caption mt-2">
                   <v-icon size="small" class="mr-1">mdi-clock-alert</v-icon>
                   Please note: There may be a carry over delay in the confirmation of your booking during weekends and holidays.
@@ -733,7 +677,7 @@
             @click="submitBookingWithGCash"
           >
             <v-icon start>mdi-cellphone-check</v-icon>
-            Checkout with GCash
+            Checkout
           </v-btn>
           <v-btn
             v-if="skipPayment && isAdminOrStaff"
@@ -878,48 +822,6 @@ export default {
 
     const totalBookings = computed(() => {
       return Object.values(courtTimeSlots.value).reduce((total, ct) => total + ct.slots.length, 0)
-    })
-
-    // Group bookings by time slot for better UX when multiple courts are booked at the same time
-    const timeSlotGroupedBookings = computed(() => {
-      const grouped = {}
-
-      Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
-        const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
-        if (court && courtData.slots && courtData.slots.length > 0) {
-          courtData.slots.forEach(slot => {
-            const timeKey = `${slot.start}-${slot.end}`
-
-            if (!grouped[timeKey]) {
-              grouped[timeKey] = {
-                start: slot.start,
-                end: slot.end,
-                courts: [],
-                totalPrice: 0
-              }
-            }
-
-            // Create proper datetime objects with the selected date for accurate pricing
-            const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-            const price = calculatePriceForRange(startDateTime, endDateTime)
-
-            grouped[timeKey].courts.push({
-              id: court.id,
-              name: court.name,
-              surface_type: court.surface_type,
-              price: price
-            })
-
-            grouped[timeKey].totalPrice += price
-          })
-        }
-      })
-
-      // Sort by start time
-      return Object.values(grouped).sort((a, b) => {
-        return a.start.localeCompare(b.start)
-      })
     })
 
     // Calculate the overall time range from all selected slots (adjacent time sensitive)
@@ -1319,6 +1221,7 @@ export default {
             group.slots.push({
               courtId,
               courtName: court.name,
+              surfaceType: court.surface_type,
               start: slot.start,
               end: slot.end,
               price: slotPrice
@@ -1451,6 +1354,36 @@ export default {
         // Add to booking via API
         const response = await cartService.addToCart(cartItems)
 
+        // Check if the response indicates waitlisted booking
+        if (response.waitlisted) {
+          const waitlistEntry = response.waitlist_entry
+          const position = response.position
+
+          showAlert({
+            icon: 'info',
+            title: '⏳ Added to Waitlist',
+            html: `
+              <div style="text-align: left;">
+                <p><strong>This time slot is currently pending approval for another user.</strong></p>
+                <p style="margin-top: 12px;">You have been added to the waitlist:</p>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                  <li><strong>Position:</strong> #${position} in queue</li>
+                  <li><strong>Court:</strong> ${waitlistEntry.court.name}</li>
+                  <li><strong>Time:</strong> ${new Date(waitlistEntry.start_time).toLocaleTimeString()} - ${new Date(waitlistEntry.end_time).toLocaleTimeString()}</li>
+                </ul>
+                <p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive an email notification if the slot becomes available.</strong></p>
+                <p style="margin-top: 8px; font-size: 0.9em; color: #666;">The notification will give you 1 hour to complete your booking.</p>
+              </div>
+            `,
+            confirmButtonText: 'OK',
+            width: '600px'
+          })
+
+          emit('close')
+          resetForm()
+          return
+        }
+
         // Dispatch custom events to update cart count and refresh bookings
         window.dispatchEvent(new CustomEvent('cart-updated'))
         window.dispatchEvent(new CustomEvent('booking-created'))
@@ -1473,10 +1406,44 @@ export default {
         resetForm()
       } catch (error) {
         console.error('Failed to add to booking:', error)
+
+        // Check if this is a specific error response that we should handle specially
+        const errorData = error.response?.data
+
+        // Handle waitlist response from error (in case it comes as error)
+        if (errorData?.waitlisted) {
+          const waitlistEntry = errorData.waitlist_entry
+          const position = errorData.position
+
+          showAlert({
+            icon: 'info',
+            title: '⏳ Added to Waitlist',
+            html: `
+              <div style="text-align: left;">
+                <p><strong>This time slot is currently pending approval for another user.</strong></p>
+                <p style="margin-top: 12px;">You have been added to the waitlist:</p>
+                <ul style="margin-top: 8px; padding-left: 20px;">
+                  <li><strong>Position:</strong> #${position} in queue</li>
+                  <li><strong>Court:</strong> ${waitlistEntry.court.name}</li>
+                  <li><strong>Time:</strong> ${new Date(waitlistEntry.start_time).toLocaleTimeString()} - ${new Date(waitlistEntry.end_time).toLocaleTimeString()}</li>
+                </ul>
+                <p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive an email notification if the slot becomes available.</strong></p>
+                <p style="margin-top: 8px; font-size: 0.9em; color: #666;">The notification will give you 1 hour to complete your booking.</p>
+              </div>
+            `,
+            confirmButtonText: 'OK',
+            width: '600px'
+          })
+
+          emit('close')
+          resetForm()
+          return
+        }
+
         showAlert({
           icon: 'error',
           title: 'Failed',
-          text: error.response?.data?.message || 'Failed to add bookings to cart. Please try again.'
+          text: errorData?.message || 'Failed to add bookings to cart. Please try again.'
         })
       } finally {
         addingToCart.value = false
@@ -2046,7 +2013,6 @@ export default {
       filteredCourts,
       canProceed,
       totalBookings,
-      timeSlotGroupedBookings,
       overallTimeRange,
       getCourtSports,
       selectSport,
@@ -2478,6 +2444,26 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
   background: #f5f5f5 !important;
+}
+
+.time-slot-card.waitlist {
+  border-color: #ff9800;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(251, 140, 0, 0.05) 100%) !important;
+}
+
+.time-slot-card.waitlist:hover {
+  border-color: #ff9800;
+  box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
+}
+
+.time-slot-card.waitlist .v-chip {
+  background: #ff9800 !important;
+  color: white !important;
+}
+
+.time-slot-card:not(.unavailable):not(.waitlist) .v-chip {
+  background: #4caf50 !important;
+  color: white !important;
 }
 
 @keyframes pulse {

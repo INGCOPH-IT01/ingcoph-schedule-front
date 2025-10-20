@@ -113,5 +113,29 @@ export const cartService = {
 
     const response = await api.patch(`/admin/cart-transactions/${transactionId}/attendance-status`, data)
     return response.data
+  },
+
+  /**
+   * Upload proof of payment for a cart transaction
+   * @param {number} transactionId - Cart transaction ID
+   * @param {File} file - Proof of payment file
+   * @param {string} paymentMethod - Payment method (gcash, cash)
+   */
+  async uploadProofOfPayment(transactionId, file, paymentMethod = 'gcash') {
+    try {
+      const formData = new FormData()
+      formData.append('proof_of_payment', file)
+      formData.append('payment_method', paymentMethod)
+
+      const response = await api.post(`/cart-transactions/${transactionId}/upload-proof`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      return response.data
+    } catch (error) {
+      console.error('Upload proof of payment error:', error)
+      throw new Error(error.response?.data?.message || 'Failed to upload proof of payment')
+    }
   }
 }

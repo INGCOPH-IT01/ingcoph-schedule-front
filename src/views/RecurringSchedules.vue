@@ -4,7 +4,7 @@
     <div class="badminton-background">
       <div class="badminton-overlay"></div>
     </div>
-    
+
     <!-- Excel-like Header -->
     <div class="excel-header">
       <div class="excel-title-section">
@@ -64,7 +64,12 @@
           <div class="excel-cell-content">
             <div class="excel-cell-icon">🏟️</div>
             <div class="excel-cell-text">
-              <div class="excel-cell-title">{{ item.court.name }}</div>
+              <div class="excel-cell-title">
+                {{ item.court.name }}
+                <span v-if="item.court.surface_type" class="text-caption" style="color: #888;">
+                  ({{ item.court.surface_type }})
+                </span>
+              </div>
               <div class="excel-cell-subtitle">{{ item.court.sport.name }}</div>
             </div>
           </div>
@@ -350,15 +355,15 @@ export default {
     }
 
     const formatTime = (timeString) => {
-      return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      return new Date(`2000-01-01T${timeString}`).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
       })
     }
 
     const formatRecurrence = (schedule) => {
       return recurringScheduleService.formatRecurrenceDays(
-        schedule.recurrence_days, 
+        schedule.recurrence_days,
         schedule.recurrence_type
       )
     }
@@ -606,12 +611,12 @@ export default {
     gap: 16px;
     align-items: flex-start;
   }
-  
+
   .excel-actions {
     width: 100%;
     justify-content: flex-end;
   }
-  
+
   .excel-actions-cell {
     flex-direction: column;
   }
