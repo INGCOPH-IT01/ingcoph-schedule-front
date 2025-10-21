@@ -85,7 +85,7 @@
         :rail="rail"
         @click="rail = false"
         class="excel-sidebar"
-        absolute
+        fixed
       >
         <v-list density="compact" nav class="excel-nav-list">
           <v-list-item

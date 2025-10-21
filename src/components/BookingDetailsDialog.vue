@@ -352,15 +352,23 @@
                             ({{ item.court.surface_type }})
                           </span>
                         </div>
-                        <v-btn
-                          v-if="isAdmin"
-                          icon="mdi-pencil"
-                          size="x-small"
-                          variant="text"
-                          color="primary"
-                          class="ml-2"
-                          @click="startCartItemCourtEdit(item, index)"
-                        ></v-btn>
+                        <div v-if="isAdmin" class="d-flex ml-2">
+                          <v-btn
+                            icon="mdi-pencil"
+                            size="x-small"
+                            variant="text"
+                            color="primary"
+                            @click="startCartItemCourtEdit(item, index)"
+                          ></v-btn>
+                          <v-btn
+                            v-if="isPendingStatus"
+                            icon="mdi-delete"
+                            size="x-small"
+                            variant="text"
+                            color="error"
+                            @click="confirmDeleteTimeSlot(item, index)"
+                          ></v-btn>
+                        </div>
                       </div>
                       <div class="text-caption text-grey">
                         {{ item.sport?.name || 'Unknown Sport' }} • {{ formatBookingDate(item.booking_date) }}
@@ -489,11 +497,36 @@
           </v-card>
         </div>
 
-        <!-- Notes -->
+        <!-- Admin Notes (Staff/Admin only) -->
+        <div class="detail-section mb-4" v-if="showAdminFeatures">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="warning">mdi-shield-account</v-icon>
+            Admin Notes (Internal)
+          </h4>
+          <v-card variant="outlined" class="pa-4" color="warning" style="background-color: rgba(255, 160, 0, 0.05);">
+            <div class="d-flex align-center mb-2">
+              <v-chip color="warning" variant="tonal" size="x-small" class="mr-2">
+                <v-icon size="x-small" class="mr-1">mdi-lock</v-icon>
+                Internal Use Only
+              </v-chip>
+            </div>
+            <div v-if="booking.admin_notes" class="mb-0 text-body-1">
+              {{ booking.admin_notes }}
+            </div>
+            <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].admin_notes" class="mb-0 text-body-1">
+              {{ booking.cart_items[0].admin_notes }}
+            </div>
+            <div v-else class="mb-0 text-body-2 text-grey">
+              <em>No admin notes for this booking</em>
+            </div>
+          </v-card>
+        </div>
+
+        <!-- Client Notes / Special Requests -->
         <div class="detail-section mb-4" v-if="booking.notes || (booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
-            Notes / Special Requests
+            Client Notes / Special Requests
           </h4>
           <v-card variant="outlined" class="pa-4">
             <div v-if="booking.notes" class="mb-0 text-body-1">
@@ -512,6 +545,53 @@
             Payment Information
           </h4>
           <v-card variant="outlined" class="pa-4">
+            <!-- Payment QR Code (for unpaid bookings) -->
+            <div v-if="booking.payment_status !== 'paid' && !isRejected" class="payment-qr-section mb-4">
+              <div class="text-subtitle-2 font-weight-bold mb-3 d-flex align-center">
+                <v-icon class="mr-2" color="primary">mdi-qrcode-scan</v-icon>
+                Scan to Pay via GCash
+              </div>
+              <v-card variant="tonal" color="primary" class="pa-4">
+                <div v-if="loadingPaymentSettings" class="d-flex flex-column align-center py-4">
+                  <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+                  <p class="mt-3 text-caption">Loading payment QR code...</p>
+                </div>
+                <div v-else-if="paymentQrCodeUrl" class="d-flex flex-column align-center">
+                  <div class="qr-payment-wrapper mb-3">
+                    <img
+                      :src="paymentQrCodeUrl"
+                      alt="GCash Payment QR Code"
+                      class="payment-qr-code"
+                      @error="handleQrCodeError"
+                    />
+                  </div>
+                  <v-chip color="primary" size="small" class="mb-2">
+                    <v-icon start size="16">mdi-cash</v-icon>
+                    Amount: ₱{{ totalPrice }}
+                  </v-chip>
+                  <p class="text-caption text-center">
+                    Scan this QR code with GCash app to complete payment
+                  </p>
+                  <div v-if="paymentSettings" class="text-center mt-2">
+                    <p class="text-caption font-weight-bold">{{ paymentSettings.payment_gcash_name }}</p>
+                  </div>
+                </div>
+                <div v-else class="d-flex flex-column align-center py-4">
+                  <v-icon size="48" color="grey">mdi-qrcode-scan</v-icon>
+                  <p class="mt-3 text-caption text-center">
+                    Payment QR code not available.<br>
+                    Please contact support for payment instructions.
+                  </p>
+                </div>
+              </v-card>
+              <v-alert type="info" variant="tonal" class="mt-3" density="compact">
+                <div class="text-caption">
+                  <strong>After Payment:</strong> Please upload your payment screenshot below to confirm your booking.
+                </div>
+              </v-alert>
+            </div>
+            <v-divider v-if="booking.payment_status !== 'paid' && !isRejected" class="my-3"></v-divider>
+
             <div class="detail-row">
               <span class="detail-label">Payment Method:</span>
               <template v-if="showAdminFeatures">
@@ -563,38 +643,26 @@
                   Upload Proof of Payment
                 </h5>
 
-                <v-file-input
-                  v-model="proofFile"
+                <ProofOfPaymentUpload
+                  v-model="proofFiles"
                   label="Select proof of payment"
-                  accept="image/*"
-                  prepend-icon="mdi-camera"
-                  variant="outlined"
+                  placeholder="Select images"
                   density="compact"
-                  :rules="[v => !v || v.size < 5242880 || 'File size should be less than 5 MB']"
-                  hint="Upload a screenshot or photo of payment receipt (max 5MB)"
-                  persistent-hint
+                  :multiple="true"
+                  hint="Upload screenshots or photos of payment receipts (max 5MB each)"
+                  :rules="[v => !v || validateFileSize(v) || 'Each file should be less than 5 MB']"
                   class="mb-2"
-                  @change="handleProofFileChange"
-                ></v-file-input>
-
-                <!-- Preview uploaded image -->
-                <v-img
-                  v-if="proofPreviewUrl"
-                  :src="proofPreviewUrl"
-                  max-height="200"
-                  class="mb-2 rounded"
-                  cover
-                ></v-img>
+                />
 
                 <v-btn
                   color="success"
                   :loading="uploadingProof"
-                  :disabled="!proofFile"
+                  :disabled="!proofFiles || proofFiles.length === 0"
                   @click="uploadProofOfPayment"
                   block
                 >
                   <v-icon start>mdi-upload</v-icon>
-                  Upload and Mark as Paid
+                  Upload {{ proofFiles && proofFiles.length > 1 ? `${proofFiles.length} Files` : '' }} and Mark as Paid
                 </v-btn>
               </v-card>
             </template>
@@ -605,17 +673,52 @@
             </div>
             <template v-if="showAdminFeatures && booking.proof_of_payment">
               <v-divider class="my-2"></v-divider>
-              <div class="detail-row">
-                <span class="detail-label">Proof of Payment:</span>
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  prepend-icon="mdi-eye"
-                  @click="viewProofOfPayment"
-                >
-                  View Attachment
-                </v-btn>
+              <div class="detail-row" style="display: block;">
+                <span class="detail-label mb-2 d-block">Proof of Payment:</span>
+                <div class="d-flex flex-wrap gap-2">
+                  <v-card
+                    v-for="(file, index) in getProofOfPaymentFiles(booking.proof_of_payment)"
+                    :key="index"
+                    class="proof-thumbnail-card"
+                    elevation="2"
+                    @click="viewProofOfPayment(index)"
+                  >
+                    <v-img
+                      :src="getProofThumbnailUrl(index)"
+                      height="100"
+                      width="100"
+                      cover
+                      class="proof-thumbnail"
+                    >
+                      <template v-slot:placeholder>
+                        <div class="d-flex align-center justify-center fill-height">
+                          <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                        </div>
+                      </template>
+                      <template v-slot:error>
+                        <div class="d-flex align-center justify-center fill-height bg-grey-lighten-2">
+                          <v-icon size="40" color="grey">mdi-file-image</v-icon>
+                        </div>
+                      </template>
+                    </v-img>
+                    <v-card-actions class="pa-1">
+                      <v-btn
+                        size="x-small"
+                        variant="text"
+                        color="primary"
+                        block
+                        @click.stop="viewProofOfPayment(index)"
+                      >
+                        <v-icon start size="16">mdi-eye</v-icon>
+                        {{ getProofOfPaymentFiles(booking.proof_of_payment).length > 1 ? `#${index + 1}` : 'View' }}
+                      </v-btn>
+                    </v-card-actions>
+                  </v-card>
+                </div>
+                <div class="text-caption text-grey mt-2">
+                  <v-icon size="14" class="mr-1">mdi-information</v-icon>
+                  {{ getProofOfPaymentFiles(booking.proof_of_payment).length }} file{{ getProofOfPaymentFiles(booking.proof_of_payment).length > 1 ? 's' : '' }} uploaded
+                </div>
               </div>
             </template>
             <template v-if="showAdminFeatures && !booking.proof_of_payment">
@@ -691,6 +794,28 @@
                 </v-btn>
               </div>
             </div>
+          </v-card>
+        </div>
+
+        <!-- Resend Confirmation Email (Approved Bookings Only) -->
+        <div class="detail-section mb-4" v-if="isApprovedBooking">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-email</v-icon>
+            Confirmation Email
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div class="text-body-2 mb-3">
+              Need the confirmation email again? Click below to resend it to {{ getDisplayUserEmail(booking) }}.
+            </div>
+            <v-btn
+              color="primary"
+              variant="tonal"
+              prepend-icon="mdi-email-send"
+              @click="resendConfirmationEmail"
+              :loading="resendingEmail"
+            >
+              Resend Confirmation Email
+            </v-btn>
           </v-card>
         </div>
 
@@ -929,6 +1054,59 @@
       </v-card>
     </v-dialog>
 
+    <!-- Delete Time Slot Dialog -->
+    <v-dialog v-model="deleteTimeSlotDialog" max-width="500">
+      <v-card>
+        <v-card-title class="text-h5 pa-6 pb-4">
+          <v-icon class="mr-2" color="error">mdi-delete-alert</v-icon>
+          Delete Time Slot
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-6">
+          <p class="text-body-1 mb-2">
+            Are you sure you want to delete this time slot?
+          </p>
+          <v-card v-if="timeSlotToDelete" variant="outlined" class="pa-3 mt-3">
+            <div class="d-flex align-center">
+              <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
+              <div>
+                <div class="font-weight-bold">{{ timeSlotToDelete.court?.name || 'Unknown Court' }}</div>
+                <div class="text-caption">
+                  {{ formatTimeSlot(timeSlotToDelete.start_time) }} - {{ formatTimeSlot(timeSlotToDelete.end_time) }}
+                </div>
+                <div class="text-caption">
+                  {{ formatBookingDate(timeSlotToDelete.booking_date) }}
+                </div>
+              </div>
+            </div>
+          </v-card>
+          <v-alert type="warning" variant="tonal" class="mt-3" density="compact">
+            <div class="text-caption">
+              <strong>Note:</strong> This action cannot be undone. The time slot will be removed from the booking and the total price will be recalculated.
+            </div>
+          </v-alert>
+        </v-card-text>
+        <v-card-actions class="pa-6 pt-0">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="deleteTimeSlotDialog = false"
+          >
+            Cancel
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="elevated"
+            @click="deleteTimeSlot"
+            :loading="deletingTimeSlot"
+          >
+            Delete Time Slot
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Success/Error Snackbar -->
     <v-snackbar
       v-model="snackbar.show"
@@ -950,12 +1128,15 @@ import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import { authService } from '../services/authService'
+import { paymentSettingService } from '../services/paymentSettingService'
 import CourtImageGallery from './CourtImageGallery.vue'
+import ProofOfPaymentUpload from './ProofOfPaymentUpload.vue'
 
 export default {
   name: 'BookingDetailsDialog',
   components: {
-    CourtImageGallery
+    CourtImageGallery,
+    ProofOfPaymentUpload
   },
   props: {
     isOpen: {
@@ -1010,8 +1191,7 @@ export default {
 
     // Proof of Payment Upload state
     const uploadingProof = ref(false)
-    const proofFile = ref(null)
-    const proofPreviewUrl = ref('')
+    const proofFiles = ref([])
 
     // Court editing state
     const editingCourtItemIndex = ref(null)
@@ -1020,6 +1200,41 @@ export default {
     const availableCourtsForItem = ref([])
     const loadingCourts = ref(false)
     const savingCourt = ref(false)
+
+    // Resend confirmation email state
+    const resendingEmail = ref(false)
+
+    // Payment settings state
+    const paymentSettings = ref(null)
+    const loadingPaymentSettings = ref(false)
+
+    // Delete time slot state
+    const deleteTimeSlotDialog = ref(false)
+    const timeSlotToDelete = ref(null)
+    const timeSlotToDeleteIndex = ref(null)
+    const deletingTimeSlot = ref(false)
+
+    // Load payment settings
+    const loadPaymentSettings = async () => {
+      try {
+        loadingPaymentSettings.value = true
+        const settings = await paymentSettingService.getPaymentSettings()
+        paymentSettings.value = settings
+      } catch (error) {
+        console.error('Failed to load payment settings:', error)
+      } finally {
+        loadingPaymentSettings.value = false
+      }
+    }
+
+    // Get payment QR code URL
+    const paymentQrCodeUrl = computed(() => {
+      if (!paymentSettings.value?.payment_qr_code_url) {
+        return null
+      }
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+      return `${apiUrl}${paymentSettings.value.payment_qr_code_url}`
+    })
 
     const closeDialog = () => {
       // Clean up blob URL if it exists
@@ -1373,8 +1588,35 @@ export default {
       }
     }
 
+    // Helper to get proof of payment files array
+    const getProofOfPaymentFiles = (proofOfPayment) => {
+      if (!proofOfPayment) return []
+
+      try {
+        // Try to parse as JSON array
+        const parsed = JSON.parse(proofOfPayment)
+        return Array.isArray(parsed) ? parsed : [proofOfPayment]
+      } catch (e) {
+        // If not JSON, treat as single file
+        return [proofOfPayment]
+      }
+    }
+
+    // Get thumbnail URL for proof of payment
+    const getProofThumbnailUrl = (index) => {
+      if (!props.booking?.id) return ''
+
+      // Determine the correct endpoint based on whether this is a transaction or booking
+      const endpoint = isTransaction.value
+        ? `/cart-transactions/${props.booking.id}/proof-of-payment`
+        : `/bookings/${props.booking.id}/proof-of-payment`
+
+      // Return the full URL with the API base URL and index parameter
+      return `${api.defaults.baseURL}${endpoint}?index=${index}&t=${Date.now()}`
+    }
+
     // Proof of payment viewing
-    const viewProofOfPayment = async () => {
+    const viewProofOfPayment = async (index = 0) => {
       if (props.booking?.proof_of_payment) {
         try {
           // Determine the correct endpoint based on whether this is a transaction or booking
@@ -1384,6 +1626,7 @@ export default {
 
           // Fetch the image as a blob with authentication
           const response = await api.get(endpoint, {
+            params: { index },
             responseType: 'blob'
           })
 
@@ -1420,33 +1663,33 @@ export default {
       console.error('Image failed to load:', event)
     }
 
-    // Proof of Payment Upload functions
-    const handleProofFileChange = (event) => {
-      const file = event.target?.files?.[0] || proofFile.value?.[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          proofPreviewUrl.value = e.target.result
-        }
-        reader.readAsDataURL(file)
-      } else {
-        proofPreviewUrl.value = ''
-      }
+    const handleQrCodeError = (event) => {
+      console.error('Payment QR code failed to load:', event)
     }
 
+    // Validation function for file sizes
+    const validateFileSize = (files) => {
+      if (!files) return true
+      const fileArray = Array.isArray(files) ? files : [files]
+      return fileArray.every(file => file.size < 5242880) // 5MB
+    }
+
+    // Proof of Payment Upload functions
     const uploadProofOfPayment = async () => {
       if (isRejected.value) {
         alert('Cannot upload proof of payment: This booking/transaction has been rejected.')
         return
       }
-      if (!proofFile.value || !props.booking?.id) {
+      if (!proofFiles.value || proofFiles.value.length === 0 || !props.booking?.id) {
         return
       }
 
       try {
         uploadingProof.value = true
 
-        const file = proofFile.value[0] || proofFile.value
+        // Convert to array if needed
+        const files = Array.isArray(proofFiles.value) ? proofFiles.value : Array.from(proofFiles.value)
+
         // Use the existing payment_method from booking, or default to 'gcash'
         const paymentMethod = props.booking.payment_method && props.booking.payment_method !== 'pending'
           ? props.booking.payment_method
@@ -1458,14 +1701,14 @@ export default {
           // For cart transactions, use cartService
           response = await cartService.uploadProofOfPayment(
             props.booking.id,
-            file,
+            files,
             paymentMethod
           )
         } else {
           // For regular bookings, use bookingService
           response = await bookingService.uploadProofOfPayment(
             props.booking.id,
-            file,
+            files,
             paymentMethod
           )
         }
@@ -1479,11 +1722,10 @@ export default {
         }
 
         // Reset upload form
-        proofFile.value = null
-        proofPreviewUrl.value = ''
+        proofFiles.value = []
 
         // Show success message
-        alert('Proof of payment uploaded successfully! Booking is now marked as paid.')
+        alert(`Proof${files.length > 1 ? 's' : ''} of payment uploaded successfully! Booking is now marked as paid.`)
 
         // Emit event to refresh booking list if needed
         emit('attendance-updated', { bookingId: props.booking.id, status: 'paid' })
@@ -1803,6 +2045,87 @@ export default {
       return selectedCourtId.value !== originalCourtId.value
     })
 
+    // Delete time slot methods
+    const confirmDeleteTimeSlot = (item, index) => {
+      timeSlotToDelete.value = item
+      timeSlotToDeleteIndex.value = index
+      deleteTimeSlotDialog.value = true
+    }
+
+    const deleteTimeSlot = async () => {
+      if (!timeSlotToDelete.value || timeSlotToDeleteIndex.value === null) return
+
+      // Check if this is the last item
+      if (props.booking?.cart_items?.length <= 1) {
+        showSnackbar('Cannot delete the last time slot. Delete the entire booking instead.', 'error')
+        deleteTimeSlotDialog.value = false
+        return
+      }
+
+      try {
+        deletingTimeSlot.value = true
+
+        // Delete the cart item via API
+        await api.delete(`/cart-items/${timeSlotToDelete.value.id}`)
+
+        // Remove the item from the local cart_items array
+        if (props.booking?.cart_items) {
+          props.booking.cart_items.splice(timeSlotToDeleteIndex.value, 1)
+
+          // Recalculate total price
+          const newTotal = props.booking.cart_items.reduce((sum, item) => {
+            return sum + parseFloat(item.price || 0)
+          }, 0)
+
+          // Update the booking total if it exists
+          if (props.booking.total_price !== undefined) {
+            props.booking.total_price = newTotal.toFixed(2)
+          }
+        }
+
+        showSnackbar('Time slot deleted successfully', 'success')
+        deleteTimeSlotDialog.value = false
+        timeSlotToDelete.value = null
+        timeSlotToDeleteIndex.value = null
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'time_slot_deleted' })
+      } catch (error) {
+        console.error('Failed to delete time slot:', error)
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to delete time slot'
+        showSnackbar(errorMessage, 'error')
+      } finally {
+        deletingTimeSlot.value = false
+      }
+    }
+
+    // Resend confirmation email method
+    const resendConfirmationEmail = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        resendingEmail.value = true
+
+        // Determine if this is a transaction or regular booking and use appropriate service
+        let response
+        if (isTransaction.value) {
+          response = await cartService.resendConfirmationEmail(props.booking.id)
+        } else {
+          response = await bookingService.resendConfirmationEmail(props.booking.id)
+        }
+
+        showSnackbar(response.message || 'Confirmation email sent successfully', 'success')
+      } catch (error) {
+        console.error('Failed to resend confirmation email:', error)
+        showSnackbar(error.message || 'Failed to send confirmation email', 'error')
+      } finally {
+        resendingEmail.value = false
+      }
+    }
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -1814,6 +2137,12 @@ export default {
       if (!props.booking) return false
       const status = (props.booking.approval_status || props.booking.status || '').toLowerCase()
       return status === 'rejected'
+    })
+
+    const isPendingStatus = computed(() => {
+      if (!props.booking) return false
+      const status = (props.booking.approval_status || props.booking.status || '').toLowerCase()
+      return status === 'pending'
     })
 
     const rejectionReason = computed(() => {
@@ -1949,10 +2278,20 @@ export default {
       () => props.isOpen,
       (isOpen) => {
         if (isOpen && props.booking) {
+          // Debug: Log booking data to check admin_notes
+          console.log('Booking data:', props.booking)
+          console.log('Admin notes (direct):', props.booking.admin_notes)
+          if (props.booking.cart_items && props.booking.cart_items.length > 0) {
+            console.log('Cart items admin notes:', props.booking.cart_items[0].admin_notes)
+          }
+
           // Reset QR code state when opening
           qrCodeImageUrl.value = ''
           qrCodeData.value = ''
           qrCodeError.value = ''
+
+          // Load payment settings for payment QR code
+          loadPaymentSettings()
 
           // Load QR code if booking is approved
           if (isApprovedBooking.value) {
@@ -1987,11 +2326,11 @@ export default {
       qrCodeData,
       // Rejection state
       isRejected,
+      isPendingStatus,
       rejectionReason,
       // Proof of Payment Upload state
       uploadingProof,
-      proofFile,
-      proofPreviewUrl,
+      proofFiles,
       // Court editing state
       editingCourtItemIndex,
       selectedCourtId,
@@ -2000,6 +2339,13 @@ export default {
       loadingCourts,
       savingCourt,
       courtChanged,
+      // Resend confirmation email state
+      resendingEmail,
+      // Delete time slot state
+      deleteTimeSlotDialog,
+      timeSlotToDelete,
+      timeSlotToDeleteIndex,
+      deletingTimeSlot,
       // Methods
       closeDialog,
       formatTimeSlot,
@@ -2010,9 +2356,16 @@ export default {
       downloadImage,
       onImageDialogClose,
       handleImageError,
+      handleQrCodeError,
+      // Payment settings
+      paymentSettings,
+      loadingPaymentSettings,
+      paymentQrCodeUrl,
       // Proof of Payment Upload methods
-      handleProofFileChange,
+      validateFileSize,
       uploadProofOfPayment,
+      getProofOfPaymentFiles,
+      getProofThumbnailUrl,
       // QR Code methods
       loadQrCode,
       downloadQrCode,
@@ -2028,6 +2381,11 @@ export default {
       startCartItemCourtEdit,
       cancelCourtEdit,
       saveCartItemCourtChange,
+      // Delete time slot methods
+      confirmDeleteTimeSlot,
+      deleteTimeSlot,
+      // Resend confirmation email method
+      resendConfirmationEmail,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
@@ -2177,6 +2535,44 @@ export default {
   gap: 8px;
 }
 
+/* Payment QR Code Styles */
+.payment-qr-section {
+  margin-bottom: 16px;
+}
+
+.qr-payment-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.payment-qr-code {
+  max-width: 200px;
+  height: auto;
+  display: block;
+}
+
+/* Proof of Payment Thumbnail Styles */
+.proof-thumbnail-card {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.proof-thumbnail-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.proof-thumbnail {
+  border-radius: 8px 8px 0 0;
+}
+
 /* Court selector styles */
 .court-selector {
   min-width: 250px;
@@ -2276,6 +2672,25 @@ export default {
   .booking-qr-code {
     max-width: 200px;
     padding: 8px;
+  }
+
+  /* Payment QR Code mobile optimization */
+  .qr-payment-wrapper {
+    padding: 12px;
+  }
+
+  .payment-qr-code {
+    max-width: 160px;
+  }
+
+  /* Proof thumbnail mobile optimization */
+  .proof-thumbnail-card {
+    flex: 0 0 80px;
+  }
+
+  .proof-thumbnail {
+    height: 80px !important;
+    width: 80px !important;
   }
 
   /* Button adjustments for mobile */
@@ -2395,6 +2810,25 @@ export default {
   .booking-qr-code {
     max-width: 180px;
     padding: 6px;
+  }
+
+  /* Payment QR Code extra small screens */
+  .qr-payment-wrapper {
+    padding: 8px;
+  }
+
+  .payment-qr-code {
+    max-width: 140px;
+  }
+
+  /* Proof thumbnail extra small screens */
+  .proof-thumbnail-card {
+    flex: 0 0 70px;
+  }
+
+  .proof-thumbnail {
+    height: 70px !important;
+    width: 70px !important;
   }
 
   .booking-view-dialog .v-btn {

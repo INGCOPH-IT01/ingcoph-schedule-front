@@ -123,15 +123,23 @@ export const cartService = {
   },
 
   /**
-   * Upload proof of payment for a cart transaction
+   * Upload proof of payment for a cart transaction (supports multiple files)
    * @param {number} transactionId - Cart transaction ID
-   * @param {File} file - Proof of payment file
+   * @param {File|File[]} files - Proof of payment file(s)
    * @param {string} paymentMethod - Payment method (gcash, cash)
    */
-  async uploadProofOfPayment(transactionId, file, paymentMethod = 'gcash') {
+  async uploadProofOfPayment(transactionId, files, paymentMethod = 'gcash') {
     try {
       const formData = new FormData()
-      formData.append('proof_of_payment', file)
+
+      // Handle both single file and array of files
+      const fileArray = Array.isArray(files) ? files : [files]
+
+      // Append each file to FormData
+      fileArray.forEach((file) => {
+        formData.append('proof_of_payment[]', file)
+      })
+
       formData.append('payment_method', paymentMethod)
 
       const response = await api.post(`/cart-transactions/${transactionId}/upload-proof`, formData, {
@@ -143,6 +151,19 @@ export const cartService = {
     } catch (error) {
       console.error('Upload proof of payment error:', error)
       throw new Error(error.response?.data?.message || 'Failed to upload proof of payment')
+    }
+  },
+
+  /**
+   * Resend confirmation email for an approved cart transaction
+   * @param {number} transactionId - Cart transaction ID
+   */
+  async resendConfirmationEmail(transactionId) {
+    try {
+      const response = await api.post(`/cart-transactions/${transactionId}/resend-confirmation`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to resend confirmation email')
     }
   }
 }

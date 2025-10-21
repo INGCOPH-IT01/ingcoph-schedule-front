@@ -51,11 +51,19 @@ export const bookingService = {
     }
   },
 
-  // Upload proof of payment for a booking
-  async uploadProofOfPayment(bookingId, file, paymentMethod = 'gcash') {
+  // Upload proof of payment for a booking (supports multiple files)
+  async uploadProofOfPayment(bookingId, files, paymentMethod = 'gcash') {
     try {
       const formData = new FormData()
-      formData.append('proof_of_payment', file)
+
+      // Handle both single file and array of files
+      const fileArray = Array.isArray(files) ? files : [files]
+
+      // Append each file to FormData
+      fileArray.forEach((file) => {
+        formData.append('proof_of_payment[]', file)
+      })
+
       formData.append('payment_method', paymentMethod)
 
       const response = await api.post(`/bookings/${bookingId}/upload-proof`, formData, {
@@ -153,6 +161,16 @@ export const bookingService = {
       return response.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update attendance status')
+    }
+  },
+
+  // Resend confirmation email
+  async resendConfirmationEmail(bookingId) {
+    try {
+      const response = await api.post(`/bookings/${bookingId}/resend-confirmation`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to resend confirmation email')
     }
   }
 }
