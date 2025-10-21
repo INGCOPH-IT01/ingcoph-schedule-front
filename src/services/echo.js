@@ -17,21 +17,53 @@ export const initializeEcho = () => {
     return null
   }
 
+  // Get configuration from environment variables with proper fallbacks
+  const reverbKey = import.meta.env.VITE_REVERB_APP_KEY || 'kx677b9udp95kpffwpcg'
+  const reverbHost = import.meta.env.VITE_REVERB_HOST || 'localhost'
+  const reverbPort = parseInt(import.meta.env.VITE_REVERB_PORT || '8080')
+  const reverbScheme = import.meta.env.VITE_REVERB_SCHEME || 'http'
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8010'
+
+  const useTLS = reverbScheme === 'https'
+
+  console.log('Initializing Echo with config:', {
+    broadcaster: 'reverb',
+    key: reverbKey,
+    wsHost: reverbHost,
+    wsPort: reverbPort,
+    wssPort: reverbPort,
+    forceTLS: useTLS,
+    authEndpoint: `${apiBaseUrl}/api/broadcasting/auth`
+  })
+
   echo = new Echo({
     broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY || 'your-app-key',
-    wsHost: import.meta.env.VITE_REVERB_HOST || 'bschedule.m4d8q2.com',
-    wsPort: import.meta.env.VITE_REVERB_PORT || 443,
-    wssPort: import.meta.env.VITE_REVERB_PORT || 443,
-    forceTLS: (import.meta.env.VITE_REVERB_SCHEME || 'https') === 'https',
+    key: reverbKey,
+    wsHost: reverbHost,
+    wsPort: reverbPort,
+    wssPort: reverbPort,
+    forceTLS: useTLS,
     enabledTransports: ['ws', 'wss'],
-    authEndpoint: 'http://192.168.10.57:8010/api/broadcasting/auth',
+    authEndpoint: `${apiBaseUrl}/api/broadcasting/auth`,
     auth: {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: 'application/json',
       },
     },
+  })
+
+  // Log connection events for debugging
+  echo.connector.pusher.connection.bind('connected', () => {
+    console.log('✅ Reverb: Connected successfully')
+  })
+
+  echo.connector.pusher.connection.bind('disconnected', () => {
+    console.log('⚠️ Reverb: Disconnected')
+  })
+
+  echo.connector.pusher.connection.bind('error', (err) => {
+    console.error('❌ Reverb: Connection error', err)
   })
 
   return echo
