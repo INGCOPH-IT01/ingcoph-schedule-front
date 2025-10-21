@@ -140,8 +140,44 @@
                   prepend-inner-icon="mdi-message-text"
                   :loading="loading"
                   :disabled="saving"
-                  class="mb-0"
+                  class="mb-4"
                   hint="Viber contact number (if different from mobile)"
+                  persistent-hint
+                ></v-text-field>
+              </div>
+
+              <v-divider class="mb-6"></v-divider>
+
+              <!-- Social Media Section -->
+              <div class="mb-6">
+                <label class="text-subtitle-1 font-weight-bold mb-3 d-block">
+                  <v-icon class="mr-2" color="primary">mdi-facebook</v-icon>
+                  Social Media
+                </label>
+
+                <v-text-field
+                  v-model="facebookPageUrl"
+                  label="Facebook Page URL"
+                  placeholder="https://facebook.com/yourpage"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-facebook"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mb-4"
+                  hint="Full URL to your Facebook page"
+                  persistent-hint
+                ></v-text-field>
+
+                <v-text-field
+                  v-model="facebookPageName"
+                  label="Facebook Page Display Name"
+                  placeholder="IngCoPH Sports"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-text"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mb-0"
+                  hint="Name to display as the clickable link (e.g., 'our Facebook page')"
                   persistent-hint
                 ></v-text-field>
               </div>
@@ -627,6 +663,12 @@ export default {
     const contactViber = ref('')
     const originalContactViber = ref('')
 
+    // Social media
+    const facebookPageUrl = ref('')
+    const originalFacebookPageUrl = ref('')
+    const facebookPageName = ref('')
+    const originalFacebookPageName = ref('')
+
     // Background colors
     const bgPrimaryColor = ref('#FFFFFF')
     const bgSecondaryColor = ref('#FFEBEE')
@@ -698,6 +740,12 @@ export default {
         originalContactMobile.value = settings.contact_mobile || ''
         contactViber.value = settings.contact_viber || ''
         originalContactViber.value = settings.contact_viber || ''
+
+        // Load social media
+        facebookPageUrl.value = settings.facebook_page_url || ''
+        originalFacebookPageUrl.value = settings.facebook_page_url || ''
+        facebookPageName.value = settings.facebook_page_name || ''
+        originalFacebookPageName.value = settings.facebook_page_name || ''
 
         // Load background colors
         bgPrimaryColor.value = settings.bg_primary_color || '#FFFFFF'
@@ -786,7 +834,9 @@ export default {
           company_name: companyName.value,
           contact_email: contactEmail.value,
           contact_mobile: contactMobile.value,
-          contact_viber: contactViber.value
+          contact_viber: contactViber.value,
+          facebook_page_url: facebookPageUrl.value,
+          facebook_page_name: facebookPageName.value
         }
 
         // Add logo file if selected
@@ -801,6 +851,8 @@ export default {
         originalContactEmail.value = contactEmail.value
         originalContactMobile.value = contactMobile.value
         originalContactViber.value = contactViber.value
+        originalFacebookPageUrl.value = facebookPageUrl.value
+        originalFacebookPageName.value = facebookPageName.value
 
         // Update current logo URL if a new one was uploaded
         if (result.company_logo_url) {
@@ -834,6 +886,8 @@ export default {
       contactEmail.value = originalContactEmail.value
       contactMobile.value = originalContactMobile.value
       contactViber.value = originalContactViber.value
+      facebookPageUrl.value = originalFacebookPageUrl.value
+      facebookPageName.value = originalFacebookPageName.value
       successMessage.value = ''
       errorMessage.value = ''
     }
@@ -993,6 +1047,9 @@ export default {
       contactEmail,
       contactMobile,
       contactViber,
+      // Social media
+      facebookPageUrl,
+      facebookPageName,
       loadSettings,
       saveSettings,
       resetForm,

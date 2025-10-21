@@ -152,6 +152,32 @@
                 </div>
               </v-alert>
 
+              <!-- Facebook Regular Sessions Notice (User Role Only) -->
+              <v-alert
+                v-if="!isAdminOrStaff && facebookPageUrl"
+                variant="tonal"
+                color="info"
+                class="mb-4"
+                density="compact"
+              >
+                <div class="d-flex align-center">
+                  <v-icon class="mr-2">mdi-facebook</v-icon>
+                  <div>
+                    <div class="text-caption">
+                      If you want to book regular sessions please message us on
+                      <a
+                        :href="facebookPageUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-primary font-weight-bold text-decoration-none"
+                      >
+                        {{ facebookPageName || 'our Facebook page' }}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </v-alert>
+
               <!-- Date Selection -->
               <v-row class="mb-4">
                 <v-col cols="12" md="6">
@@ -162,6 +188,7 @@
                     variant="outlined"
                     prepend-inner-icon="mdi-calendar"
                     :min="minDate"
+                    :max="maxDate"
                     @update:model-value="loadTimeSlotsForAllCourts"
                   ></v-text-field>
                 </v-col>
@@ -725,6 +752,7 @@ import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { paymentSettingService } from '../services/paymentSettingService'
+import { companySettingService } from '../services/companySettingService'
 import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
@@ -796,10 +824,24 @@ export default {
     const currentUser = ref(null)
     const userNames = ref([])
 
+    // Facebook page settings
+    const facebookPageUrl = ref('')
+    const facebookPageName = ref('')
+
     // Computed
     const minDate = computed(() => {
       const today = new Date()
       return today.toISOString().split('T')[0]
+    })
+
+    // Computed property for max date - restrict regular users to current month only
+    const maxDate = computed(() => {
+      if (currentUser.value?.role === 'user') {
+        const now = new Date()
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        return endOfMonth.toISOString().split('T')[0]
+      }
+      return null // Admin and staff have no max date restriction
     })
 
     const isAdmin = computed(() => {
@@ -1982,6 +2024,15 @@ export default {
           fetchUsers()
         }
 
+        // Load Facebook page settings
+        try {
+          const settings = await companySettingService.getSettings()
+          facebookPageUrl.value = settings.facebook_page_url || ''
+          facebookPageName.value = settings.facebook_page_name || ''
+        } catch (error) {
+          console.error('Failed to load Facebook page settings:', error)
+        }
+
         // If a preselected sport is provided, select it and move to step 2
         if (props.preselectedSport) {
           await nextTick()
@@ -2006,6 +2057,15 @@ export default {
         // Only fetch users if the current user is admin or staff
         if (isAdminOrStaff.value) {
           fetchUsers()
+        }
+
+        // Load Facebook page settings
+        try {
+          const settings = await companySettingService.getSettings()
+          facebookPageUrl.value = settings.facebook_page_url || ''
+          facebookPageName.value = settings.facebook_page_name || ''
+        } catch (error) {
+          console.error('Failed to load Facebook page settings:', error)
         }
 
         // If a preselected sport is provided, select it and move to step 2
@@ -2040,6 +2100,7 @@ export default {
       numberOfPlayers,
       bookingNotes,
       minDate,
+      maxDate,
       filteredCourts,
       canProceed,
       totalBookings,
@@ -2068,6 +2129,9 @@ export default {
       bookingForUser,
       adminNotes,
       userNames,
+      // Facebook page settings
+      facebookPageUrl,
+      facebookPageName,
       // Services
       sportService
     }
