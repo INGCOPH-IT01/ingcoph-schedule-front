@@ -291,9 +291,17 @@ export default {
       return days
     })
 
+    // Helper function to format date in local timezone
+    const formatDateLocal = (date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
     // Get transactions for a specific day
     const getEventsForDay = (date) => {
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = formatDateLocal(date)
 
       return props.transactions
         .filter(transaction => {
@@ -301,7 +309,9 @@ export default {
           const bookingDate = transaction.cart_items?.[0]?.booking_date
           if (!bookingDate) return false
 
-          const transactionDateStr = new Date(bookingDate).toISOString().split('T')[0]
+          // Convert booking date to local timezone format
+          const bookingDateObj = new Date(bookingDate)
+          const transactionDateStr = formatDateLocal(bookingDateObj)
           return transactionDateStr === dateStr
         })
         .map(transaction => ({
