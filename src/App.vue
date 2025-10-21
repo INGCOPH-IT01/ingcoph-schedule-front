@@ -294,7 +294,6 @@ export default {
         window.dispatchEvent(new CustomEvent('auth-changed', { detail: { user: null } }))
         router.push('/login')
       } catch (error) {
-        console.error('Logout error:', error)
       }
     }
 
@@ -345,7 +344,6 @@ export default {
           cartCount.value = 0
         }
       } catch (error) {
-        console.error('Failed to update cart count:', error)
         cartCount.value = 0
       }
     }
@@ -378,7 +376,6 @@ export default {
           bgAccentColor.value = settings.bg_accent_color
         }
       } catch (error) {
-        console.error('Failed to load company settings:', error)
         // Keep default name, logo, and colors if loading fails
       }
     }

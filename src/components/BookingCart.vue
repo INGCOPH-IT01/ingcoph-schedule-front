@@ -510,8 +510,6 @@ export default {
         }
 
       } catch (error) {
-        console.error('❌ Failed to load cart:', error)
-        console.error('Error details:', error.response?.data || error.message)
         cartItems.value = []
         cartTransaction.value = null
       } finally {
@@ -544,7 +542,6 @@ export default {
         })
 
         if (!response.ok) {
-          console.error('Failed to fetch expiration info')
           return
         }
 
@@ -579,7 +576,6 @@ export default {
         // Update every second
         setTimeout(updateExpirationTimer, 1000)
       } catch (error) {
-        console.error('Error fetching expiration info:', error)
         // Fallback to empty timer on error
         timeRemaining.value = ''
         expirationWarning.value = false
@@ -738,7 +734,6 @@ export default {
         }
         return `${hours}h ${minutes}m`
       } catch (error) {
-        console.error('Error calculating duration:', error)
         return '0 hours'
       }
     }
@@ -787,7 +782,6 @@ export default {
           window.dispatchEvent(new CustomEvent('cart-updated'))
           showAlert('Removed!', 'The booking has been removed from your cart.', 'success')
         } catch (error) {
-          console.error('Failed to remove items:', error)
           showAlert('Error', 'Failed to remove items from cart', 'error')
         }
       }
@@ -811,7 +805,6 @@ export default {
           window.dispatchEvent(new CustomEvent('cart-updated'))
           showAlert('Cleared!', 'Your cart has been cleared.', 'success')
         } catch (error) {
-          console.error('Failed to clear cart:', error)
           showAlert('Error', 'Failed to clear cart', 'error')
         }
       }
@@ -828,7 +821,6 @@ export default {
         const settings = await paymentSettingService.getPaymentSettings()
         paymentSettings.value = settings
 
-        console.log('Payment settings loaded:', settings)
 
         // Step 2: Check if custom QR code exists
         if (settings.payment_qr_code_url) {
@@ -836,7 +828,6 @@ export default {
           const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000'
           paymentSettings.value.payment_qr_code_url = `${apiUrl}${settings.payment_qr_code_url}`
 
-          console.log('Using custom uploaded QR code:', paymentSettings.value.payment_qr_code_url)
 
           // No need to generate canvas, v-img will display the uploaded QR
           return
@@ -851,12 +842,6 @@ export default {
           const accountName = settings.payment_gcash_name.replace(/\s+/g, '')
           const amount = totalPrice.value
 
-          console.log('Generating dynamic QR code with:', {
-            number: gcashNumber,
-            name: accountName,
-            amount: amount
-          })
-
           // Generate QR code with GCash payment link format
           const qrData = `gcash://pay?number=${gcashNumber}&amount=${amount}&name=${accountName}`
 
@@ -869,10 +854,8 @@ export default {
             }
           })
 
-          console.log('Dynamic QR code generated successfully')
         }
       } catch (error) {
-        console.error('Failed to load payment settings or generate QR code:', error)
         // Keep default values if loading fails
       }
     }
@@ -906,7 +889,6 @@ export default {
         const data = await courtService.getCourts()
         courts.value = Array.isArray(data) ? data : []
       } catch (error) {
-        console.error('Error fetching courts:', error)
         courts.value = []
       }
     }
@@ -983,9 +965,6 @@ export default {
         emit('checkout-complete')
         emit('close')
       } catch (error) {
-        console.error('Failed to complete payment:', error)
-        console.error('Error response:', error.response)
-        console.error('Error data:', error.response?.data)
 
         let errorMessage = 'Failed to process payment. Please try again.'
         if (error.response?.data?.message) {
@@ -1027,7 +1006,6 @@ export default {
           day: 'numeric'
         })
       } catch (error) {
-        console.error('Error formatting date:', error)
         return date
       }
     }
@@ -1071,7 +1049,6 @@ export default {
       try {
         currentUser.value = await authService.getUser()
       } catch (error) {
-        console.error('Error loading user:', error)
       }
     })
 

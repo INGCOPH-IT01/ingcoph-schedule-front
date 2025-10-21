@@ -253,7 +253,6 @@ export default {
         stream.getTracks().forEach(track => track.stop()) // Stop the test stream
       } catch (error) {
         cameraError.value = 'Camera access denied or not available'
-        console.error('Camera error:', error)
       } finally {
         startingCamera.value = false
       }
@@ -270,7 +269,6 @@ export default {
     }
 
     const onCameraError = (error) => {
-      console.error('Camera error:', error)
       cameraError.value = 'Camera error: ' + error.message
       cameraActive.value = false
     }

@@ -26,16 +26,6 @@ export const initializeEcho = () => {
 
   const useTLS = reverbScheme === 'https'
 
-  console.log('Initializing Echo with config:', {
-    broadcaster: 'reverb',
-    key: reverbKey,
-    wsHost: reverbHost,
-    wsPort: reverbPort,
-    wssPort: reverbPort,
-    forceTLS: useTLS,
-    authEndpoint: `${apiBaseUrl}/api/broadcasting/auth`
-  })
-
   echo = new Echo({
     broadcaster: 'reverb',
     key: reverbKey,
@@ -51,19 +41,6 @@ export const initializeEcho = () => {
         Accept: 'application/json',
       },
     },
-  })
-
-  // Log connection events for debugging
-  echo.connector.pusher.connection.bind('connected', () => {
-    console.log('✅ Reverb: Connected successfully')
-  })
-
-  echo.connector.pusher.connection.bind('disconnected', () => {
-    console.log('⚠️ Reverb: Disconnected')
-  })
-
-  echo.connector.pusher.connection.bind('error', (err) => {
-    console.error('❌ Reverb: Connection error', err)
   })
 
   return echo

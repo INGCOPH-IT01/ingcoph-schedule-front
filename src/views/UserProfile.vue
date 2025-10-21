@@ -308,7 +308,6 @@ export default {
         formData.value.email = user.value.email
         formData.value.phone = user.value.phone || ''
       } catch (error) {
-        console.error('Error fetching user data:', error)
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -382,7 +381,6 @@ export default {
           })
         }
       } catch (error) {
-        console.error('Error updating profile:', error)
         Swal.fire({
           icon: 'error',
           title: 'Update Failed',

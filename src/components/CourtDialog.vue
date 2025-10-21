@@ -268,7 +268,6 @@ export default {
           id: Number(sport.id)
         }))
       } catch (err) {
-        console.error('Failed to fetch sports:', err)
       }
     }
 
@@ -330,7 +329,6 @@ export default {
 
           previewImages.value = Array.isArray(props.court.images) ? [...props.court.images] : []
         } catch (error) {
-          console.error('Error populating form:', error)
           error.value = 'Failed to load court data'
         }
       }

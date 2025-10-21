@@ -1221,7 +1221,7 @@ export default {
         const settings = await paymentSettingService.getPaymentSettings()
         paymentSettings.value = settings
       } catch (error) {
-        console.error('Failed to load payment settings:', error)
+        // Silent error handling
       } finally {
         loadingPaymentSettings.value = false
       }
@@ -1576,7 +1576,6 @@ export default {
 
         emit('attendance-updated', { bookingId: props.booking.id, status })
       } catch (error) {
-        console.error('Failed to update attendance status:', error)
         // Show error message to user
         if (error.response?.data?.message) {
           alert(error.response.data.message)
@@ -1635,7 +1634,7 @@ export default {
           selectedImageUrl.value = URL.createObjectURL(imageBlob)
           imageDialog.value = true
         } catch (error) {
-          console.error('Failed to load proof of payment:', error)
+          // Silent error handling
         }
       }
     }
@@ -1660,11 +1659,11 @@ export default {
     }
 
     const handleImageError = (event) => {
-      console.error('Image failed to load:', event)
+      // Silent error handling
     }
 
     const handleQrCodeError = (event) => {
-      console.error('Payment QR code failed to load:', event)
+      // Silent error handling
     }
 
     // Validation function for file sizes
@@ -1730,7 +1729,6 @@ export default {
         // Emit event to refresh booking list if needed
         emit('attendance-updated', { bookingId: props.booking.id, status: 'paid' })
       } catch (error) {
-        console.error('Failed to upload proof of payment:', error)
         alert(error.message || 'Failed to upload proof of payment. Please try again.')
       } finally {
         uploadingProof.value = false
@@ -1792,7 +1790,6 @@ export default {
         })
         qrCodeImageUrl.value = dataUrl
       } catch (error) {
-        console.error('Failed to load QR code:', error)
         qrCodeError.value = error.response?.data?.message || 'Failed to generate QR code'
       } finally {
         loadingQrCode.value = false
@@ -1816,7 +1813,7 @@ export default {
           await navigator.clipboard.writeText(qrCodeData.value)
           // Successfully copied (you could show a snackbar here if needed)
         } catch (error) {
-          console.error('Failed to copy QR code data:', error)
+          // Silent error handling
         }
       }
     }
@@ -1871,7 +1868,6 @@ export default {
           closeDialog()
         }, 1500)
       } catch (error) {
-        console.error('Failed to approve booking:', error)
         showSnackbar('Failed to approve booking', 'error')
       } finally {
         approving.value = false
@@ -1911,7 +1907,6 @@ export default {
           closeDialog()
         }, 1500)
       } catch (error) {
-        console.error('Failed to reject transaction:', error)
         showSnackbar('Failed to reject transaction', 'error')
       } finally {
         rejecting.value = false
@@ -1926,7 +1921,6 @@ export default {
         const response = await api.get(`/cart-items/${cartItemId}/available-courts`)
         availableCourtsForItem.value = response.data.data
       } catch (error) {
-        console.error('Failed to load available courts:', error)
         showSnackbar('Failed to load available courts', 'error')
         // Fallback to loading all courts without availability info
         try {
@@ -1936,7 +1930,7 @@ export default {
             is_available: true // Assume available if we can't check
           }))
         } catch (fallbackError) {
-          console.error('Failed to load courts:', fallbackError)
+          // Silent error handling
         }
       } finally {
         loadingCourts.value = false
@@ -2032,7 +2026,6 @@ export default {
         // Emit event to parent
         emit('attendance-updated', { bookingId: props.booking.id, status: 'court_updated' })
       } catch (error) {
-        console.error('Failed to update court:', error)
         const errorMessage = error.response?.data?.message || error.message || 'Failed to update court'
         showSnackbar(errorMessage, 'error')
       } finally {
@@ -2094,7 +2087,6 @@ export default {
         // Emit event to parent
         emit('attendance-updated', { bookingId: props.booking.id, status: 'time_slot_deleted' })
       } catch (error) {
-        console.error('Failed to delete time slot:', error)
         const errorMessage = error.response?.data?.message || error.message || 'Failed to delete time slot'
         showSnackbar(errorMessage, 'error')
       } finally {
@@ -2119,7 +2111,6 @@ export default {
 
         showSnackbar(response.message || 'Confirmation email sent successfully', 'success')
       } catch (error) {
-        console.error('Failed to resend confirmation email:', error)
         showSnackbar(error.message || 'Failed to send confirmation email', 'error')
       } finally {
         resendingEmail.value = false
@@ -2267,7 +2258,6 @@ export default {
         userRole.value = user.role
         currentUserId.value = user.id
       } catch (error) {
-        console.error('Failed to fetch user data:', error)
         userRole.value = 'user' // Default to 'user' role if fetch fails
         currentUserId.value = null
       }
@@ -2278,13 +2268,6 @@ export default {
       () => props.isOpen,
       (isOpen) => {
         if (isOpen && props.booking) {
-          // Debug: Log booking data to check admin_notes
-          console.log('Booking data:', props.booking)
-          console.log('Admin notes (direct):', props.booking.admin_notes)
-          if (props.booking.cart_items && props.booking.cart_items.length > 0) {
-            console.log('Cart items admin notes:', props.booking.cart_items[0].admin_notes)
-          }
-
           // Reset QR code state when opening
           qrCodeImageUrl.value = ''
           qrCodeData.value = ''

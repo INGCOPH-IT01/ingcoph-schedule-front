@@ -253,7 +253,6 @@ const loadHolidays = async () => {
       errorMessage.value = 'Failed to load holidays'
     }
   } catch (error) {
-    console.error('Error loading holidays:', error)
     errorMessage.value = 'Error loading holidays'
   } finally {
     loading.value = false
@@ -334,7 +333,6 @@ const saveHoliday = async () => {
       errorMessage.value = data.message || 'Failed to save holiday'
     }
   } catch (error) {
-    console.error('Error saving holiday:', error)
     errorMessage.value = 'Error saving holiday'
   } finally {
     saving.value = false
@@ -376,7 +374,6 @@ const deleteHoliday = async () => {
       errorMessage.value = data.message || 'Failed to delete holiday'
     }
   } catch (error) {
-    console.error('Error deleting holiday:', error)
     errorMessage.value = 'Error deleting holiday'
   } finally {
     deleting.value = false

@@ -68,7 +68,6 @@ export default {
         loading.value = true
         bookings.value = await bookingService.getBookings()
       } catch (error) {
-        console.error('Error fetching bookings:', error)
       } finally {
         loading.value = false
       }

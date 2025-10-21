@@ -667,7 +667,6 @@ export default {
         const response = await bookingService.getAdminStats()
         stats.value = response.data
       } catch (error) {
-        console.error('Failed to load stats:', error)
         showSnackbar('Failed to load statistics', 'error')
       }
     }
@@ -676,7 +675,6 @@ export default {
       try {
         sports.value = await courtService.getSports()
       } catch (error) {
-        console.error('Failed to load sports:', error)
         showSnackbar('Failed to load sports', 'error')
       }
     }
@@ -717,7 +715,6 @@ export default {
           items_count: transaction.cart_items?.length || 0
         }))
       } catch (error) {
-        console.error('Failed to load transactions:', error)
         showSnackbar('Failed to load transactions', 'error')
       } finally {
         loading.value = false
@@ -753,7 +750,6 @@ export default {
         await loadPendingBookings()
         await loadStats()
       } catch (error) {
-        console.error('Failed to approve booking:', error)
         showSnackbar('Failed to approve booking', 'error')
       } finally {
         const booking = pendingBookings.value.find(b => b.id === bookingId)
@@ -781,7 +777,6 @@ export default {
         await loadPendingBookings()
         await loadStats()
       } catch (error) {
-        console.error('Failed to reject transaction:', error)
         showSnackbar('Failed to reject transaction', 'error')
       } finally {
         rejecting.value = false

@@ -477,7 +477,6 @@ export default {
       try {
         courts.value = await courtService.getCourts()
       } catch (error) {
-        console.error('Failed to load courts:', error)
         showSnackbar('Failed to load courts', 'error')
       }
     }
@@ -486,7 +485,6 @@ export default {
       try {
         sports.value = await courtService.getSports()
       } catch (error) {
-        console.error('Failed to load sports:', error)
         showSnackbar('Failed to load sports', 'error')
       }
     }

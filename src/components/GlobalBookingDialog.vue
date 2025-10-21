@@ -772,7 +772,6 @@ export default {
           selectedCourt.value = courts.value[0]
         }
       } catch (err) {
-        console.error('Failed to load courts:', err)
         courts.value = []
       }
     }
@@ -1038,7 +1037,6 @@ export default {
         }
       })
       } catch (error) {
-        console.error('Error checking duration availability:', error)
         // Reset all durations to available on error
         durationOptions.value.forEach(option => {
           option.isAvailable = true
@@ -1246,7 +1244,6 @@ export default {
         })
         slotsLoaded.value = true
       } catch (err) {
-        console.error('Failed to load available slots:', err)
         availableSlots.value = []
         slotsLoaded.value = true
       }
@@ -1305,7 +1302,6 @@ export default {
 
         // Ensure the time is in HH:MM format
         if (!/^\d{2}:\d{2}$/.test(startTimeString)) {
-          console.error('Time format validation failed:', startTimeString)
           throw new Error('Time must be in HH:MM format')
         }
 
@@ -1358,7 +1354,6 @@ export default {
               await uploadProofOfPayment(props.editBooking.id, proofFile)
               showSnackbar('Proof of payment uploaded successfully!', 'success')
             } catch (error) {
-              console.error('Failed to upload proof of payment:', error)
               showSnackbar('Failed to upload proof of payment', 'error')
             }
           }
@@ -1383,10 +1378,8 @@ export default {
             }
             showSnackbar('Proof of payment uploaded successfully!', 'success')
           }).catch((error) => {
-            console.error('Failed to upload proof of payment:', error)
             showSnackbar('Failed to upload proof of payment', 'error')
           }).finally((error) => {
-            console.error('Error creating booking:', error)
           })
           // Dispatch event to refresh bookings table
           window.dispatchEvent(new CustomEvent('booking-created'))
@@ -1407,7 +1400,6 @@ export default {
         closeModal()
 
       } catch (err) {
-        console.error('Error creating booking:', err)
         error.value = err.message || 'Failed to create booking'
         showSnackbar('Error creating booking: ' + (err.message || 'Unknown error'), 'error')
       } finally {
@@ -1595,7 +1587,6 @@ export default {
 
         return result.data
       } catch (error) {
-        console.error('Error uploading proof of payment:', error)
         throw error
       }
     }
@@ -1772,7 +1763,6 @@ export default {
           currentUser.value = userData
         }
       } catch (error) {
-        console.error('Failed to fetch current user:', error)
         currentUser.value = null
       }
     })

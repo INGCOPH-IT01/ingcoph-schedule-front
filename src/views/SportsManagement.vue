@@ -558,7 +558,6 @@ export default {
         const response = await courtService.getSports()
         sports.value = response
       } catch (error) {
-        console.error('Failed to fetch sports:', error)
         showSnackbar('Failed to load sports', 'error')
       } finally {
         loading.value = false
@@ -605,7 +604,6 @@ export default {
         dialog.value = false
         await fetchSports()
       } catch (error) {
-        console.error('Failed to save sport:', error)
         showSnackbar(error.response?.data?.message || 'Failed to save sport', 'error')
       } finally {
         saving.value = false
@@ -625,7 +623,6 @@ export default {
         deleteDialog.value = false
         await fetchSports()
       } catch (error) {
-        console.error('Failed to delete sport:', error)
         showSnackbar(error.response?.data?.message || 'Failed to delete sport', 'error')
       } finally {
         deleting.value = false
@@ -651,7 +648,6 @@ export default {
       try {
         timeBasedPricing.value = await courtService.getTimeBasedPricing(sportId)
       } catch (error) {
-        console.error('Failed to fetch time-based pricing:', error)
         showSnackbar('Failed to load time-based pricing', 'error')
       }
     }
@@ -714,7 +710,6 @@ export default {
         pricingRuleDialog.value = false
         await fetchTimeBasedPricing(selectedSport.value.id)
       } catch (error) {
-        console.error('Failed to save pricing rule:', error)
         showSnackbar(error.response?.data?.message || 'Failed to save pricing rule', 'error')
       } finally {
         savingPricing.value = false
@@ -731,7 +726,6 @@ export default {
         showSnackbar('Pricing rule deleted successfully', 'success')
         await fetchTimeBasedPricing(selectedSport.value.id)
       } catch (error) {
-        console.error('Failed to delete pricing rule:', error)
         showSnackbar(error.response?.data?.message || 'Failed to delete pricing rule', 'error')
       }
     }

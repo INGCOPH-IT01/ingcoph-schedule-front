@@ -326,7 +326,6 @@ export default {
         // Load initial availability
         await loadAvailability()
       } catch (err) {
-        console.error('Error loading court details:', err)
         error.value = err.message || 'Failed to load court details'
       } finally {
         loading.value = false
@@ -345,7 +344,6 @@ export default {
         // Map the slots to display formatted_time
         availableSlots.value = slots.map(slot => slot.formatted_time)
       } catch (err) {
-        console.error('Failed to load availability:', err)
         availableSlots.value = []
       } finally {
         availabilityLoading.value = false
@@ -361,7 +359,6 @@ export default {
           .filter(booking => booking.court_id === court.value.id)
           .slice(0, 10) // Show only recent 10 bookings
       } catch (err) {
-        console.error('Failed to load recent bookings:', err)
         recentBookings.value = []
       }
     }
@@ -425,7 +422,6 @@ export default {
       try {
         userRole.value = await authService.getUserRole()
       } catch (error) {
-        console.error('Failed to get user role:', error)
         userRole.value = 'user'
       }
     }

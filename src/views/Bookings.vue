@@ -2049,11 +2049,9 @@ export default {
               }
             }
           } else {
-            console.error('❌ Failed to fetch cart items')
             bookings.value = []
           }
         } catch (cartErr) {
-          console.error('❌ Error fetching cart items:', cartErr)
           bookings.value = []
         }
         // Also fetch direct bookings (created without cart transactions), so admin-made bookings for a user appear here
@@ -2078,13 +2076,10 @@ export default {
             // Merge with transaction-backed items we already set
             bookings.value = [...(bookings.value || []), ...directBookings]
           } else {
-            console.error('❌ Failed to fetch direct bookings')
           }
         } catch (bookingsErr) {
-          console.error('❌ Error fetching direct bookings:', bookingsErr)
         }
       } catch (err) {
-        console.error('❌ Bookings - Error:', err)
         error.value = err.message
         bookings.value = []
       } finally {
@@ -2606,7 +2601,6 @@ export default {
         showSnackbar('Bookings generated successfully!', 'success')
         fetchBookings() // Refresh the bookings list
       } catch (error) {
-        console.error('Error generating bookings:', error)
         showSnackbar('Error generating bookings: ' + error.message, 'error')
       }
     }
@@ -2628,7 +2622,6 @@ export default {
           showSnackbar('Recurring schedule deleted successfully!', 'success')
           fetchBookings() // Refresh the bookings list
         } catch (error) {
-          console.error('Error deleting recurring schedule:', error)
           showSnackbar('Error deleting recurring schedule: ' + error.message, 'error')
         }
       }
@@ -2702,7 +2695,6 @@ export default {
           // Update cart count
           window.dispatchEvent(new CustomEvent('cart-updated'))
         } catch (error) {
-          console.error('Error removing from cart:', error)
           await showAlert({
             icon: 'error',
             title: 'Error',
@@ -2766,7 +2758,6 @@ export default {
               deletedCount++
             }
           } catch (error) {
-            console.error('Error deleting cart item:', item.id, error)
           }
         }
 
@@ -2796,7 +2787,6 @@ export default {
           await fetchBookings() // Refresh the list
         }, 300)
       } catch (err) {
-        console.error('Error cancelling time slots:', err)
         showAlert({
           icon: 'error',
           title: 'Cancellation Failed',
@@ -2919,7 +2909,6 @@ export default {
                     const hours = (end - start) / (1000 * 60 * 60)
                     slot.price = (court.sport.price_per_hour * hours).toFixed(2)
                   } else {
-                    console.error('❌ Court not found for recalculation')
                   }
                 }
               } else {
@@ -2998,7 +2987,6 @@ export default {
         // Clear flag after initialization is complete
         isInitializingEdit.value = false
       } catch (error) {
-        console.error('Error in editBooking:', error)
         isInitializingEdit.value = false // Clear flag on error too
         showAlert({
           icon: 'error',
@@ -3045,11 +3033,9 @@ export default {
           editAvailableSlots.value = uniqueSlots
         } else {
           const errorText = await response.text()
-          console.error('❌ API Error:', response.status, errorText)
           editAvailableSlots.value = []
         }
       } catch (error) {
-        console.error('❌ Error fetching available slots:', error)
         editAvailableSlots.value = []
       } finally {
         loadingSlotsEdit.value = false
@@ -3098,8 +3084,6 @@ export default {
             const hours = (end - start) / (1000 * 60 * 60)
             validSlot.price = (court.sport.price_per_hour * hours).toFixed(2)
           } else {
-            console.error('❌ Court not found for price calculation, court_id:', editItem.value.court_id)
-            console.error('❌ Available courts:', courts.value.map(c => c.id))
             return
           }
         }
@@ -3202,14 +3186,12 @@ export default {
               const hours = (end - start) / (1000 * 60 * 60)
               price = parseFloat((court.sport.price_per_hour * hours).toFixed(2))
             } else {
-              console.error('❌ Court not found for price calculation')
               throw new Error(`Cannot calculate price for slot ${slot.start}-${slot.end}`)
             }
           }
 
           // Final validation
           if (isNaN(price) || price < 0) {
-            console.error('❌ Price still invalid after recalculation:', price)
             throw new Error(`Invalid price for slot ${slot.start}-${slot.end}`)
           }
 
@@ -3240,8 +3222,6 @@ export default {
           showConfirmButton: false
         })
       } catch (error) {
-        console.error('Error updating booking:', error)
-        console.error('Validation errors:', error.response?.data?.errors)
 
         // Build detailed error message
         let errorMessage = error.response?.data?.message || 'Failed to update booking'
@@ -3288,7 +3268,6 @@ export default {
       try {
         courts.value = await courtService.getCourts()
       } catch (error) {
-        console.error('Failed to load courts:', error)
       }
     }
 
@@ -3322,7 +3301,6 @@ export default {
         availableSlots.value = slots
         calculatePrice()
       } catch (error) {
-        console.error('Failed to load available slots:', error)
         editError.value = 'Failed to load available time slots'
       }
     }
@@ -3413,11 +3391,6 @@ export default {
 
         if (!editForm.court_id || !editForm.date || !editForm.start_time) {
           editError.value = 'Please fill in all required fields'
-          console.error('Validation failed:', {
-            court_id: editForm.court_id,
-            date: editForm.date,
-            start_time: editForm.start_time
-          })
           return
         }
 
@@ -3454,7 +3427,6 @@ export default {
             await uploadProofOfPayment(editingBooking.value.id, editForm.proof_of_payment[0])
             showSnackbar('Proof of payment uploaded successfully!', 'success')
           } catch (error) {
-            console.error('Failed to upload proof of payment:', error)
             showSnackbar('Failed to upload proof of payment', 'error')
           }
         }
@@ -3467,7 +3439,6 @@ export default {
 
         closeEditDialog()
       } catch (error) {
-        console.error('Failed to update booking:', error)
 
         // Handle validation errors specifically
         if (error.response?.status === 422 && error.response?.data?.errors) {
@@ -3545,7 +3516,6 @@ export default {
         }
         return false
       } catch (error) {
-        console.error('Bookings - Auth check failed:', error)
 
         // If it's a network error and we haven't retried, try once more
         if (retryCount === 0 && (error.code === 'NETWORK_ERROR' || !error.response)) {
@@ -3727,7 +3697,6 @@ export default {
         )
         return result.data
       } catch (error) {
-        console.error('Error uploading proof of payment:', error)
         throw error
       }
     }

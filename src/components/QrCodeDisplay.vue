@@ -181,7 +181,6 @@ export default {
         await navigator.clipboard.writeText(qrCode.value)
         // You could add a snackbar notification here
       } catch (err) {
-        console.error('Failed to copy QR code:', err)
       }
     }
 
@@ -194,7 +193,6 @@ export default {
           link.click()
         }
       } catch (err) {
-        console.error('Failed to download QR code:', err)
       }
     }
 

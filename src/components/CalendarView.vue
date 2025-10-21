@@ -480,7 +480,6 @@ export default {
           applyThemeColors()
         }
       } catch (error) {
-        console.error('Failed to load theme colors:', error)
         // Keep default blue theme
       }
     }

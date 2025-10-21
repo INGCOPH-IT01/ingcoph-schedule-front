@@ -620,12 +620,7 @@ export default {
           settingsObj[setting.key] = setting.value
         })
         companySettings.value = settingsObj
-        console.log('Company settings loaded:', {
-          opening: companySettings.value.operating_hours_opening,
-          closing: companySettings.value.operating_hours_closing
-        })
       } catch (err) {
-        console.error('Failed to load company settings:', err)
       }
     }
 
@@ -695,7 +690,6 @@ export default {
         const slots = await courtService.getAvailableSlots(courtId, dateToUse)
         courtTimeSlots.value[courtId] = slots
       } catch (err) {
-        console.error('Failed to load time slots:', err)
         courtTimeSlots.value[courtId] = []
       } finally {
         loadingTimeSlots.value[courtId] = false
@@ -708,7 +702,6 @@ export default {
         const data = await courtService.getTotalBookedHours(courtId)
         courtTotalBookedHours.value[courtId] = data.total_booked_hours || 0
       } catch (err) {
-        console.error('Failed to load total booked hours:', err)
         courtTotalBookedHours.value[courtId] = 0
       } finally {
         loadingTotalBookedHours.value[courtId] = false

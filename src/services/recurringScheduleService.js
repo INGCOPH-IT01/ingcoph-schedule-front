@@ -7,7 +7,6 @@ const recurringScheduleService = {
       const response = await api.get('/recurring-schedules')
       return response.data
     } catch (error) {
-      console.error('Error fetching recurring schedules:', error)
       throw error
     }
   },
@@ -18,7 +17,6 @@ const recurringScheduleService = {
       const response = await api.get('/admin/recurring-schedules')
       return response.data
     } catch (error) {
-      console.error('Error fetching admin recurring schedules:', error)
       throw error
     }
   },
@@ -29,7 +27,6 @@ const recurringScheduleService = {
       const response = await api.post('/recurring-schedules', scheduleData)
       return response.data
     } catch (error) {
-      console.error('Error creating recurring schedule:', error)
       throw error
     }
   },
@@ -40,7 +37,6 @@ const recurringScheduleService = {
       const response = await api.get(`/recurring-schedules/${id}`)
       return response.data
     } catch (error) {
-      console.error('Error fetching recurring schedule:', error)
       throw error
     }
   },
@@ -51,7 +47,6 @@ const recurringScheduleService = {
       const response = await api.put(`/recurring-schedules/${id}`, scheduleData)
       return response.data
     } catch (error) {
-      console.error('Error updating recurring schedule:', error)
       throw error
     }
   },
@@ -62,7 +57,6 @@ const recurringScheduleService = {
       const response = await api.delete(`/recurring-schedules/${id}`)
       return response.data
     } catch (error) {
-      console.error('Error deleting recurring schedule:', error)
       throw error
     }
   },
@@ -75,7 +69,6 @@ const recurringScheduleService = {
       })
       return response.data
     } catch (error) {
-      console.error('Error generating bookings:', error)
       throw error
     }
   },

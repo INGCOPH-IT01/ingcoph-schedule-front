@@ -149,7 +149,6 @@ export const cartService = {
       })
       return response.data
     } catch (error) {
-      console.error('Upload proof of payment error:', error)
       throw new Error(error.response?.data?.message || 'Failed to upload proof of payment')
     }
   },
