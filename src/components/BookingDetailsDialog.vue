@@ -631,16 +631,16 @@
                 </div>
               </v-alert>
 
-              <!-- Upload Proof of Payment Section (for unpaid bookings) -->
+              <!-- Upload Proof of Payment Section (available for unpaid and paid bookings) -->
               <!-- Hidden when booking was created by a User role account, unless current user is the booking owner -->
               <v-card
-                v-if="booking.payment_status !== 'paid' && showAdminFeatures && !isRejected && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
+                v-if="showAdminFeatures && !isRejected && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
                 variant="outlined"
                 class="mt-3 pa-3"
               >
                 <h5 class="text-subtitle-2 font-weight-bold mb-3">
                   <v-icon size="small" class="mr-1">mdi-upload</v-icon>
-                  Upload Proof of Payment
+                  {{ isAlreadyPaid ? 'Upload Additional Proof of Payment' : 'Upload Proof of Payment' }}
                 </h5>
 
                 <ProofOfPaymentUpload
@@ -662,7 +662,7 @@
                   block
                 >
                   <v-icon start>mdi-upload</v-icon>
-                  Upload {{ proofFiles && proofFiles.length > 1 ? `${proofFiles.length} Files` : '' }} and Mark as Paid
+                  {{ uploadButtonLabel }}
                 </v-btn>
               </v-card>
             </template>
@@ -1761,7 +1761,12 @@ export default {
         proofFiles.value = []
 
         // Show success message
-        alert(`Proof${files.length > 1 ? 's' : ''} of payment uploaded successfully! Booking is now marked as paid.`)
+        const wasAlreadyPaid = isAlreadyPaid.value
+        const filesText = files.length > 1 ? 'Proofs' : 'Proof'
+        const successMsg = wasAlreadyPaid
+          ? `${filesText} uploaded successfully!`
+          : `${filesText} of payment uploaded successfully! Booking is now marked as paid.`
+        alert(successMsg)
 
         // Emit event to refresh booking list if needed
         emit('attendance-updated', { bookingId: props.booking.id, status: 'paid' })
@@ -2188,6 +2193,19 @@ export default {
       return notes.substring(idx + marker.length).trim()
     })
 
+    // Whether booking is already paid
+    const isAlreadyPaid = computed(() => {
+      return (props.booking?.payment_status || '').toLowerCase() === 'paid'
+    })
+
+    // Upload button label varies based on payment status and selected files
+    const uploadButtonLabel = computed(() => {
+      const count = Array.isArray(proofFiles.value) ? proofFiles.value.length : (proofFiles.value ? 1 : 0)
+      const countText = count > 1 ? `${count} Files` : (count === 1 ? '1 File' : '')
+      const suffix = isAlreadyPaid.value ? '' : ' and Mark as Paid'
+      return `Upload${countText ? ' ' + countText : ''}${suffix}`
+    })
+
     const numberOfPlayers = computed(() => {
       if (!props.booking) return 1
       // For transactions, get from first cart item; for regular bookings, get from booking itself
@@ -2338,6 +2356,9 @@ export default {
     )
 
     return {
+      // Upload helpers
+      isAlreadyPaid,
+      uploadButtonLabel,
       // State
       imageDialog,
       selectedImageUrl,
