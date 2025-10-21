@@ -474,8 +474,8 @@ export default {
       }
     }
 
-    // Update expiration timer
-    const updateExpirationTimer = () => {
+    // Update expiration timer using business hours logic from backend
+    const updateExpirationTimer = async () => {
       if (!cartTransaction.value || !cartTransaction.value.created_at) {
         timeRemaining.value = ''
         expirationWarning.value = false
@@ -489,26 +489,56 @@ export default {
         return
       }
 
-      const createdAt = new Date(cartTransaction.value.created_at)
-      const expiresAt = new Date(createdAt.getTime() + 60 * 60 * 1000) // 1 hour later
-      const now = new Date()
-      const diff = expiresAt - now
+      try {
+        // Fetch expiration info from backend (includes business hours logic)
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/expiration-info`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json'
+          }
+        })
 
-      if (diff <= 0) {
-        timeRemaining.value = 'Expired'
-        expirationWarning.value = true
-        // Reload cart to remove expired items
-        loadCart()
-        return
+        if (!response.ok) {
+          console.error('Failed to fetch expiration info')
+          return
+        }
+
+        const data = await response.json()
+
+        if (!data.has_transaction) {
+          timeRemaining.value = ''
+          expirationWarning.value = false
+          return
+        }
+
+        if (data.is_admin) {
+          timeRemaining.value = 'No expiration (Admin)'
+          expirationWarning.value = false
+          return
+        }
+
+        if (data.is_expired) {
+          timeRemaining.value = 'Expired'
+          expirationWarning.value = true
+          // Reload cart to remove expired items
+          loadCart()
+          return
+        }
+
+        // Use the formatted time from backend
+        timeRemaining.value = data.time_remaining_formatted
+
+        // Show warning if less than 10 minutes (600 seconds) remaining
+        expirationWarning.value = data.time_remaining_seconds < 600 && data.time_remaining_seconds > 0
+
+        // Update every second
+        setTimeout(updateExpirationTimer, 1000)
+      } catch (error) {
+        console.error('Error fetching expiration info:', error)
+        // Fallback to empty timer on error
+        timeRemaining.value = ''
+        expirationWarning.value = false
       }
-
-      const minutes = Math.floor(diff / 1000 / 60)
-      const seconds = Math.floor((diff / 1000) % 60)
-      timeRemaining.value = `${minutes}m ${seconds}s`
-      expirationWarning.value = minutes < 10 // Show warning if less than 10 minutes remaining
-
-      // Update every second
-      setTimeout(updateExpirationTimer, 1000)
     }
 
     // Group consecutive time slots for the same court and date

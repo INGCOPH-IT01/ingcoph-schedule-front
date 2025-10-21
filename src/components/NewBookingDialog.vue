@@ -756,7 +756,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
@@ -2058,6 +2058,14 @@ export default {
       }
     })
 
+    // Add event listener for booking updates to refresh availability
+    const handleBookingUpdated = () => {
+      // Only reload if we're on step 2 (time slot selection) and have a selected date
+      if (step.value === 2 && selectedDate.value) {
+        loadTimeSlotsForAllCourts()
+      }
+    }
+
     onMounted(async () => {
       if (props.isOpen) {
         await fetchSports()
@@ -2088,6 +2096,16 @@ export default {
           }
         }
       }
+
+      // Listen for booking updates to refresh availability
+      window.addEventListener('booking-updated', handleBookingUpdated)
+      window.addEventListener('booking-created', handleBookingUpdated)
+    })
+
+    // Cleanup event listeners when component is unmounted
+    onUnmounted(() => {
+      window.removeEventListener('booking-updated', handleBookingUpdated)
+      window.removeEventListener('booking-created', handleBookingUpdated)
     })
 
     return {

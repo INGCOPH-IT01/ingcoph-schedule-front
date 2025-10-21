@@ -2041,12 +2041,56 @@ export default {
 
       // Check if booking is unpaid and pending
       if (booking.payment_status !== 'paid' && booking.approval_status === 'pending' && booking.created_at) {
-        const now = new Date()
-        const createdAt = new Date(booking.created_at)
-        const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60)
-        return hoursSinceCreation >= 1
+        // Use business hours helper to calculate expiration
+        return isExpiredByBusinessHours(booking.created_at)
       }
       return false
+    }
+
+    // Business hours expiration helper
+    const isExpiredByBusinessHours = (createdAt) => {
+      const created = new Date(createdAt)
+      const now = new Date()
+
+      // Calculate expiration time based on business hours
+      const expirationTime = calculateBusinessHoursExpiration(created)
+
+      return now >= expirationTime
+    }
+
+    // Calculate expiration time considering business hours (8am-5pm, Mon-Sat)
+    const calculateBusinessHoursExpiration = (createdAt) => {
+      const created = new Date(createdAt)
+      const createdHour = created.getHours()
+      const createdDay = created.getDay() // 0 = Sunday, 1 = Monday, etc.
+
+      // If created on Sunday (0) or after 5pm (17:00)
+      if (createdDay === 0 || createdHour >= 17) {
+        // Timer starts at 8am next business day (skip Sunday)
+        let nextDay = new Date(created)
+        nextDay.setDate(nextDay.getDate() + 1)
+        nextDay.setHours(8, 0, 0, 0)
+
+        // Skip Sunday if next day is Sunday
+        if (nextDay.getDay() === 0) {
+          nextDay.setDate(nextDay.getDate() + 1) // Move to Monday
+        }
+
+        // Expires 1 hour after timer starts (9am next business day)
+        nextDay.setHours(9, 0, 0, 0)
+        return nextDay
+      }
+
+      // If created before 8am on a working day
+      if (createdHour < 8) {
+        const expiresAt = new Date(created)
+        expiresAt.setHours(9, 0, 0, 0) // Expires at 9am same day
+        return expiresAt
+      }
+
+      // Created during business hours - simple 1 hour expiration
+      const expiresAt = new Date(created.getTime() + 60 * 60 * 1000)
+      return expiresAt
     }
 
     const formatDate = (dateTime) => {
