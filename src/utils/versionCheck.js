@@ -19,7 +19,7 @@ async function fetchVersion() {
       return data.version;
     }
   } catch (error) {
-    console.error('Failed to fetch version:', error);
+    // Silent error handling
   }
   return null;
 }
@@ -29,17 +29,15 @@ async function fetchVersion() {
  */
 async function checkForNewVersion() {
   const latestVersion = await fetchVersion();
-  
+
   if (latestVersion && currentVersion && latestVersion !== currentVersion) {
-    console.log('New version available:', latestVersion);
     return true;
   }
-  
+
   if (!currentVersion && latestVersion) {
     currentVersion = latestVersion;
-    console.log('Current version:', currentVersion);
   }
-  
+
   return false;
 }
 
@@ -61,9 +59,8 @@ export function startVersionCheck(intervalMinutes = 5) {
   // Initial version fetch
   fetchVersion().then(version => {
     currentVersion = version;
-    console.log('Version check initialized. Current version:', currentVersion);
   });
-  
+
   // Check periodically
   checkInterval = setInterval(async () => {
     const hasNewVersion = await checkForNewVersion();
@@ -91,8 +88,6 @@ export async function manualVersionCheck() {
   const hasNewVersion = await checkForNewVersion();
   if (hasNewVersion) {
     notifyNewVersion();
-  } else {
-    console.log('You are running the latest version');
   }
   return hasNewVersion;
 }
@@ -103,4 +98,3 @@ export async function manualVersionCheck() {
 export function getCurrentVersion() {
   return currentVersion;
 }
-

@@ -320,7 +320,6 @@ export default {
         const response = await api.get('/admin/users')
         users.value = response.data.data
       } catch (error) {
-        console.error('Error fetching users:', error)
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -336,7 +335,6 @@ export default {
         const response = await api.get('/admin/users/stats')
         stats.value = response.data.data
       } catch (error) {
-        console.error('Error fetching stats:', error)
       }
     }
 
@@ -424,7 +422,6 @@ export default {
         await fetchUsers()
         await fetchStats()
       } catch (error) {
-        console.error('Error saving user:', error)
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -458,7 +455,6 @@ export default {
           await fetchUsers()
           await fetchStats()
         } catch (error) {
-          console.error('Error deleting user:', error)
           Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -502,7 +498,6 @@ export default {
         const response = await api.get('/user')
         currentUserId.value = response.data.user.id
       } catch (error) {
-        console.error('Error fetching current user:', error)
       }
 
       await fetchUsers()

@@ -239,7 +239,6 @@ export default {
           companyName.value = settings.company_name
         }
       } catch (error) {
-        console.error('Failed to load company settings:', error)
       }
     }
 

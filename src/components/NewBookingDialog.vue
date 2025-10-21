@@ -1078,7 +1078,6 @@ export default {
         })
         timeSlots.value = newTimeSlots
       } catch (error) {
-        console.error('Failed to load time slots:', error)
         showAlert({
           icon: 'error',
           title: 'Error',
@@ -1121,7 +1120,6 @@ export default {
         })
         timeSlots.value = newTimeSlots
       } catch (error) {
-        console.error('Failed to load time slots:', error)
         showAlert({
           icon: 'error',
           title: 'Error',
@@ -1373,8 +1371,6 @@ export default {
             adminBookingData.admin_notes = adminNotes.value
           }
 
-          console.log('DEBUG - Admin Notes Value:', adminNotes.value)
-          console.log('DEBUG - Admin Booking Data:', adminBookingData)
         }
 
         // Create cart items from current selections
@@ -1477,7 +1473,6 @@ export default {
         emit('close')
         resetForm()
       } catch (error) {
-        console.error('Failed to add to booking:', error)
 
         // Check if this is a specific error response that we should handle specially
         const errorData = error.response?.data
@@ -1574,8 +1569,6 @@ export default {
             adminBookingData.admin_notes = adminNotes.value
           }
 
-          console.log('DEBUG - Admin Notes Value:', adminNotes.value)
-          console.log('DEBUG - Admin Booking Data:', adminBookingData)
         }
 
         // Create cart items array with admin booking fields
@@ -1653,9 +1646,6 @@ export default {
         emit('close')
         resetForm()
       } catch (error) {
-        console.error('Failed to create bookings:', error)
-        console.error('Error response:', error.response)
-        console.error('Error data:', error.response?.data)
 
         let errorMessage = 'Failed to process GCash payment. Please try again.'
 
@@ -1719,8 +1709,6 @@ export default {
             adminBookingData.admin_notes = adminNotes.value
           }
 
-          console.log('DEBUG - Admin Notes Value:', adminNotes.value)
-          console.log('DEBUG - Admin Booking Data:', adminBookingData)
         }
 
         // Create cart items array with admin booking fields
@@ -1808,9 +1796,6 @@ export default {
         emit('close')
         resetForm()
       } catch (error) {
-        console.error('Failed to create bookings:', error)
-        console.error('Error response:', error.response)
-        console.error('Error data:', error.response?.data)
 
         let errorMessage = 'Failed to create bookings. Please try again.'
 
@@ -1891,7 +1876,6 @@ export default {
         emit('close')
         resetForm()
       } catch (error) {
-        console.error('Failed to create bookings:', error)
         showAlert({
           icon: 'error',
           title: 'Booking Failed',
@@ -1922,7 +1906,6 @@ export default {
       try {
         sports.value = await courtService.getSports()
       } catch (error) {
-        console.error('Failed to fetch sports:', error)
       }
     }
 
@@ -1930,7 +1913,6 @@ export default {
       try {
         courts.value = await courtService.getCourts()
       } catch (error) {
-        console.error('Failed to fetch courts:', error)
       }
     }
 
@@ -1942,7 +1924,6 @@ export default {
           currentUser.value = userData
         }
       } catch (error) {
-        console.error('Failed to fetch current user:', error)
         currentUser.value = null
       }
     }
@@ -1959,12 +1940,9 @@ export default {
             role: user.role
           }))
         } else {
-          console.error('Failed to fetch users:', response.data.message)
           userNames.value = []
         }
       } catch (error) {
-        console.error('Failed to fetch users:', error)
-        console.error('Error details:', error.response?.data)
         userNames.value = []
       }
     }
@@ -2012,7 +1990,6 @@ export default {
           })
         }
       } catch (error) {
-        console.error('Failed to load payment settings or generate QR code:', error)
         // Keep default values if loading fails
       }
     }
@@ -2055,7 +2032,6 @@ export default {
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
         } catch (error) {
-          console.error('Failed to load Facebook page settings:', error)
         }
 
         // If a preselected sport is provided, select it and move to step 2
@@ -2098,7 +2074,6 @@ export default {
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
         } catch (error) {
-          console.error('Failed to load Facebook page settings:', error)
         }
 
         // If a preselected sport is provided, select it and move to step 2
@@ -2678,26 +2653,7 @@ export default {
 }
 
 .rate-slots-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.rate-slots-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.rate-slots-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.rate-slots-list::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-.rate-slots-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  /* Scrolling removed - shows all items without overflow */
 }
 
 .summary-item {
@@ -2743,6 +2699,7 @@ export default {
 /* Payment Options */
 .payment-options {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  overflow: hidden;
 }
 
 .payment-options h4,

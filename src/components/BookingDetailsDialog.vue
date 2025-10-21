@@ -631,16 +631,16 @@
                 </div>
               </v-alert>
 
-              <!-- Upload Proof of Payment Section (for unpaid bookings) -->
+              <!-- Upload Proof of Payment Section (available for unpaid and paid bookings) -->
               <!-- Hidden when booking was created by a User role account, unless current user is the booking owner -->
               <v-card
-                v-if="booking.payment_status !== 'paid' && showAdminFeatures && !isRejected && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
+                v-if="showAdminFeatures && !isRejected && (booking.user?.role !== 'user' || booking.user?.id === currentUserId)"
                 variant="outlined"
                 class="mt-3 pa-3"
               >
                 <h5 class="text-subtitle-2 font-weight-bold mb-3">
                   <v-icon size="small" class="mr-1">mdi-upload</v-icon>
-                  Upload Proof of Payment
+                  {{ isAlreadyPaid ? 'Upload Additional Proof of Payment' : 'Upload Proof of Payment' }}
                 </h5>
 
                 <ProofOfPaymentUpload
@@ -662,7 +662,7 @@
                   block
                 >
                   <v-icon start>mdi-upload</v-icon>
-                  Upload {{ proofFiles && proofFiles.length > 1 ? `${proofFiles.length} Files` : '' }} and Mark as Paid
+                  {{ uploadButtonLabel }}
                 </v-btn>
               </v-card>
             </template>
@@ -972,7 +972,6 @@
             <v-icon class="mr-2">mdi-image</v-icon>
             Proof of Payment
           </div>
-          <v-btn icon="mdi-close" variant="text" @click="imageDialog = false"></v-btn>
         </v-card-title>
 
         <v-divider></v-divider>
@@ -1166,6 +1165,7 @@ export default {
     // Image dialog state
     const imageDialog = ref(false)
     const selectedImageUrl = ref('')
+    const thumbnailUrls = ref({}) // Store blob URLs for thumbnails
     const updatingAttendance = ref(false)
     const userRole = ref(null)
     const currentUserId = ref(null)
@@ -1221,7 +1221,7 @@ export default {
         const settings = await paymentSettingService.getPaymentSettings()
         paymentSettings.value = settings
       } catch (error) {
-        console.error('Failed to load payment settings:', error)
+        // Silent error handling
       } finally {
         loadingPaymentSettings.value = false
       }
@@ -1242,6 +1242,13 @@ export default {
         URL.revokeObjectURL(selectedImageUrl.value)
         selectedImageUrl.value = ''
       }
+      // Clean up thumbnail blob URLs
+      Object.values(thumbnailUrls.value).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      thumbnailUrls.value = {}
       // Reset court editing state
       editingCourtItemIndex.value = null
       selectedCourtId.value = null
@@ -1576,7 +1583,6 @@ export default {
 
         emit('attendance-updated', { bookingId: props.booking.id, status })
       } catch (error) {
-        console.error('Failed to update attendance status:', error)
         // Show error message to user
         if (error.response?.data?.message) {
           alert(error.response.data.message)
@@ -1602,17 +1608,47 @@ export default {
       }
     }
 
-    // Get thumbnail URL for proof of payment
-    const getProofThumbnailUrl = (index) => {
-      if (!props.booking?.id) return ''
+    // Load thumbnails with authentication
+    const loadThumbnails = async () => {
+      // Clean up existing blob URLs
+      Object.values(thumbnailUrls.value).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      thumbnailUrls.value = {}
+
+      const proofFiles = getProofOfPaymentFiles(props.booking?.proof_of_payment)
+      if (!proofFiles.length || !props.booking?.id) return
 
       // Determine the correct endpoint based on whether this is a transaction or booking
       const endpoint = isTransaction.value
         ? `/cart-transactions/${props.booking.id}/proof-of-payment`
         : `/bookings/${props.booking.id}/proof-of-payment`
 
-      // Return the full URL with the API base URL and index parameter
-      return `${api.defaults.baseURL}${endpoint}?index=${index}&t=${Date.now()}`
+      // Load each thumbnail with authentication
+      const newUrls = {}
+      for (let i = 0; i < proofFiles.length; i++) {
+        try {
+          const response = await api.get(endpoint, {
+            params: { index: i },
+            responseType: 'blob'
+          })
+          const imageBlob = new Blob([response.data], { type: response.headers['content-type'] })
+          newUrls[i] = URL.createObjectURL(imageBlob)
+        } catch (error) {
+          console.error(`Failed to load thumbnail ${i}:`, error)
+          // Continue loading other thumbnails even if one fails
+        }
+      }
+      // Update all at once to trigger reactivity
+      thumbnailUrls.value = newUrls
+    }
+
+    // Get thumbnail URL for proof of payment
+    const getProofThumbnailUrl = (index) => {
+      // Return the blob URL if available, otherwise return empty string
+      return thumbnailUrls.value[index] || ''
     }
 
     // Proof of payment viewing
@@ -1635,7 +1671,7 @@ export default {
           selectedImageUrl.value = URL.createObjectURL(imageBlob)
           imageDialog.value = true
         } catch (error) {
-          console.error('Failed to load proof of payment:', error)
+          // Silent error handling
         }
       }
     }
@@ -1660,11 +1696,11 @@ export default {
     }
 
     const handleImageError = (event) => {
-      console.error('Image failed to load:', event)
+      // Silent error handling
     }
 
     const handleQrCodeError = (event) => {
-      console.error('Payment QR code failed to load:', event)
+      // Silent error handling
     }
 
     // Validation function for file sizes
@@ -1725,12 +1761,16 @@ export default {
         proofFiles.value = []
 
         // Show success message
-        alert(`Proof${files.length > 1 ? 's' : ''} of payment uploaded successfully! Booking is now marked as paid.`)
+        const wasAlreadyPaid = isAlreadyPaid.value
+        const filesText = files.length > 1 ? 'Proofs' : 'Proof'
+        const successMsg = wasAlreadyPaid
+          ? `${filesText} uploaded successfully!`
+          : `${filesText} of payment uploaded successfully! Booking is now marked as paid.`
+        alert(successMsg)
 
         // Emit event to refresh booking list if needed
         emit('attendance-updated', { bookingId: props.booking.id, status: 'paid' })
       } catch (error) {
-        console.error('Failed to upload proof of payment:', error)
         alert(error.message || 'Failed to upload proof of payment. Please try again.')
       } finally {
         uploadingProof.value = false
@@ -1792,7 +1832,6 @@ export default {
         })
         qrCodeImageUrl.value = dataUrl
       } catch (error) {
-        console.error('Failed to load QR code:', error)
         qrCodeError.value = error.response?.data?.message || 'Failed to generate QR code'
       } finally {
         loadingQrCode.value = false
@@ -1816,7 +1855,7 @@ export default {
           await navigator.clipboard.writeText(qrCodeData.value)
           // Successfully copied (you could show a snackbar here if needed)
         } catch (error) {
-          console.error('Failed to copy QR code data:', error)
+          // Silent error handling
         }
       }
     }
@@ -1871,7 +1910,6 @@ export default {
           closeDialog()
         }, 1500)
       } catch (error) {
-        console.error('Failed to approve booking:', error)
         showSnackbar('Failed to approve booking', 'error')
       } finally {
         approving.value = false
@@ -1911,7 +1949,6 @@ export default {
           closeDialog()
         }, 1500)
       } catch (error) {
-        console.error('Failed to reject transaction:', error)
         showSnackbar('Failed to reject transaction', 'error')
       } finally {
         rejecting.value = false
@@ -1926,7 +1963,6 @@ export default {
         const response = await api.get(`/cart-items/${cartItemId}/available-courts`)
         availableCourtsForItem.value = response.data.data
       } catch (error) {
-        console.error('Failed to load available courts:', error)
         showSnackbar('Failed to load available courts', 'error')
         // Fallback to loading all courts without availability info
         try {
@@ -1936,7 +1972,7 @@ export default {
             is_available: true // Assume available if we can't check
           }))
         } catch (fallbackError) {
-          console.error('Failed to load courts:', fallbackError)
+          // Silent error handling
         }
       } finally {
         loadingCourts.value = false
@@ -2032,7 +2068,6 @@ export default {
         // Emit event to parent
         emit('attendance-updated', { bookingId: props.booking.id, status: 'court_updated' })
       } catch (error) {
-        console.error('Failed to update court:', error)
         const errorMessage = error.response?.data?.message || error.message || 'Failed to update court'
         showSnackbar(errorMessage, 'error')
       } finally {
@@ -2094,7 +2129,6 @@ export default {
         // Emit event to parent
         emit('attendance-updated', { bookingId: props.booking.id, status: 'time_slot_deleted' })
       } catch (error) {
-        console.error('Failed to delete time slot:', error)
         const errorMessage = error.response?.data?.message || error.message || 'Failed to delete time slot'
         showSnackbar(errorMessage, 'error')
       } finally {
@@ -2119,7 +2153,6 @@ export default {
 
         showSnackbar(response.message || 'Confirmation email sent successfully', 'success')
       } catch (error) {
-        console.error('Failed to resend confirmation email:', error)
         showSnackbar(error.message || 'Failed to send confirmation email', 'error')
       } finally {
         resendingEmail.value = false
@@ -2158,6 +2191,19 @@ export default {
       // Extract text after marker
       const idx = notes.toLowerCase().indexOf(marker.toLowerCase())
       return notes.substring(idx + marker.length).trim()
+    })
+
+    // Whether booking is already paid
+    const isAlreadyPaid = computed(() => {
+      return (props.booking?.payment_status || '').toLowerCase() === 'paid'
+    })
+
+    // Upload button label varies based on payment status and selected files
+    const uploadButtonLabel = computed(() => {
+      const count = Array.isArray(proofFiles.value) ? proofFiles.value.length : (proofFiles.value ? 1 : 0)
+      const countText = count > 1 ? `${count} Files` : (count === 1 ? '1 File' : '')
+      const suffix = isAlreadyPaid.value ? '' : ' and Mark as Paid'
+      return `Upload${countText ? ' ' + countText : ''}${suffix}`
     })
 
     const numberOfPlayers = computed(() => {
@@ -2267,7 +2313,6 @@ export default {
         userRole.value = user.role
         currentUserId.value = user.id
       } catch (error) {
-        console.error('Failed to fetch user data:', error)
         userRole.value = 'user' // Default to 'user' role if fetch fails
         currentUserId.value = null
       }
@@ -2278,13 +2323,6 @@ export default {
       () => props.isOpen,
       (isOpen) => {
         if (isOpen && props.booking) {
-          // Debug: Log booking data to check admin_notes
-          console.log('Booking data:', props.booking)
-          console.log('Admin notes (direct):', props.booking.admin_notes)
-          if (props.booking.cart_items && props.booking.cart_items.length > 0) {
-            console.log('Cart items admin notes:', props.booking.cart_items[0].admin_notes)
-          }
-
           // Reset QR code state when opening
           qrCodeImageUrl.value = ''
           qrCodeData.value = ''
@@ -2297,12 +2335,30 @@ export default {
           if (isApprovedBooking.value) {
             loadQrCode()
           }
+
+          // Load proof of payment thumbnails with authentication
+          if (props.booking.proof_of_payment) {
+            loadThumbnails()
+          }
         }
       },
       { immediate: true }
     )
 
+    // Watch for changes in proof_of_payment to reload thumbnails
+    watch(
+      () => props.booking?.proof_of_payment,
+      (newProof) => {
+        if (newProof && props.isOpen) {
+          loadThumbnails()
+        }
+      }
+    )
+
     return {
+      // Upload helpers
+      isAlreadyPaid,
+      uploadButtonLabel,
       // State
       imageDialog,
       selectedImageUrl,

@@ -497,7 +497,6 @@ export default {
       try {
         courts.value = await courtService.getCourts()
       } catch (err) {
-        console.error('Failed to fetch courts:', err)
       }
     }
 
@@ -679,7 +678,6 @@ export default {
           }
         }
       } catch (error) {
-        console.error('Failed to load dashboard settings:', error)
         // Keep default values on error
       }
     }

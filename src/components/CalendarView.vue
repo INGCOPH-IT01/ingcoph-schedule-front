@@ -314,15 +314,20 @@ export default {
           const transactionDateStr = formatDateLocal(bookingDateObj)
           return transactionDateStr === dateStr
         })
-        .map(transaction => ({
-          id: transaction.id,
-          userName: getUserName(transaction),
-          totalPrice: transaction.total_price || 0,
-          status: (transaction.approval_status || 'pending').toLowerCase(),
-          startTime: transaction.cart_items?.[0]?.start_time || '',
-          endTime: transaction.cart_items?.[0]?.end_time || '',
-          transaction
-        }))
+        .map(transaction => {
+          // Calculate overall time range (similar to BookingDetailsDialog)
+          const timeRange = calculateOverallTimeRange(transaction)
+
+          return {
+            id: transaction.id,
+            userName: getUserName(transaction),
+            totalPrice: transaction.total_price || 0,
+            status: (transaction.approval_status || 'pending').toLowerCase(),
+            startTime: timeRange.start,
+            endTime: timeRange.end,
+            transaction
+          }
+        })
         .sort((a, b) => {
           // Sort by start time
           if (a.startTime && b.startTime) {
@@ -330,6 +335,69 @@ export default {
           }
           return 0
         })
+    }
+
+    // Calculate overall time range from cart items (similar to BookingDetailsDialog's adjacentTimeRanges)
+    const calculateOverallTimeRange = (transaction) => {
+      if (!transaction.cart_items || transaction.cart_items.length === 0) {
+        return { start: '', end: '' }
+      }
+
+      const items = transaction.cart_items
+
+      // Remove duplicates and sort by start time
+      const uniqueSlots = []
+      const seenSlots = new Set()
+      items.forEach(item => {
+        const key = `${item.start_time}-${item.end_time}`
+        if (!seenSlots.has(key)) {
+          seenSlots.add(key)
+          uniqueSlots.push({
+            start: item.start_time,
+            end: item.end_time
+          })
+        }
+      })
+      uniqueSlots.sort((a, b) => a.start.localeCompare(b.start))
+
+      // Group consecutive/adjacent slots
+      const timeRanges = []
+      let currentRange = null
+
+      uniqueSlots.forEach(slot => {
+        if (!currentRange) {
+          // Start a new range
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+        } else if (currentRange.end === slot.start) {
+          // Slot is consecutive (end of current range matches start of this slot)
+          currentRange.end = slot.end
+        } else {
+          // Gap detected, save current range and start new one
+          timeRanges.push(currentRange)
+          currentRange = {
+            start: slot.start,
+            end: slot.end
+          }
+        }
+      })
+
+      // Add the last range
+      if (currentRange) {
+        timeRanges.push(currentRange)
+      }
+
+      // Return the overall time range (earliest start to latest end)
+      if (timeRanges.length === 0) {
+        return { start: '', end: '' }
+      }
+
+      return {
+        start: timeRanges[0].start,
+        end: timeRanges[timeRanges.length - 1].end
+      }
     }
 
     const getUserName = (transaction) => {
@@ -412,7 +480,6 @@ export default {
           applyThemeColors()
         }
       } catch (error) {
-        console.error('Failed to load theme colors:', error)
         // Keep default blue theme
       }
     }

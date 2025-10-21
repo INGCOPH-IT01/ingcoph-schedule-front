@@ -592,7 +592,6 @@ export default {
         originalBgSecondaryColor.value = bgSecondaryColor.value
         originalBgAccentColor.value = bgAccentColor.value
       } catch (error) {
-        console.error('Failed to load settings:', error)
         errorMessage.value = 'Failed to load company settings'
       } finally {
         loading.value = false
@@ -626,7 +625,6 @@ export default {
         logoFile.value = null
         showSnackbar('Logo removed successfully', 'success', 'mdi-check-circle')
       } catch (error) {
-        console.error('Failed to remove logo:', error)
         showSnackbar('Failed to remove logo', 'error', 'mdi-alert-circle')
       }
     }
@@ -667,7 +665,6 @@ export default {
 
         window.dispatchEvent(new CustomEvent('company-settings-updated'))
       } catch (error) {
-        console.error('Failed to save settings:', error)
         errorMessage.value = error.message || 'Failed to update company settings'
         showSnackbar('Failed to save settings', 'error', 'mdi-alert-circle')
       } finally {
@@ -724,7 +721,6 @@ export default {
         window.dispatchEvent(new CustomEvent('company-settings-updated'))
 
       } catch (error) {
-        console.error('Failed to save background colors:', error)
         bgErrorMessage.value = error.message || 'Failed to update background colors'
         showSnackbar('Failed to save background colors', 'error', 'mdi-alert-circle')
       } finally {

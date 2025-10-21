@@ -19,7 +19,6 @@ const getThemeColors = () => {
       }
     }
   } catch (error) {
-    console.error('Failed to load theme settings:', error)
   }
   return {
     primary: '#B71C1C',

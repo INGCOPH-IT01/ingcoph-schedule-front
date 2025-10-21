@@ -32,7 +32,6 @@ export const paymentSettingService = {
       })
       return response.data.data
     } catch (error) {
-      console.error('Update payment settings error:', error.response?.data)
       throw new Error(error.response?.data?.message || 'Failed to update payment settings')
     }
   },
@@ -67,7 +66,6 @@ export const paymentSettingService = {
         return response.data.data
       }
     } catch (error) {
-      console.error('Update payment settings error:', error.response?.data)
       throw new Error(error.response?.data?.message || 'Failed to update payment settings')
     }
   },

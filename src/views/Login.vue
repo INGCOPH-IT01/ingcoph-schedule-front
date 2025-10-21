@@ -159,7 +159,6 @@ export default {
         }))
 
       } catch (err) {
-        console.error('Login error in component:', err)
         error.value = err.message
       } finally {
         loading.value = false
@@ -173,7 +172,6 @@ export default {
           companyName.value = settings.company_name
         }
       } catch (error) {
-        console.error('Failed to load company settings:', error)
       }
     }
 

@@ -565,7 +565,6 @@ export default {
         emit('saved')
         closeDialog()
       } catch (error) {
-        console.error('Error saving recurring schedule:', error)
         alert(`Error saving schedule: ${error.response?.data?.message || error.message || 'Unknown error'}`)
       } finally {
         loading.value = false
@@ -596,7 +595,6 @@ export default {
     // Watch for recurrence type changes - disabled to avoid conflicts
     // watch(() => form.value.recurrence_type, (newType, oldType) => {
     //   if (newType !== oldType && newType) {
-    //     console.log('Watcher: Recurrence type changed from', oldType, 'to', newType)
     //     handleRecurrenceTypeChange(newType)
     //   }
     // })

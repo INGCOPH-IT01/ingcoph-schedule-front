@@ -317,7 +317,6 @@ export default {
           user.value = null
         }
       } catch (error) {
-        console.error('Auth check failed:', error)
         isAuthenticated.value = false
         user.value = null
       } finally {
@@ -330,7 +329,6 @@ export default {
         loading.value = true
         bookings.value = await courtService.getBookings()
       } catch (error) {
-        console.error('Error fetching bookings:', error)
         showSnackbar('Failed to fetch bookings', 'error')
       } finally {
         loading.value = false

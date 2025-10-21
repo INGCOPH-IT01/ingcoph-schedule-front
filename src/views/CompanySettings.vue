@@ -767,7 +767,6 @@ export default {
             : true
         })
       } catch (error) {
-        console.error('Failed to load settings:', error)
         errorMessage.value = 'Failed to load company settings'
         showSnackbar('Failed to load settings', 'error')
       } finally {
@@ -817,7 +816,6 @@ export default {
           // Dispatch event to update navbar
           window.dispatchEvent(new CustomEvent('company-settings-updated'))
         } catch (error) {
-          console.error('Failed to delete logo:', error)
           errorMessage.value = error.message || 'Failed to delete logo'
           showSnackbar('Failed to delete logo', 'error')
         }
@@ -869,7 +867,6 @@ export default {
         // Dispatch event to update navbar title and logo
         window.dispatchEvent(new CustomEvent('company-settings-updated'))
       } catch (error) {
-        console.error('Failed to save settings:', error)
         errorMessage.value = error.message || 'Failed to update company settings'
         showSnackbar('Failed to save settings', 'error')
       } finally {
@@ -931,7 +928,6 @@ export default {
         window.dispatchEvent(new CustomEvent('company-settings-updated'))
 
       } catch (error) {
-        console.error('Failed to save background colors:', error)
         bgErrorMessage.value = error.message || 'Failed to update background colors'
         showSnackbar('Failed to save background colors', 'error')
       } finally {
@@ -1004,7 +1000,6 @@ export default {
         window.dispatchEvent(new CustomEvent('company-settings-updated'))
 
       } catch (error) {
-        console.error('Failed to save operating hours:', error)
         operatingErrorMessage.value = error.message || 'Failed to update operating hours'
         showSnackbar('Failed to save operating hours', 'error')
       } finally {

@@ -447,7 +447,6 @@ export default {
         court.value = await courtService.getCourt(courtId)
       } catch (err) {
         error.value = err.message || 'Failed to load court details'
-        console.error('Error fetching court details:', err)
       } finally {
         loading.value = false
       }
@@ -461,7 +460,6 @@ export default {
         const response = await courtService.getAvailableSlots(court.value.id, selectedDate.value)
         availableSlots.value = response
       } catch (err) {
-        console.error('Error fetching availability:', err)
         availableSlots.value = []
       } finally {
         loadingAvailability.value = false
@@ -478,8 +476,6 @@ export default {
         const response = await api.get(`/courts/${court.value.id}/recent-bookings`)
         recentBookings.value = response.data.data || response.data
       } catch (err) {
-        console.error('Error fetching recent bookings:', err)
-        console.error('Error details:', err.response?.data)
         recentBookings.value = []
       } finally {
         loadingBookings.value = false
@@ -639,7 +635,6 @@ export default {
       try {
         userRole.value = await authService.getUserRole()
       } catch (error) {
-        console.error('Failed to get user role:', error)
         userRole.value = 'user'
       }
     }

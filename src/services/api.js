@@ -20,7 +20,6 @@ api.interceptors.request.use(
     return config
   },
   (error) => {
-    console.error('API Request Error:', error)
     return Promise.reject(error)
   }
 )
@@ -31,7 +30,6 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    console.error('API Response Error:', error.response?.status, error.config?.url, error.response?.data)
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')

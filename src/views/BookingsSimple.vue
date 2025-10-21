@@ -299,7 +299,6 @@ export default {
           transactions.value = await response.json()
         }
       } catch (error) {
-        console.error('Error fetching transactions:', error)
       } finally {
         loading.value = false
       }
