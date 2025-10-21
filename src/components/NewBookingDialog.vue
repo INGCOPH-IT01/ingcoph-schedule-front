@@ -618,65 +618,15 @@
                           <strong>Amount to Pay:</strong> ₱{{ calculateTotalPrice() }}
                         </div>
 
-                        <v-file-input
+                        <ProofOfPaymentUpload
                           v-model="proofOfPayment"
                           label="Proof of Payment"
                           placeholder="Upload screenshots"
-                          variant="outlined"
                           density="compact"
-                          prepend-icon="mdi-camera"
-                          accept="image/*"
-                          multiple
-                          :rules="skipPayment ? [] : [v => !!v && v.length > 0 || 'Proof of payment is required', validateFileSize]"
+                          :multiple="true"
                           hint="Upload screenshots of your GCash payment receipts (max 5MB each)"
-                          persistent-hint
-                          @change="handleProofUpload"
-                        >
-                          <template v-slot:selection="{ fileNames }">
-                            <template v-for="(fileName, index) in fileNames" :key="fileName">
-                              <v-chip
-                                v-if="index < 2"
-                                color="primary"
-                                size="small"
-                                class="mr-2"
-                              >
-                                {{ fileName }}
-                              </v-chip>
-                              <span
-                                v-else-if="index === 2"
-                                class="text-overline grey--text text--darken-3 mx-2"
-                              >
-                                +{{ fileNames.length - 2 }} File(s)
-                              </span>
-                            </template>
-                          </template>
-                        </v-file-input>
-
-                        <!-- Preview uploaded images -->
-                        <div v-if="proofPreviews.length > 0" class="mt-3">
-                          <div class="d-flex flex-wrap gap-2">
-                            <div
-                              v-for="(preview, index) in proofPreviews"
-                              :key="index"
-                              class="proof-preview-container"
-                            >
-                              <v-img
-                                :src="preview"
-                                max-height="150"
-                                max-width="150"
-                                class="rounded"
-                                cover
-                              ></v-img>
-                              <v-btn
-                                icon="mdi-close"
-                                size="x-small"
-                                color="error"
-                                class="remove-preview-btn"
-                                @click="removeProofPreview(index)"
-                              ></v-btn>
-                            </div>
-                          </div>
-                        </div>
+                          :rules="skipPayment ? [] : [v => !!v && v.length > 0 || 'Proof of payment is required', validateFileSize]"
+                        />
                       </v-col>
                       <v-col cols="12" md="5" class="d-flex justify-center align-center">
                         <div class="gcash-qr-container">
@@ -804,9 +754,13 @@ import { companySettingService } from '../services/companySettingService'
 import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
+import ProofOfPaymentUpload from './ProofOfPaymentUpload.vue'
 
 export default {
   name: 'NewBookingDialog',
+  components: {
+    ProofOfPaymentUpload
+  },
   props: {
     isOpen: {
       type: Boolean,
@@ -848,7 +802,6 @@ export default {
     const paymentMethod = ref('gcash') // GCash payment is required
     const gcashQrCanvas = ref(null)
     const proofOfPayment = ref([])
-    const proofPreviews = ref([])
     const skipPayment = ref(false) // Admin/Staff can skip payment
 
     // Payment settings from Payment Details module
@@ -1376,47 +1329,6 @@ export default {
       return fileArray.every(file => file.size < 5242880) || 'Each file should be less than 5 MB'
     }
 
-    const handleProofUpload = (event) => {
-      // Clean up old preview URLs
-      proofPreviews.value.forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url)
-        }
-      })
-      proofPreviews.value = []
-
-      const files = event.target?.files || proofOfPayment.value
-      if (files && files.length > 0) {
-        const fileArray = Array.isArray(files) ? files : Array.from(files)
-
-        fileArray.forEach(file => {
-          const reader = new FileReader()
-          reader.onload = (e) => {
-            proofPreviews.value.push(e.target.result)
-          }
-          reader.readAsDataURL(file)
-        })
-      }
-    }
-
-    // Remove a proof preview
-    const removeProofPreview = (index) => {
-      // Revoke the blob URL if it exists
-      if (proofPreviews.value[index]?.startsWith('blob:')) {
-        URL.revokeObjectURL(proofPreviews.value[index])
-      }
-
-      // Remove from preview array
-      proofPreviews.value.splice(index, 1)
-
-      // Remove from files array
-      if (proofOfPayment.value && proofOfPayment.value.length > index) {
-        const newFiles = Array.from(proofOfPayment.value)
-        newFiles.splice(index, 1)
-        proofOfPayment.value = newFiles
-      }
-    }
-
     const handleImageError = (event) => {
       event.target.style.display = 'none'
     }
@@ -1436,24 +1348,33 @@ export default {
           return
         }
 
-        // Prepare admin booking data if admin is booking for someone else
+        // Prepare admin booking data - include admin_notes even if not booking for someone else
         let adminBookingData = null
-        if (isAdmin.value && bookingForUser.value) {
-          // Check if bookingForUser is an object (existing user) or string (custom name)
-          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
-            adminBookingData = {
-              booking_for_user_id: bookingForUser.value.id,
-              booking_for_user_name: bookingForUser.value.name
-            }
-          } else {
-            adminBookingData = {
-              booking_for_user_name: bookingForUser.value
+        if (isAdmin.value) {
+          if (bookingForUser.value) {
+            // Booking for another user
+            if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+              adminBookingData = {
+                booking_for_user_id: bookingForUser.value.id,
+                booking_for_user_name: bookingForUser.value.name
+              }
+            } else {
+              adminBookingData = {
+                booking_for_user_name: bookingForUser.value
+              }
             }
           }
 
+          // Always include admin_notes if admin has entered them
           if (adminNotes.value) {
+            if (!adminBookingData) {
+              adminBookingData = {}
+            }
             adminBookingData.admin_notes = adminNotes.value
           }
+
+          console.log('DEBUG - Admin Notes Value:', adminNotes.value)
+          console.log('DEBUG - Admin Booking Data:', adminBookingData)
         }
 
         // Create cart items from current selections
@@ -1628,24 +1549,33 @@ export default {
           }
         }
 
-        // Prepare admin booking data if admin is booking for someone else
+        // Prepare admin booking data - include admin_notes even if not booking for someone else
         let adminBookingData = null
-        if (isAdmin.value && bookingForUser.value) {
-          // Check if bookingForUser is an object (existing user) or string (custom name)
-          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
-            adminBookingData = {
-              booking_for_user_id: bookingForUser.value.id,
-              booking_for_user_name: bookingForUser.value.name
-            }
-          } else {
-            adminBookingData = {
-              booking_for_user_name: bookingForUser.value
+        if (isAdmin.value) {
+          if (bookingForUser.value) {
+            // Booking for another user
+            if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+              adminBookingData = {
+                booking_for_user_id: bookingForUser.value.id,
+                booking_for_user_name: bookingForUser.value.name
+              }
+            } else {
+              adminBookingData = {
+                booking_for_user_name: bookingForUser.value
+              }
             }
           }
 
+          // Always include admin_notes if admin has entered them
           if (adminNotes.value) {
+            if (!adminBookingData) {
+              adminBookingData = {}
+            }
             adminBookingData.admin_notes = adminNotes.value
           }
+
+          console.log('DEBUG - Admin Notes Value:', adminNotes.value)
+          console.log('DEBUG - Admin Booking Data:', adminBookingData)
         }
 
         // Create cart items array with admin booking fields
@@ -1764,24 +1694,33 @@ export default {
           return
         }
 
-        // Prepare admin booking data if admin is booking for someone else
+        // Prepare admin booking data - include admin_notes even if not booking for someone else
         let adminBookingData = null
-        if (isAdminOrStaff.value && bookingForUser.value) {
-          // Check if bookingForUser is an object (existing user) or string (custom name)
-          if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
-            adminBookingData = {
-              booking_for_user_id: bookingForUser.value.id,
-              booking_for_user_name: bookingForUser.value.name
-            }
-          } else {
-            adminBookingData = {
-              booking_for_user_name: bookingForUser.value
+        if (isAdminOrStaff.value) {
+          if (bookingForUser.value) {
+            // Booking for another user
+            if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+              adminBookingData = {
+                booking_for_user_id: bookingForUser.value.id,
+                booking_for_user_name: bookingForUser.value.name
+              }
+            } else {
+              adminBookingData = {
+                booking_for_user_name: bookingForUser.value
+              }
             }
           }
 
+          // Always include admin_notes if admin/staff has entered them
           if (adminNotes.value) {
+            if (!adminBookingData) {
+              adminBookingData = {}
+            }
             adminBookingData.admin_notes = adminNotes.value
           }
+
+          console.log('DEBUG - Admin Notes Value:', adminNotes.value)
+          console.log('DEBUG - Admin Booking Data:', adminBookingData)
         }
 
         // Create cart items array with admin booking fields
@@ -1972,14 +1911,7 @@ export default {
       numberOfPlayers.value = 1
       bookingNotes.value = ''
       paymentMethod.value = 'gcash'
-      // Clean up proof previews
-      proofPreviews.value.forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url)
-        }
-      })
       proofOfPayment.value = []
-      proofPreviews.value = []
       skipPayment.value = false
       // Reset admin fields
       bookingForUser.value = null
@@ -2202,7 +2134,6 @@ export default {
       paymentMethod,
       gcashQrCanvas,
       proofOfPayment,
-      proofPreviews,
       paymentSettings,
       skipPayment,
       selectedSport,
@@ -2228,8 +2159,6 @@ export default {
       getPricingBreakdown,
       calculateTotalPrice,
       validateFileSize,
-      handleProofUpload,
-      removeProofPreview,
       generateGCashQR,
       handleImageError,
       addToCart,
@@ -2854,19 +2783,6 @@ export default {
 .qr-label {
   font-weight: 600;
   color: #2e7d32;
-}
-
-/* Proof of Payment Preview Styles */
-.proof-preview-container {
-  position: relative;
-  display: inline-block;
-}
-
-.proof-preview-container .remove-preview-btn {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  z-index: 1;
 }
 
 .court-bookings-section {

@@ -459,6 +459,21 @@
                     show-size
                     @change="onProofOfPaymentChange"
                   ></v-file-input>
+
+                  <!-- Preview New Upload -->
+                  <div v-if="newProofPreview" class="mt-3">
+                    <div class="text-caption mb-2">Preview:</div>
+                    <div class="proof-preview-container proof-preview-clickable">
+                      <v-img
+                        :src="newProofPreview"
+                        max-height="150"
+                        max-width="150"
+                        class="rounded"
+                        cover
+                        @click="openPreviewDialog"
+                      ></v-img>
+                    </div>
+                  </div>
                 </v-col>
               </v-row>
 
@@ -591,6 +606,48 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Preview Upload Dialog -->
+    <v-dialog
+      v-model="previewUploadDialog"
+      max-width="800"
+      :fullscreen="$vuetify.display.mobile"
+    >
+      <v-card>
+        <v-card-title class="text-h5 dialog-title">
+          <div class="d-flex align-center">
+            <v-icon class="mr-2">mdi-image</v-icon>
+            Preview Image
+          </div>
+          <v-btn icon="mdi-close" variant="text" @click="previewUploadDialog = false"></v-btn>
+        </v-card-title>
+
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-6">
+          <div class="text-center">
+            <img
+              :src="newProofPreview"
+              alt="Preview"
+              style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+            />
+          </div>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="outlined"
+            @click="previewUploadDialog = false"
+          >
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -633,6 +690,8 @@ export default {
     // Image dialog
     const imageDialog = ref(false)
     const selectedImageUrl = ref('')
+    const newProofPreview = ref(null)
+    const previewUploadDialog = ref(false)
 
     // Computed property to determine if we're in edit mode
     const isEditMode = computed(() => !!props.editBooking)
@@ -1386,6 +1445,7 @@ export default {
         if (file.size > 5000000) { // 5MB limit
           showSnackbar('File size should be less than 5 MB', 'error')
           form.value.proof_of_payment = null
+          newProofPreview.value = null
           return
         }
 
@@ -1393,12 +1453,23 @@ export default {
         if (!file.type.startsWith('image/')) {
           showSnackbar('Please upload an image file', 'error')
           form.value.proof_of_payment = null
+          newProofPreview.value = null
           return
         }
 
         // Assign the file to the form
         form.value.proof_of_payment = file
+
+        // Create preview
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          newProofPreview.value = e.target.result
+        }
+        reader.readAsDataURL(file)
+
         showSnackbar('Proof of payment selected successfully!', 'success')
+      } else {
+        newProofPreview.value = null
       }
     }
 
@@ -1493,6 +1564,10 @@ export default {
     const openImageDialog = (imageUrl) => {
       selectedImageUrl.value = `${import.meta.env.VITE_API_URL}/storage/${imageUrl}`
       imageDialog.value = true
+    }
+
+    const openPreviewDialog = () => {
+      previewUploadDialog.value = true
     }
 
     const downloadImage = () => {
@@ -1754,7 +1829,10 @@ export default {
       // Image dialog
       imageDialog,
       selectedImageUrl,
+      newProofPreview,
+      previewUploadDialog,
       openImageDialog,
+      openPreviewDialog,
       downloadImage,
       // Form population flag
       isPopulatingForm,
@@ -1866,6 +1944,15 @@ export default {
 
 .proof-preview-container:hover {
   transform: scale(1.02);
+}
+
+.proof-preview-container.proof-preview-clickable {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.proof-preview-container.proof-preview-clickable:hover {
+  transform: scale(1.05);
 }
 
 .proof-preview-image {

@@ -345,7 +345,9 @@
                 :src="proofPreview"
                 max-height="300"
                 contain
-                class="rounded"
+                class="rounded proof-preview-clickable"
+                @click="openPreviewDialog"
+                style="cursor: pointer;"
               ></v-img>
             </v-card-text>
           </v-card>
@@ -385,6 +387,48 @@
       </v-card>
     </v-dialog>
   </v-dialog>
+
+  <!-- Preview Upload Dialog -->
+  <v-dialog
+    v-model="previewUploadDialog"
+    max-width="800"
+    :fullscreen="$vuetify.display.mobile"
+  >
+    <v-card>
+      <v-card-title class="text-h5 dialog-title">
+        <div class="d-flex align-center">
+          <v-icon class="mr-2">mdi-image</v-icon>
+          Preview Image
+        </div>
+        <v-btn icon="mdi-close" variant="text" @click="previewUploadDialog = false"></v-btn>
+      </v-card-title>
+
+      <v-divider></v-divider>
+
+      <v-card-text class="pa-6">
+        <div class="text-center">
+          <img
+            :src="proofPreview"
+            alt="Preview"
+            style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"
+          />
+        </div>
+      </v-card-text>
+
+      <v-divider></v-divider>
+
+      <v-card-actions class="pa-4">
+        <v-spacer></v-spacer>
+        <v-btn
+          color="grey"
+          variant="outlined"
+          @click="previewUploadDialog = false"
+        >
+          Close
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script>
@@ -415,6 +459,7 @@ export default {
     const paymentDialog = ref(false)
     const proofOfPayment = ref(null)
     const proofPreview = ref(null)
+    const previewUploadDialog = ref(false)
     const gcashQrCanvas = ref(null)
     const timeRemaining = ref('')
     const expirationWarning = ref(false)
@@ -866,6 +911,10 @@ export default {
       }
     }
 
+    // Open preview dialog to show larger image
+    const openPreviewDialog = () => {
+      previewUploadDialog.value = true
+    }
 
     const completePayment = async () => {
       if (!proofOfPayment.value) {
@@ -1034,6 +1083,7 @@ export default {
       paymentDialog,
       proofOfPayment,
       proofPreview,
+      previewUploadDialog,
       gcashQrCanvas,
       totalPrice,
       selectedTotalPrice,
@@ -1048,6 +1098,7 @@ export default {
       generateGCashQR,
       openPaymentDialog,
       closePaymentDialog,
+      openPreviewDialog,
       completePayment,
       formatDate,
       formatTimeSlot,
