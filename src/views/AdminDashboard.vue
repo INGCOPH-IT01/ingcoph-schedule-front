@@ -190,8 +190,26 @@
       <v-col cols="12">
         <v-card>
           <v-card-title class="text-h5 pa-6 pb-4">
-            <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
-            Transactions
+            <div class="d-flex align-center justify-space-between w-100">
+              <div class="d-flex align-center">
+                <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
+                Transactions
+              </div>
+              <v-chip-group
+                v-model="viewMode"
+                mandatory
+                selected-class="text-primary"
+              >
+                <v-chip value="table" variant="outlined" filter>
+                  <v-icon start>mdi-table</v-icon>
+                  Data Table
+                </v-chip>
+                <v-chip value="calendar" variant="outlined" filter>
+                  <v-icon start>mdi-calendar-month</v-icon>
+                  Calendar
+                </v-chip>
+              </v-chip-group>
+            </div>
           </v-card-title>
           <v-divider></v-divider>
 
@@ -314,7 +332,17 @@
             Showing {{ filteredTransactions.length }} of {{ pendingBookings.length }} transaction{{ pendingBookings.length !== 1 ? 's' : '' }}
           </div>
 
+          <!-- Calendar View -->
+          <div v-if="viewMode === 'calendar'" class="pa-4">
+            <CalendarView
+              :transactions="filteredTransactions"
+              @event-click="viewBookingDetails"
+            />
+          </div>
+
+          <!-- Data Table View -->
           <v-data-table
+            v-if="viewMode === 'table'"
             :headers="headers"
             :items="filteredTransactions"
             :loading="loading"
@@ -560,11 +588,13 @@ import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
+import CalendarView from '../components/CalendarView.vue'
 export default {
   name: 'AdminDashboard',
   components: {
     QrCodeScanner,
-    BookingDetailsDialog
+    BookingDetailsDialog,
+    CalendarView
   },
   setup() {
     const router = useRouter()
@@ -585,6 +615,9 @@ export default {
       color: 'success'
     })
     const qrScannerDialog = ref(false)
+
+    // View mode state
+    const viewMode = ref('table')
 
     // Filter states
     const statusFilter = ref('all')
@@ -1213,7 +1246,9 @@ export default {
       sortByModel,
       sortBy,
       sortOrder,
-      handleSortChange
+      handleSortChange,
+      // View mode
+      viewMode
     }
   }
 }
