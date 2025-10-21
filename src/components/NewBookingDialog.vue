@@ -2653,26 +2653,7 @@ export default {
 }
 
 .rate-slots-list {
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.rate-slots-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.rate-slots-list::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.rate-slots-list::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-.rate-slots-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  /* Scrolling removed - shows all items without overflow */
 }
 
 .summary-item {
@@ -2718,6 +2699,7 @@ export default {
 /* Payment Options */
 .payment-options {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  overflow: hidden;
 }
 
 .payment-options h4,

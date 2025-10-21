@@ -183,7 +183,8 @@ export default {
       if (props.modelValue) {
         const files = Array.isArray(props.modelValue) ? props.modelValue : [props.modelValue]
         const newFiles = files.filter((_, i) => i !== index)
-        emit('update:modelValue', newFiles.length > 0 ? newFiles : null)
+        // Emit appropriate format based on multiple prop
+        emit('update:modelValue', newFiles.length > 0 ? (props.multiple ? newFiles : newFiles[0]) : null)
       }
     }
 
