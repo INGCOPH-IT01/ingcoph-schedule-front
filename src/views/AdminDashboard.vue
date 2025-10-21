@@ -320,6 +320,8 @@
             :loading="loading"
             class="elevation-0"
             no-data-text="No transactions found"
+            @update:sort-by="handleSortChange"
+            :sort-by="sortByModel"
           >
             <template v-slot:[`item.user_name`]="{ item }">
               <div class="d-flex align-center">
@@ -595,6 +597,11 @@ export default {
     const dateFromFilter = ref(todayString)
     const dateToFilter = ref(todayString)
 
+    // Sorting states
+    const sortByModel = ref([{ key: 'created_at', order: 'asc' }])
+    const sortBy = ref('created_at')
+    const sortOrder = ref('asc')
+
     const headers = [
       { title: 'ID', key: 'id', sortable: true },
       { title: 'User', key: 'user_name', sortable: false },
@@ -640,7 +647,15 @@ export default {
           filters.date_to = dateToFilter.value
         }
 
-        // Fetch all cart transactions with date filters
+        // Add sorting parameters
+        if (sortBy.value) {
+          filters.sort_by = sortBy.value
+        }
+        if (sortOrder.value) {
+          filters.sort_order = sortOrder.value
+        }
+
+        // Fetch all cart transactions with date filters and sorting
         const transactions = await cartService.getAllTransactions(filters)
         pendingBookings.value = transactions.map(transaction => ({
           ...transaction,
@@ -858,6 +873,25 @@ export default {
       sportFilter.value = null
       dateFromFilter.value = ''
       dateToFilter.value = ''
+    }
+
+    // Handle sort changes
+    const handleSortChange = (sortByArray) => {
+      if (sortByArray && sortByArray.length > 0) {
+        const sortItem = sortByArray[0]
+        sortBy.value = sortItem.key
+        sortOrder.value = sortItem.order || 'asc'
+        sortByModel.value = sortByArray
+
+        // Reload data with new sorting
+        loadPendingBookings()
+      } else {
+        // Reset to default sorting
+        sortBy.value = 'created_at'
+        sortOrder.value = 'asc'
+        sortByModel.value = [{ key: 'created_at', order: 'asc' }]
+        loadPendingBookings()
+      }
     }
 
     // Computed properties for transaction counts
@@ -1174,7 +1208,12 @@ export default {
       getBookedByUserRoleColor,
       getBookedByUserRoleIcon,
       // Services
-      sportService
+      sportService,
+      // Sorting
+      sortByModel,
+      sortBy,
+      sortOrder,
+      handleSortChange
     }
   }
 }

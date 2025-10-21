@@ -62,12 +62,14 @@ export const cartService = {
 
   /**
    * Get all cart transactions (Admin only)
-   * @param {Object} filters - Optional filters (date_from, date_to)
+   * @param {Object} filters - Optional filters (date_from, date_to, sort_by, sort_order)
    */
   async getAllTransactions(filters = {}) {
     const params = {}
     if (filters.date_from) params.date_from = filters.date_from
     if (filters.date_to) params.date_to = filters.date_to
+    if (filters.sort_by) params.sort_by = filters.sort_by
+    if (filters.sort_order) params.sort_order = filters.sort_order
 
     const response = await api.get('/admin/cart-transactions', { params })
     return response.data
