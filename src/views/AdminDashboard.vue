@@ -617,7 +617,7 @@ export default {
     const qrScannerDialog = ref(false)
 
     // View mode state
-    const viewMode = ref('table')
+    const viewMode = ref('calendar')
 
     // Filter states
     const statusFilter = ref('all')

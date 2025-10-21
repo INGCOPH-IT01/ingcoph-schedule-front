@@ -55,12 +55,12 @@
                 <span class="sport-icon">🏟️</span>
               </template>
               <template v-slot:item="{ props, item }">
-                <v-list-item v-bind="props">
+                <v-list-item v-bind="props" class="sport-list-item">
                   <template v-slot:prepend>
-                    <span class="sport-icon">{{ sportService.getSportIcon(item.raw.name, item.raw.icon) }}</span>
+                    <v-icon class="mr-2">{{ sportService.getSportIcon(item.raw.name, item.raw.icon) }}</v-icon>
                   </template>
                   <v-list-item-title>{{ item.raw.name }}</v-list-item-title>
-                  <v-list-item-subtitle>{{ item.raw.description }}</v-list-item-subtitle>
+                  <v-list-item-subtitle class="sport-description">{{ item.raw.description }}</v-list-item-subtitle>
                 </v-list-item>
               </template>
               <template v-slot:chip="{ item, props }">
@@ -522,5 +522,22 @@ export default {
 .dialog-divider {
   border-color: rgba(255, 255, 255, 0.1) !important;
   margin: 0 !important;
+}
+
+/* Sport dropdown list item styling */
+.sport-list-item {
+  max-width: 100%;
+}
+
+.sport-list-item :deep(.v-list-item__content) {
+  max-width: 450px;
+}
+
+.sport-description {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.3 !important;
+  max-width: 100%;
 }
 </style>

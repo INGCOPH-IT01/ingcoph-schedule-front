@@ -363,181 +363,14 @@
       </v-row>
     </div>
 
-    <!-- Booking Details Dialog -->
-    <v-dialog
-      v-model="bookingDetailsDialog"
-      max-width="700px"
-      class="booking-details-dialog"
-      persistent
-    >
-      <v-card v-if="selectedBookingSlot" class="booking-details-dialog">
-        <v-card-title class="text-h5 dialog-title">
-          <div class="d-flex align-center">
-            <v-icon class="mr-2">mdi-calendar-clock</v-icon>
-            Time Slot Details
-          </div>
-          <v-btn icon="mdi-close" variant="text" @click="bookingDetailsDialog = false"></v-btn>
-        </v-card-title>
-
-        <v-card-text>
-          <v-row>
-            <v-col cols="12" md="6">
-              <div class="detail-section">
-                <h4 class="detail-label">Court Information</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Court:</strong> {{ court.name || 'Unknown' }}
-                  </div>
-                  <div class="detail-item">
-                    <strong>Sport:</strong> {{ court.sport?.name || 'N/A' }}
-                  </div>
-                  <div class="detail-item">
-                    <strong>Price:</strong> ₱{{ formatPrice(selectedBookingSlot.price) }}/hour
-                  </div>
-                </div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <div class="detail-section">
-                <h4 class="detail-label">Slot Information</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Status:</strong>
-                    <v-chip
-                      :color="selectedBookingSlot.available ? 'success' : 'error'"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ selectedBookingSlot.available ? 'Available' : 'Booked' }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item" v-if="!selectedBookingSlot.available && selectedBookingSlot.type">
-                    <strong>Type:</strong>
-                    <v-chip
-                      :color="getBookingTypeColor(selectedBookingSlot.type)"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ getBookingTypeLabel(selectedBookingSlot.type) }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item">
-                    <strong>Duration:</strong> {{ formatDuration(selectedBookingSlot.duration_hours) }} hour(s)
-                  </div>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <v-row>
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">Date & Time</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Date:</strong> {{ formatDate(selectedDate) }}
-                  </div>
-                  <div class="detail-item">
-                    <strong>Time Slot:</strong>
-                    <div class="time-slots-detail-list mt-2">
-                      <v-chip
-                        color="primary"
-                        variant="outlined"
-                        size="small"
-                        class="mr-2 mb-2"
-                      >
-                        <v-icon start size="small">mdi-clock-outline</v-icon>
-                        {{ formatTimeSlot(selectedBookingSlot.start) }} - {{ formatTimeSlot(selectedBookingSlot.end) }}
-                        <span class="ml-2 font-weight-bold">₱{{ formatPrice(selectedBookingSlot.price) }}</span>
-                      </v-chip>
-                    </div>
-                    <div class="mt-2">
-                      <strong>Duration:</strong> {{ formatDuration(selectedBookingSlot.duration_hours) }} hours
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </v-col>
-
-            <v-col cols="12" md="6">
-              <div class="detail-section">
-                <h4 class="detail-label">Status & Payment</h4>
-                <div class="detail-content">
-                  <div class="detail-item">
-                    <strong>Status:</strong>
-                    <v-chip
-                      :color="selectedBookingSlot.available ? 'success' : 'error'"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ selectedBookingSlot.available ? 'Available' : 'Booked' }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item" v-if="!selectedBookingSlot.available && selectedBookingSlot.status">
-                    <strong>Payment:</strong>
-                    <v-chip
-                      :color="selectedBookingSlot.status === 'paid' ? 'success' : 'warning'"
-                      variant="tonal"
-                      size="small"
-                      class="ml-2"
-                    >
-                      {{ selectedBookingSlot.status }}
-                    </v-chip>
-                  </div>
-                  <div class="detail-item">
-                    <strong>Total Amount:</strong>
-                    <span class="ml-2 text-h6 text-success font-weight-bold">
-                      ₱{{ formatPrice(selectedBookingSlot.price) }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-
-          <!-- Additional Info for Booked Slots -->
-          <v-row v-if="!selectedBookingSlot.available && selectedBookingSlot.type">
-            <v-col cols="12">
-              <div class="detail-section">
-                <h4 class="detail-label">
-                  <v-icon class="mr-2" :color="getBookingTypeColor(selectedBookingSlot.type)">
-                    {{ getBookingTypeIcon(selectedBookingSlot.type) }}
-                  </v-icon>
-                  Booking Type Information
-                </h4>
-                <div class="detail-content">
-                  <v-alert
-                    :type="selectedBookingSlot.type === 'booking' ? 'info' : 'warning'"
-                    variant="tonal"
-                    class="mb-0"
-                  >
-                    <div class="text-body-2">
-                      <strong>{{ getBookingTypeLabel(selectedBookingSlot.type) }}</strong><br>
-                      {{ getBookingTypeDescription(selectedBookingSlot.type) }}
-                    </div>
-                  </v-alert>
-                </div>
-              </div>
-            </v-col>
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions v-if="selectedBookingSlot.available">
-          <v-spacer></v-spacer>
-          <v-btn
-            color="primary"
-            @click="bookTimeSlot(selectedBookingSlot)"
-          >
-            <v-icon start>mdi-calendar-plus</v-icon>
-            Book Now
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- Time Slot Details Dialog -->
+    <TimeSlotDetailsDialog
+      v-model:is-open="bookingDetailsDialog"
+      :slot="selectedBookingSlot"
+      :court="court"
+      :date="selectedDate"
+      @book-now="bookTimeSlot"
+    />
 
     <!-- Booking Details View Dialog (for admin/staff) -->
     <BookingDetailsDialog
@@ -558,11 +391,13 @@ import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import api from '../services/api'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
+import TimeSlotDetailsDialog from '../components/TimeSlotDetailsDialog.vue'
 
 export default {
   name: 'CourtDetails',
   components: {
-    BookingDetailsDialog
+    BookingDetailsDialog,
+    TimeSlotDetailsDialog
   },
   setup() {
     const route = useRoute()
@@ -763,63 +598,6 @@ export default {
       bookingDetailsDialog.value = true
     }
 
-    const getBookingTypeColor = (type) => {
-      const colors = {
-        'booking': 'primary',
-        'paid': 'success',
-        'in_cart': 'warning'
-      }
-      return colors[type] || 'grey'
-    }
-
-    const getBookingTypeIcon = (type) => {
-      const icons = {
-        'booking': 'mdi-calendar-check',
-        'paid': 'mdi-cash-check',
-        'in_cart': 'mdi-cart'
-      }
-      return icons[type] || 'mdi-information'
-    }
-
-    const getBookingTypeLabel = (type) => {
-      const labels = {
-        'booking': 'Confirmed Booking',
-        'paid': 'Paid Booking',
-        'in_cart': 'In Cart'
-      }
-      return labels[type] || 'Booked'
-    }
-
-    const getBookingTypeDescription = (type) => {
-      const descriptions = {
-        'booking': 'This time slot has a confirmed booking',
-        'paid': 'This time slot has been paid for and confirmed',
-        'in_cart': 'This time slot is temporarily reserved in someone\'s cart'
-      }
-      return descriptions[type] || 'This time slot is not available'
-    }
-
-    const formatDate = (date) => {
-      if (!date) return ''
-      const d = new Date(date)
-      return d.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    }
-
-    const formatPrice = (price) => {
-      const numPrice = Math.abs(parseFloat(price || 0))
-      return numPrice.toFixed(2)
-    }
-
-    const formatDuration = (hours) => {
-      const numHours = Math.abs(parseFloat(hours || 1))
-      return numHours
-    }
-
     const getCourtPriceRange = (courtData) => {
       if (!courtData || !courtData.sport) {
         return '₱0/hr'
@@ -905,13 +683,6 @@ export default {
       handleSlotClick,
       bookingDetailsDialog,
       selectedBookingSlot,
-      getBookingTypeColor,
-      getBookingTypeIcon,
-      getBookingTypeLabel,
-      getBookingTypeDescription,
-      formatDate,
-      formatPrice,
-      formatDuration,
       getCourtPriceRange,
       // Booking view dialog
       bookingViewDialog,
@@ -1220,61 +991,6 @@ export default {
   .time-slot-card-court .v-card-text {
     padding: 12px 8px !important;
   }
-}
-
-/* Booking Details Dialog - Matching Bookings.vue Pattern */
-.booking-details-dialog .dialog-title {
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  color: white !important;
-  padding: 20px 24px;
-  font-weight: 600;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.booking-details-dialog .dialog-title .v-icon {
-  color: white !important;
-}
-
-.booking-details-dialog .dialog-title .v-btn {
-  color: white !important;
-}
-
-.booking-details-dialog .detail-section {
-  margin-bottom: 20px;
-}
-
-.booking-details-dialog .detail-label {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1976d2;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-}
-
-.booking-details-dialog .detail-content {
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 8px;
-  border-left: 4px solid #1976d2;
-}
-
-.booking-details-dialog .detail-item {
-  margin-bottom: 8px;
-  font-size: 14px;
-  line-height: 1.6;
-}
-
-.booking-details-dialog .detail-item:last-child {
-  margin-bottom: 0;
-}
-
-.booking-details-dialog .time-slots-detail-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 </style>

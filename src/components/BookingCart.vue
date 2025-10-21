@@ -394,6 +394,7 @@ import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { paymentSettingService } from '../services/paymentSettingService'
+import { authService } from '../services/authService'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 
@@ -417,6 +418,7 @@ export default {
     const gcashQrCanvas = ref(null)
     const timeRemaining = ref('')
     const expirationWarning = ref(false)
+    const currentUser = ref(null)
 
     // Payment settings
     const paymentSettings = ref({
@@ -476,6 +478,13 @@ export default {
     const updateExpirationTimer = () => {
       if (!cartTransaction.value || !cartTransaction.value.created_at) {
         timeRemaining.value = ''
+        expirationWarning.value = false
+        return
+      }
+
+      // Admin bookings should not expire - no timer needed
+      if (currentUser.value && currentUser.value.role === 'admin') {
+        timeRemaining.value = 'No expiration (Admin)'
         expirationWarning.value = false
         return
       }
@@ -975,6 +984,15 @@ export default {
         setTimeout(() => {
           generateGCashQR()
         }, 150)
+      }
+    })
+
+    // Load current user on mount
+    onMounted(async () => {
+      try {
+        currentUser.value = await authService.getUser()
+      } catch (error) {
+        console.error('Error loading user:', error)
       }
     })
 

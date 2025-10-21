@@ -257,37 +257,131 @@
               variant="outlined"
               class="pa-3 mb-3"
             >
-              <div class="d-flex align-center justify-space-between mb-2">
-                <div class="d-flex align-center flex-grow-1">
-                  <v-avatar :color="sportService.getSportColor(item.sport?.name)" size="32" class="mr-3">
-                    <v-icon color="white" size="20">{{ sportService.getSportIcon(item.sport?.name, item.sport?.icon) }}</v-icon>
-                  </v-avatar>
-                  <div>
-                    <div class="text-subtitle-2 font-weight-bold">
-                      {{ item.court?.name || 'Unknown Court' }}
-                      <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-1">
-                        ({{ item.court.surface_type }})
-                      </span>
-                    </div>
-                    <div class="text-caption text-grey">
-                      {{ item.sport?.name || 'Unknown Sport' }} • {{ formatBookingDate(item.booking_date) }}
-                    </div>
-                  </div>
+              <!-- Admin Edit Mode for Court -->
+              <div v-if="isAdmin && editingCourtItemIndex === index" class="mb-3">
+                <v-select
+                  v-model="selectedCourtId"
+                  :items="availableCourtsForItem"
+                  item-title="name"
+                  item-value="id"
+                  label="Select Court"
+                  variant="outlined"
+                  density="compact"
+                  :loading="loadingCourts"
+                  class="court-selector mb-2"
+                >
+                  <template v-slot:item="{ props, item }">
+                    <v-list-item
+                      v-bind="props"
+                      :disabled="!item.raw.is_available"
+                    >
+                      <template v-slot:title>
+                        <div class="d-flex align-center justify-space-between">
+                          <span>{{ item.raw.name }}</span>
+                          <div class="d-flex gap-1">
+                            <v-chip
+                              v-if="item.raw.is_current"
+                              size="x-small"
+                              color="primary"
+                              variant="flat"
+                              class="ml-1"
+                            >
+                              Current
+                            </v-chip>
+                            <v-chip
+                              v-if="!item.raw.is_available"
+                              size="x-small"
+                              color="error"
+                              variant="tonal"
+                              class="ml-1"
+                            >
+                              Booked
+                            </v-chip>
+                            <v-chip
+                              v-else-if="!item.raw.is_current"
+                              size="x-small"
+                              color="success"
+                              variant="tonal"
+                              class="ml-1"
+                            >
+                              Available
+                            </v-chip>
+                          </div>
+                        </div>
+                      </template>
+                      <template v-slot:subtitle v-if="item.raw.surface_type">
+                        {{ item.raw.surface_type }}
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
+                <div class="d-flex gap-2">
+                  <v-btn
+                    size="small"
+                    color="success"
+                    variant="tonal"
+                    @click="saveCartItemCourtChange(item, index)"
+                    :loading="savingCourt"
+                    :disabled="!courtChanged"
+                  >
+                    Save
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    color="grey"
+                    variant="text"
+                    @click="cancelCourtEdit"
+                  >
+                    Cancel
+                  </v-btn>
                 </div>
               </div>
 
-              <v-divider class="my-2"></v-divider>
+              <!-- Display Mode -->
+              <div v-else>
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="d-flex align-center flex-grow-1">
+                    <v-avatar :color="sportService.getSportColor(item.sport?.name)" size="32" class="mr-3">
+                      <v-icon color="white" size="20">{{ sportService.getSportIcon(item.sport?.name, item.sport?.icon) }}</v-icon>
+                    </v-avatar>
+                    <div class="flex-grow-1">
+                      <div class="d-flex align-center">
+                        <div class="text-subtitle-2 font-weight-bold">
+                          {{ item.court?.name || 'Unknown Court' }}
+                          <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-1">
+                            ({{ item.court.surface_type }})
+                          </span>
+                        </div>
+                        <v-btn
+                          v-if="isAdmin"
+                          icon="mdi-pencil"
+                          size="x-small"
+                          variant="text"
+                          color="primary"
+                          class="ml-2"
+                          @click="startCartItemCourtEdit(item, index)"
+                        ></v-btn>
+                      </div>
+                      <div class="text-caption text-grey">
+                        {{ item.sport?.name || 'Unknown Sport' }} • {{ formatBookingDate(item.booking_date) }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-              <div class="d-flex align-center justify-space-between">
-                <div class="d-flex align-center">
-                  <v-icon size="16" class="mr-2" color="grey">mdi-clock-outline</v-icon>
-                  <span class="text-body-2">
-                    {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
+                <v-divider class="my-2"></v-divider>
+
+                <div class="d-flex align-center justify-space-between">
+                  <div class="d-flex align-center">
+                    <v-icon size="16" class="mr-2" color="grey">mdi-clock-outline</v-icon>
+                    <span class="text-body-2">
+                      {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
+                    </span>
+                  </div>
+                  <span class="text-body-1 font-weight-bold text-success">
+                    ₱{{ parseFloat(item.price).toFixed(2) }}
                   </span>
                 </div>
-                <span class="text-body-1 font-weight-bold text-success">
-                  ₱{{ parseFloat(item.price).toFixed(2) }}
-                </span>
               </div>
             </v-card>
           </div>
@@ -852,6 +946,7 @@ import QRCode from 'qrcode'
 import api from '../services/api'
 import { cartService } from '../services/cartService'
 import { bookingService } from '../services/bookingService'
+import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import { authService } from '../services/authService'
@@ -918,12 +1013,25 @@ export default {
     const proofFile = ref(null)
     const proofPreviewUrl = ref('')
 
+    // Court editing state
+    const editingCourtItemIndex = ref(null)
+    const selectedCourtId = ref(null)
+    const originalCourtId = ref(null)
+    const availableCourtsForItem = ref([])
+    const loadingCourts = ref(false)
+    const savingCourt = ref(false)
+
     const closeDialog = () => {
       // Clean up blob URL if it exists
       if (selectedImageUrl.value && selectedImageUrl.value.startsWith('blob:')) {
         URL.revokeObjectURL(selectedImageUrl.value)
         selectedImageUrl.value = ''
       }
+      // Reset court editing state
+      editingCourtItemIndex.value = null
+      selectedCourtId.value = null
+      originalCourtId.value = null
+      availableCourtsForItem.value = [] // Clear cached availability
       emit('update:isOpen', false)
       emit('close')
     }
@@ -1561,6 +1669,133 @@ export default {
       }
     }
 
+    // Court editing methods
+    const loadAvailableCourtsForItem = async (cartItemId) => {
+      try {
+        loadingCourts.value = true
+        // Fetch courts with availability info for this specific cart item
+        const response = await api.get(`/cart-items/${cartItemId}/available-courts`)
+        availableCourtsForItem.value = response.data.data
+      } catch (error) {
+        console.error('Failed to load available courts:', error)
+        showSnackbar('Failed to load available courts', 'error')
+        // Fallback to loading all courts without availability info
+        try {
+          const courtsData = await courtService.getCourts()
+          availableCourtsForItem.value = courtsData.filter(court => court.is_active).map(court => ({
+            ...court,
+            is_available: true // Assume available if we can't check
+          }))
+        } catch (fallbackError) {
+          console.error('Failed to load courts:', fallbackError)
+        }
+      } finally {
+        loadingCourts.value = false
+      }
+    }
+
+    const startCartItemCourtEdit = async (item, index) => {
+      // Load courts with availability info for this cart item
+      await loadAvailableCourtsForItem(item.id)
+
+      // Set current court ID from cart item
+      selectedCourtId.value = item.court?.id || item.court_id
+      originalCourtId.value = selectedCourtId.value
+      editingCourtItemIndex.value = index
+    }
+
+    const cancelCourtEdit = () => {
+      selectedCourtId.value = originalCourtId.value
+      editingCourtItemIndex.value = null
+      // Clear cached availability data
+      availableCourtsForItem.value = []
+    }
+
+    const saveCartItemCourtChange = async (item, index) => {
+      if (!selectedCourtId.value) return
+
+      // Check if the selected court is available
+      const selectedCourt = availableCourtsForItem.value.find(c => c.id === selectedCourtId.value)
+      if (selectedCourt && !selectedCourt.is_available) {
+        showSnackbar('Selected court is not available for this time slot', 'error')
+        return
+      }
+
+      try {
+        savingCourt.value = true
+
+        // Update the cart item via the API
+        const response = await api.put(`/cart-items/${item.id}`, {
+          court_id: selectedCourtId.value
+        })
+
+        // Update the cart item object with fresh data from the server
+        if (response.data.success && response.data.data) {
+          // Update the item with fresh data from the server
+          Object.assign(item, {
+            court_id: response.data.data.court_id,
+            court: response.data.data.court
+          })
+
+          // Also update in the booking.cart_items array if it exists
+          if (props.booking?.cart_items) {
+            const cartItemIndex = props.booking.cart_items.findIndex(ci => ci.id === item.id)
+            if (cartItemIndex !== -1) {
+              props.booking.cart_items[cartItemIndex] = {
+                ...props.booking.cart_items[cartItemIndex],
+                court_id: response.data.data.court_id,
+                court: response.data.data.court
+              }
+            }
+          }
+        } else if (selectedCourt) {
+          // Fallback: use the court from available courts list
+          const newCourtData = {
+            id: selectedCourt.id,
+            name: selectedCourt.name,
+            surface_type: selectedCourt.surface_type
+          }
+          item.court = newCourtData
+          item.court_id = selectedCourtId.value
+
+          // Also update in booking.cart_items
+          if (props.booking?.cart_items) {
+            const cartItemIndex = props.booking.cart_items.findIndex(ci => ci.id === item.id)
+            if (cartItemIndex !== -1) {
+              props.booking.cart_items[cartItemIndex].court = newCourtData
+              props.booking.cart_items[cartItemIndex].court_id = selectedCourtId.value
+            }
+          }
+        }
+
+        // Update originalCourtId to new value
+        originalCourtId.value = selectedCourtId.value
+        editingCourtItemIndex.value = null
+
+        // Clear cached availability data to force fresh fetch on next edit
+        availableCourtsForItem.value = []
+
+        showSnackbar('Court updated successfully', 'success')
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'court_updated' })
+      } catch (error) {
+        console.error('Failed to update court:', error)
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to update court'
+        showSnackbar(errorMessage, 'error')
+      } finally {
+        savingCourt.value = false
+      }
+    }
+
+    // Computed property to check if court was changed
+    const courtChanged = computed(() => {
+      return selectedCourtId.value !== originalCourtId.value
+    })
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -1750,6 +1985,14 @@ export default {
       uploadingProof,
       proofFile,
       proofPreviewUrl,
+      // Court editing state
+      editingCourtItemIndex,
+      selectedCourtId,
+      originalCourtId,
+      availableCourtsForItem,
+      loadingCourts,
+      savingCourt,
+      courtChanged,
       // Methods
       closeDialog,
       formatTimeSlot,
@@ -1773,6 +2016,11 @@ export default {
       showRejectDialog: showRejectDialogFunc,
       confirmReject,
       getBookingPaymentStatus,
+      // Court editing methods
+      loadAvailableCourtsForItem,
+      startCartItemCourtEdit,
+      cancelCourtEdit,
+      saveCartItemCourtChange,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
@@ -1805,7 +2053,8 @@ export default {
       numberOfPlayers,
       // Services
       sportService,
-      statusService
+      statusService,
+      courtService
     }
   }
 }
@@ -1918,6 +2167,15 @@ export default {
 
 .gap-2 {
   gap: 8px;
+}
+
+/* Court selector styles */
+.court-selector {
+  min-width: 250px;
+}
+
+.court-selector .v-select {
+  font-size: 14px;
 }
 
 /* Mobile Responsive Design */

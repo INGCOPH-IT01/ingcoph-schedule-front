@@ -491,13 +491,16 @@
                     return-object
                   >
                     <template v-slot:item="{ props, item }">
-                      <v-list-item v-bind="props">
+                      <v-list-item>
                         <template v-slot:prepend>
                           <v-avatar size="32" class="mr-2">
                             <v-img :src="`https://ui-avatars.com/api/?name=${item.raw.name}&background=3b82f6&color=fff`"></v-img>
                           </v-avatar>
                         </template>
-
+                        <v-list-item-title>
+                          {{ item.raw.name }}
+                          <span v-if="item.raw.email" class="text-caption text-medium-emphasis ml-2">({{ item.raw.email }})</span>
+                        </v-list-item-title>
                       </v-list-item>
                     </template>
                     <template v-slot:chip="{}">
