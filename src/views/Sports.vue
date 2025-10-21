@@ -100,7 +100,7 @@
           </div>
         </div>
 
-        <div class="excel-court-footer">
+        <!-- <div class="excel-court-footer">
           <v-btn
             color="primary"
             variant="elevated"
@@ -112,7 +112,7 @@
             <v-icon>mdi-calendar-plus</v-icon>
             Book Now - {{ formatPriceTemplate(sport.price_per_hour || 0) }}/hour
           </v-btn>
-        </div>
+        </div> -->
         </div>
       </div>
     </div>
