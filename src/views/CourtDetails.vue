@@ -137,6 +137,7 @@
                       variant="outlined"
                       prepend-inner-icon="mdi-calendar"
                       :min="new Date().toISOString().split('T')[0]"
+                      :max="maxDate"
                       @update:model-value="fetchAvailability"
                       density="comfortable"
                     ></v-text-field>
@@ -594,6 +595,16 @@ export default {
       return userRole.value === 'admin' || userRole.value === 'staff'
     })
 
+    // Computed property for max date - restrict regular users to current month only
+    const maxDate = computed(() => {
+      if (userRole.value === 'user') {
+        const now = new Date()
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        return endOfMonth.toISOString().split('T')[0]
+      }
+      return null // Admin and staff have no max date restriction
+    })
+
     const fetchCourtDetails = async () => {
       try {
         loading.value = true
@@ -888,6 +899,7 @@ export default {
       setToday,
       setTomorrow,
       isToday,
+      maxDate,
       getAvailableCount,
       bookTimeSlot,
       handleSlotClick,

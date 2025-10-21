@@ -865,6 +865,7 @@
                   variant="outlined"
                   :rules="[v => !!v || 'Date is required']"
                   required
+                  :max="maxDate"
                   @update:model-value="onDateChange"
                 ></v-text-field>
               </v-col>
@@ -1464,6 +1465,16 @@ export default {
       } catch (error) {
         return 'Error accessing localStorage'
       }
+    })
+
+    // Computed property for max date - restrict regular users to current month only
+    const maxDate = computed(() => {
+      if (user.value?.role === 'user') {
+        const now = new Date()
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        return endOfMonth.toISOString().split('T')[0]
+      }
+      return null // Admin and staff have no max date restriction
     })
 
     // View booking dialog
@@ -3622,6 +3633,7 @@ export default {
       authLoading,
       isAuthenticated,
       tokenStatus,
+      maxDate,
       headers,
       itemProps,
       isBookingExpired,

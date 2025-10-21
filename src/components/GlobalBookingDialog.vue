@@ -197,6 +197,7 @@
                 variant="outlined"
                 prepend-inner-icon="mdi-calendar"
                 :min="today"
+                :max="maxDate"
                 @update:model-value="onDateChange"
               ></v-text-field>
             </v-col>
@@ -687,6 +688,17 @@ export default {
 
 
     const today = new Date().toISOString().split('T')[0]
+    const currentUser = ref(null)
+
+    // Computed property for max date - restrict regular users to current month only
+    const maxDate = computed(() => {
+      if (currentUser.value?.role === 'user') {
+        const now = new Date()
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        return endOfMonth.toISOString().split('T')[0]
+      }
+      return null // Admin and staff have no max date restriction
+    })
 
     const selectedCourt = ref(null)
 
@@ -1677,6 +1689,17 @@ export default {
 
     onMounted(() => {
       loadCourts()
+      // Load current user for role-based restrictions
+      try {
+        const token = localStorage.getItem('token')
+        if (token) {
+          const userData = JSON.parse(localStorage.getItem('user') || '{}')
+          currentUser.value = userData
+        }
+      } catch (error) {
+        console.error('Failed to fetch current user:', error)
+        currentUser.value = null
+      }
     })
 
     return {
@@ -1695,6 +1718,7 @@ export default {
       frequencyOptions,
       dayOptions,
       today,
+      maxDate,
       getFrequencyLabel,
       getSelectedDaysLabel,
       getPriceBreakdown,
