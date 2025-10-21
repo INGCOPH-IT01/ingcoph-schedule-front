@@ -972,7 +972,6 @@
             <v-icon class="mr-2">mdi-image</v-icon>
             Proof of Payment
           </div>
-          <v-btn icon="mdi-close" variant="text" @click="imageDialog = false"></v-btn>
         </v-card-title>
 
         <v-divider></v-divider>
@@ -1166,6 +1165,7 @@ export default {
     // Image dialog state
     const imageDialog = ref(false)
     const selectedImageUrl = ref('')
+    const thumbnailUrls = ref({}) // Store blob URLs for thumbnails
     const updatingAttendance = ref(false)
     const userRole = ref(null)
     const currentUserId = ref(null)
@@ -1242,6 +1242,13 @@ export default {
         URL.revokeObjectURL(selectedImageUrl.value)
         selectedImageUrl.value = ''
       }
+      // Clean up thumbnail blob URLs
+      Object.values(thumbnailUrls.value).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      thumbnailUrls.value = {}
       // Reset court editing state
       editingCourtItemIndex.value = null
       selectedCourtId.value = null
@@ -1601,17 +1608,47 @@ export default {
       }
     }
 
-    // Get thumbnail URL for proof of payment
-    const getProofThumbnailUrl = (index) => {
-      if (!props.booking?.id) return ''
+    // Load thumbnails with authentication
+    const loadThumbnails = async () => {
+      // Clean up existing blob URLs
+      Object.values(thumbnailUrls.value).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      thumbnailUrls.value = {}
+
+      const proofFiles = getProofOfPaymentFiles(props.booking?.proof_of_payment)
+      if (!proofFiles.length || !props.booking?.id) return
 
       // Determine the correct endpoint based on whether this is a transaction or booking
       const endpoint = isTransaction.value
         ? `/cart-transactions/${props.booking.id}/proof-of-payment`
         : `/bookings/${props.booking.id}/proof-of-payment`
 
-      // Return the full URL with the API base URL and index parameter
-      return `${api.defaults.baseURL}${endpoint}?index=${index}&t=${Date.now()}`
+      // Load each thumbnail with authentication
+      const newUrls = {}
+      for (let i = 0; i < proofFiles.length; i++) {
+        try {
+          const response = await api.get(endpoint, {
+            params: { index: i },
+            responseType: 'blob'
+          })
+          const imageBlob = new Blob([response.data], { type: response.headers['content-type'] })
+          newUrls[i] = URL.createObjectURL(imageBlob)
+        } catch (error) {
+          console.error(`Failed to load thumbnail ${i}:`, error)
+          // Continue loading other thumbnails even if one fails
+        }
+      }
+      // Update all at once to trigger reactivity
+      thumbnailUrls.value = newUrls
+    }
+
+    // Get thumbnail URL for proof of payment
+    const getProofThumbnailUrl = (index) => {
+      // Return the blob URL if available, otherwise return empty string
+      return thumbnailUrls.value[index] || ''
     }
 
     // Proof of payment viewing
@@ -2280,9 +2317,24 @@ export default {
           if (isApprovedBooking.value) {
             loadQrCode()
           }
+
+          // Load proof of payment thumbnails with authentication
+          if (props.booking.proof_of_payment) {
+            loadThumbnails()
+          }
         }
       },
       { immediate: true }
+    )
+
+    // Watch for changes in proof_of_payment to reload thumbnails
+    watch(
+      () => props.booking?.proof_of_payment,
+      (newProof) => {
+        if (newProof && props.isOpen) {
+          loadThumbnails()
+        }
+      }
     )
 
     return {
