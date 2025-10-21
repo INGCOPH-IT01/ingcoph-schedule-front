@@ -172,6 +172,16 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Holiday Management - Only for admin users -->
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-calendar-star"
+            title="Holiday Management"
+            value="holiday-management"
+            :to="{ name: 'HolidayManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
           <!-- Staff Scanner - Only for staff/admin users -->
           <v-list-item
             v-if="isAuthenticated && (isStaff || isAdmin)"
