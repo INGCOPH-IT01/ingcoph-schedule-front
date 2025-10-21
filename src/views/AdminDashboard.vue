@@ -190,8 +190,26 @@
       <v-col cols="12">
         <v-card>
           <v-card-title class="text-h5 pa-6 pb-4">
-            <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
-            Transactions
+            <div class="d-flex align-center justify-space-between w-100">
+              <div class="d-flex align-center">
+                <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
+                Transactions
+              </div>
+              <v-chip-group
+                v-model="viewMode"
+                mandatory
+                selected-class="text-primary"
+              >
+                <v-chip value="table" variant="outlined" filter>
+                  <v-icon start>mdi-table</v-icon>
+                  Data Table
+                </v-chip>
+                <v-chip value="calendar" variant="outlined" filter>
+                  <v-icon start>mdi-calendar-month</v-icon>
+                  Calendar
+                </v-chip>
+              </v-chip-group>
+            </div>
           </v-card-title>
           <v-divider></v-divider>
 
@@ -314,12 +332,24 @@
             Showing {{ filteredTransactions.length }} of {{ pendingBookings.length }} transaction{{ pendingBookings.length !== 1 ? 's' : '' }}
           </div>
 
+          <!-- Calendar View -->
+          <div v-if="viewMode === 'calendar'" class="pa-4">
+            <CalendarView
+              :transactions="filteredTransactions"
+              @event-click="viewBookingDetails"
+            />
+          </div>
+
+          <!-- Data Table View -->
           <v-data-table
+            v-if="viewMode === 'table'"
             :headers="headers"
             :items="filteredTransactions"
             :loading="loading"
             class="elevation-0"
             no-data-text="No transactions found"
+            @update:sort-by="handleSortChange"
+            :sort-by="sortByModel"
           >
             <template v-slot:[`item.user_name`]="{ item }">
               <div class="d-flex align-center">
@@ -558,11 +588,13 @@ import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
+import CalendarView from '../components/CalendarView.vue'
 export default {
   name: 'AdminDashboard',
   components: {
     QrCodeScanner,
-    BookingDetailsDialog
+    BookingDetailsDialog,
+    CalendarView
   },
   setup() {
     const router = useRouter()
@@ -584,6 +616,9 @@ export default {
     })
     const qrScannerDialog = ref(false)
 
+    // View mode state
+    const viewMode = ref('calendar')
+
     // Filter states
     const statusFilter = ref('all')
     const userFilter = ref('')
@@ -594,6 +629,11 @@ export default {
     const todayString = today.toISOString().split('T')[0]
     const dateFromFilter = ref(todayString)
     const dateToFilter = ref(todayString)
+
+    // Sorting states
+    const sortByModel = ref([{ key: 'created_at', order: 'asc' }])
+    const sortBy = ref('created_at')
+    const sortOrder = ref('asc')
 
     const headers = [
       { title: 'ID', key: 'id', sortable: true },
@@ -640,7 +680,15 @@ export default {
           filters.date_to = dateToFilter.value
         }
 
-        // Fetch all cart transactions with date filters
+        // Add sorting parameters
+        if (sortBy.value) {
+          filters.sort_by = sortBy.value
+        }
+        if (sortOrder.value) {
+          filters.sort_order = sortOrder.value
+        }
+
+        // Fetch all cart transactions with date filters and sorting
         const transactions = await cartService.getAllTransactions(filters)
         pendingBookings.value = transactions.map(transaction => ({
           ...transaction,
@@ -858,6 +906,25 @@ export default {
       sportFilter.value = null
       dateFromFilter.value = ''
       dateToFilter.value = ''
+    }
+
+    // Handle sort changes
+    const handleSortChange = (sortByArray) => {
+      if (sortByArray && sortByArray.length > 0) {
+        const sortItem = sortByArray[0]
+        sortBy.value = sortItem.key
+        sortOrder.value = sortItem.order || 'asc'
+        sortByModel.value = sortByArray
+
+        // Reload data with new sorting
+        loadPendingBookings()
+      } else {
+        // Reset to default sorting
+        sortBy.value = 'created_at'
+        sortOrder.value = 'asc'
+        sortByModel.value = [{ key: 'created_at', order: 'asc' }]
+        loadPendingBookings()
+      }
     }
 
     // Computed properties for transaction counts
@@ -1174,7 +1241,14 @@ export default {
       getBookedByUserRoleColor,
       getBookedByUserRoleIcon,
       // Services
-      sportService
+      sportService,
+      // Sorting
+      sortByModel,
+      sortBy,
+      sortOrder,
+      handleSortChange,
+      // View mode
+      viewMode
     }
   }
 }

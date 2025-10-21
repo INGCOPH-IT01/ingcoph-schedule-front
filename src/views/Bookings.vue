@@ -2034,6 +2034,11 @@ export default {
     }
 
     const isBookingExpired = (booking) => {
+      // Admin bookings should not expire automatically
+      if (booking.user && booking.user.role === 'admin') {
+        return false
+      }
+
       // Check if booking is unpaid and pending
       if (booking.payment_status !== 'paid' && booking.approval_status === 'pending' && booking.created_at) {
         const now = new Date()
