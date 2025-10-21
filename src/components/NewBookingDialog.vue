@@ -621,24 +621,62 @@
                         <v-file-input
                           v-model="proofOfPayment"
                           label="Proof of Payment"
-                          placeholder="Upload screenshot"
+                          placeholder="Upload screenshots"
                           variant="outlined"
                           density="compact"
                           prepend-icon="mdi-camera"
                           accept="image/*"
-                          :rules="skipPayment ? [] : [v => !!v || 'Proof of payment is required']"
-                          hint="Upload a screenshot of your GCash payment receipt"
+                          multiple
+                          :rules="skipPayment ? [] : [v => !!v && v.length > 0 || 'Proof of payment is required', validateFileSize]"
+                          hint="Upload screenshots of your GCash payment receipts (max 5MB each)"
                           persistent-hint
                           @change="handleProofUpload"
-                        ></v-file-input>
+                        >
+                          <template v-slot:selection="{ fileNames }">
+                            <template v-for="(fileName, index) in fileNames" :key="fileName">
+                              <v-chip
+                                v-if="index < 2"
+                                color="primary"
+                                size="small"
+                                class="mr-2"
+                              >
+                                {{ fileName }}
+                              </v-chip>
+                              <span
+                                v-else-if="index === 2"
+                                class="text-overline grey--text text--darken-3 mx-2"
+                              >
+                                +{{ fileNames.length - 2 }} File(s)
+                              </span>
+                            </template>
+                          </template>
+                        </v-file-input>
 
-                        <v-img
-                          v-if="proofPreview"
-                          :src="proofPreview"
-                          max-height="200"
-                          class="mt-3 rounded"
-                          cover
-                        ></v-img>
+                        <!-- Preview uploaded images -->
+                        <div v-if="proofPreviews.length > 0" class="mt-3">
+                          <div class="d-flex flex-wrap gap-2">
+                            <div
+                              v-for="(preview, index) in proofPreviews"
+                              :key="index"
+                              class="proof-preview-container"
+                            >
+                              <v-img
+                                :src="preview"
+                                max-height="150"
+                                max-width="150"
+                                class="rounded"
+                                cover
+                              ></v-img>
+                              <v-btn
+                                icon="mdi-close"
+                                size="x-small"
+                                color="error"
+                                class="remove-preview-btn"
+                                @click="removeProofPreview(index)"
+                              ></v-btn>
+                            </div>
+                          </div>
+                        </div>
                       </v-col>
                       <v-col cols="12" md="5" class="d-flex justify-center align-center">
                         <div class="gcash-qr-container">
@@ -734,7 +772,7 @@
             v-if="!skipPayment"
             color="success"
             :loading="submitting"
-            :disabled="!proofOfPayment"
+            :disabled="!proofOfPayment || proofOfPayment.length === 0"
             @click="submitBookingWithGCash"
           >
             <v-icon start>mdi-cellphone-check</v-icon>
@@ -809,8 +847,8 @@ export default {
     // Payment options
     const paymentMethod = ref('gcash') // GCash payment is required
     const gcashQrCanvas = ref(null)
-    const proofOfPayment = ref(null)
-    const proofPreview = ref(null)
+    const proofOfPayment = ref([])
+    const proofPreviews = ref([])
     const skipPayment = ref(false) // Admin/Staff can skip payment
 
     // Payment settings from Payment Details module
@@ -1331,16 +1369,51 @@ export default {
       return total.toFixed(2)
     }
 
+    // Validation function for file sizes
+    const validateFileSize = (files) => {
+      if (!files) return true
+      const fileArray = Array.isArray(files) ? files : [files]
+      return fileArray.every(file => file.size < 5242880) || 'Each file should be less than 5 MB'
+    }
+
     const handleProofUpload = (event) => {
-      const file = event.target?.files?.[0] || proofOfPayment.value?.[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          proofPreview.value = e.target.result
+      // Clean up old preview URLs
+      proofPreviews.value.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
         }
-        reader.readAsDataURL(file)
-      } else {
-        proofPreview.value = null
+      })
+      proofPreviews.value = []
+
+      const files = event.target?.files || proofOfPayment.value
+      if (files && files.length > 0) {
+        const fileArray = Array.isArray(files) ? files : Array.from(files)
+
+        fileArray.forEach(file => {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            proofPreviews.value.push(e.target.result)
+          }
+          reader.readAsDataURL(file)
+        })
+      }
+    }
+
+    // Remove a proof preview
+    const removeProofPreview = (index) => {
+      // Revoke the blob URL if it exists
+      if (proofPreviews.value[index]?.startsWith('blob:')) {
+        URL.revokeObjectURL(proofPreviews.value[index])
+      }
+
+      // Remove from preview array
+      proofPreviews.value.splice(index, 1)
+
+      // Remove from files array
+      if (proofOfPayment.value && proofOfPayment.value.length > index) {
+        const newFiles = Array.from(proofOfPayment.value)
+        newFiles.splice(index, 1)
+        proofOfPayment.value = newFiles
       }
     }
 
@@ -1529,26 +1602,30 @@ export default {
     }
 
     const submitBookingWithGCash = async () => {
-      if (!proofOfPayment.value) {
+      if (!proofOfPayment.value || proofOfPayment.value.length === 0) {
         showAlert({
           icon: 'warning',
           title: 'Missing Proof of Payment',
-          text: 'Please upload a screenshot of your GCash payment receipt.'
+          text: 'Please upload screenshot(s) of your GCash payment receipt(s).'
         })
         return
       }
 
       submitting.value = true
       try {
-        // Convert proof of payment to base64
-        let proofBase64 = null
-        if (proofOfPayment.value) {
-          const file = proofOfPayment.value[0] || proofOfPayment.value
-          const reader = new FileReader()
-          proofBase64 = await new Promise((resolve) => {
-            reader.onload = (e) => resolve(e.target.result)
-            reader.readAsDataURL(file)
-          })
+        // Convert all proof of payment files to base64 array
+        const proofBase64Array = []
+        if (proofOfPayment.value && proofOfPayment.value.length > 0) {
+          const files = Array.isArray(proofOfPayment.value) ? proofOfPayment.value : Array.from(proofOfPayment.value)
+
+          for (const file of files) {
+            const reader = new FileReader()
+            const base64 = await new Promise((resolve) => {
+              reader.onload = (e) => resolve(e.target.result)
+              reader.readAsDataURL(file)
+            })
+            proofBase64Array.push(base64)
+          }
         }
 
         // Prepare admin booking data if admin is booking for someone else
@@ -1614,10 +1691,10 @@ export default {
         const cartResponse = await cartService.getCartTransaction()
         const cartItemIds = cartResponse.cart_items.map(item => item.id)
 
-        // Checkout with GCash payment
+        // Checkout with GCash payment (send array of base64 images)
         await cartService.checkout({
           payment_method: 'gcash',
-          proof_of_payment: proofBase64,
+          proof_of_payment: proofBase64Array,
           selected_items: cartItemIds
         })
 
@@ -1895,8 +1972,14 @@ export default {
       numberOfPlayers.value = 1
       bookingNotes.value = ''
       paymentMethod.value = 'gcash'
-      proofOfPayment.value = null
-      proofPreview.value = null
+      // Clean up proof previews
+      proofPreviews.value.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      proofOfPayment.value = []
+      proofPreviews.value = []
       skipPayment.value = false
       // Reset admin fields
       bookingForUser.value = null
@@ -2119,7 +2202,7 @@ export default {
       paymentMethod,
       gcashQrCanvas,
       proofOfPayment,
-      proofPreview,
+      proofPreviews,
       paymentSettings,
       skipPayment,
       selectedSport,
@@ -2144,7 +2227,9 @@ export default {
       formatDate,
       getPricingBreakdown,
       calculateTotalPrice,
+      validateFileSize,
       handleProofUpload,
+      removeProofPreview,
       generateGCashQR,
       handleImageError,
       addToCart,
@@ -2769,6 +2854,19 @@ export default {
 .qr-label {
   font-weight: 600;
   color: #2e7d32;
+}
+
+/* Proof of Payment Preview Styles */
+.proof-preview-container {
+  position: relative;
+  display: inline-block;
+}
+
+.proof-preview-container .remove-preview-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 1;
 }
 
 .court-bookings-section {

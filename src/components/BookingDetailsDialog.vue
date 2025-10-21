@@ -564,37 +564,74 @@
                 </h5>
 
                 <v-file-input
-                  v-model="proofFile"
+                  v-model="proofFiles"
                   label="Select proof of payment"
                   accept="image/*"
                   prepend-icon="mdi-camera"
                   variant="outlined"
                   density="compact"
-                  :rules="[v => !v || v.size < 5242880 || 'File size should be less than 5 MB']"
-                  hint="Upload a screenshot or photo of payment receipt (max 5MB)"
+                  multiple
+                  :rules="[v => !v || validateFileSize(v) || 'Each file should be less than 5 MB']"
+                  hint="Upload screenshots or photos of payment receipts (max 5MB each)"
                   persistent-hint
                   class="mb-2"
                   @change="handleProofFileChange"
-                ></v-file-input>
+                >
+                  <template v-slot:selection="{ fileNames }">
+                    <template v-for="(fileName, index) in fileNames" :key="fileName">
+                      <v-chip
+                        v-if="index < 2"
+                        color="primary"
+                        size="small"
+                        class="mr-2"
+                      >
+                        {{ fileName }}
+                      </v-chip>
+                      <span
+                        v-else-if="index === 2"
+                        class="text-overline grey--text text--darken-3 mx-2"
+                      >
+                        +{{ fileNames.length - 2 }} File(s)
+                      </span>
+                    </template>
+                  </template>
+                </v-file-input>
 
-                <!-- Preview uploaded image -->
-                <v-img
-                  v-if="proofPreviewUrl"
-                  :src="proofPreviewUrl"
-                  max-height="200"
-                  class="mb-2 rounded"
-                  cover
-                ></v-img>
+                <!-- Preview uploaded images -->
+                <div v-if="proofPreviewUrls.length > 0" class="mb-2">
+                  <div class="d-flex flex-wrap gap-2">
+                    <div
+                      v-for="(url, index) in proofPreviewUrls"
+                      :key="index"
+                      class="proof-preview-container"
+                    >
+                      <v-img
+                        :src="url"
+                        max-height="150"
+                        max-width="150"
+                        class="rounded"
+                        cover
+                      ></v-img>
+                      <v-btn
+                        icon="mdi-close"
+                        size="x-small"
+                        color="error"
+                        class="remove-preview-btn"
+                        @click="removePreviewImage(index)"
+                      ></v-btn>
+                    </div>
+                  </div>
+                </div>
 
                 <v-btn
                   color="success"
                   :loading="uploadingProof"
-                  :disabled="!proofFile"
+                  :disabled="!proofFiles || proofFiles.length === 0"
                   @click="uploadProofOfPayment"
                   block
                 >
                   <v-icon start>mdi-upload</v-icon>
-                  Upload and Mark as Paid
+                  Upload {{ proofFiles && proofFiles.length > 1 ? `${proofFiles.length} Files` : '' }} and Mark as Paid
                 </v-btn>
               </v-card>
             </template>
@@ -607,15 +644,19 @@
               <v-divider class="my-2"></v-divider>
               <div class="detail-row">
                 <span class="detail-label">Proof of Payment:</span>
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  prepend-icon="mdi-eye"
-                  @click="viewProofOfPayment"
-                >
-                  View Attachment
-                </v-btn>
+                <div class="d-flex flex-wrap gap-2">
+                  <v-btn
+                    v-for="(file, index) in getProofOfPaymentFiles(booking.proof_of_payment)"
+                    :key="index"
+                    color="primary"
+                    variant="outlined"
+                    size="small"
+                    prepend-icon="mdi-eye"
+                    @click="viewProofOfPayment(index)"
+                  >
+                    View {{ getProofOfPaymentFiles(booking.proof_of_payment).length > 1 ? `#${index + 1}` : 'Attachment' }}
+                  </v-btn>
+                </div>
               </div>
             </template>
             <template v-if="showAdminFeatures && !booking.proof_of_payment">
@@ -1032,8 +1073,8 @@ export default {
 
     // Proof of Payment Upload state
     const uploadingProof = ref(false)
-    const proofFile = ref(null)
-    const proofPreviewUrl = ref('')
+    const proofFiles = ref([])
+    const proofPreviewUrls = ref([])
 
     // Court editing state
     const editingCourtItemIndex = ref(null)
@@ -1398,8 +1439,22 @@ export default {
       }
     }
 
+    // Helper to get proof of payment files array
+    const getProofOfPaymentFiles = (proofOfPayment) => {
+      if (!proofOfPayment) return []
+
+      try {
+        // Try to parse as JSON array
+        const parsed = JSON.parse(proofOfPayment)
+        return Array.isArray(parsed) ? parsed : [proofOfPayment]
+      } catch (e) {
+        // If not JSON, treat as single file
+        return [proofOfPayment]
+      }
+    }
+
     // Proof of payment viewing
-    const viewProofOfPayment = async () => {
+    const viewProofOfPayment = async (index = 0) => {
       if (props.booking?.proof_of_payment) {
         try {
           // Determine the correct endpoint based on whether this is a transaction or booking
@@ -1409,6 +1464,7 @@ export default {
 
           // Fetch the image as a blob with authentication
           const response = await api.get(endpoint, {
+            params: { index },
             responseType: 'blob'
           })
 
@@ -1445,17 +1501,52 @@ export default {
       console.error('Image failed to load:', event)
     }
 
+    // Validation function for file sizes
+    const validateFileSize = (files) => {
+      if (!files) return true
+      const fileArray = Array.isArray(files) ? files : [files]
+      return fileArray.every(file => file.size < 5242880) // 5MB
+    }
+
     // Proof of Payment Upload functions
     const handleProofFileChange = (event) => {
-      const file = event.target?.files?.[0] || proofFile.value?.[0]
-      if (file) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          proofPreviewUrl.value = e.target.result
+      // Clean up old preview URLs
+      proofPreviewUrls.value.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
         }
-        reader.readAsDataURL(file)
-      } else {
-        proofPreviewUrl.value = ''
+      })
+      proofPreviewUrls.value = []
+
+      const files = event.target?.files || proofFiles.value
+      if (files && files.length > 0) {
+        const fileArray = Array.isArray(files) ? files : Array.from(files)
+
+        fileArray.forEach(file => {
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            proofPreviewUrls.value.push(e.target.result)
+          }
+          reader.readAsDataURL(file)
+        })
+      }
+    }
+
+    // Remove a preview image
+    const removePreviewImage = (index) => {
+      // Revoke the blob URL
+      if (proofPreviewUrls.value[index]?.startsWith('blob:')) {
+        URL.revokeObjectURL(proofPreviewUrls.value[index])
+      }
+
+      // Remove from preview URLs
+      proofPreviewUrls.value.splice(index, 1)
+
+      // Remove from files array
+      if (proofFiles.value && proofFiles.value.length > index) {
+        const newFiles = Array.from(proofFiles.value)
+        newFiles.splice(index, 1)
+        proofFiles.value = newFiles
       }
     }
 
@@ -1464,14 +1555,16 @@ export default {
         alert('Cannot upload proof of payment: This booking/transaction has been rejected.')
         return
       }
-      if (!proofFile.value || !props.booking?.id) {
+      if (!proofFiles.value || proofFiles.value.length === 0 || !props.booking?.id) {
         return
       }
 
       try {
         uploadingProof.value = true
 
-        const file = proofFile.value[0] || proofFile.value
+        // Convert to array if needed
+        const files = Array.isArray(proofFiles.value) ? proofFiles.value : Array.from(proofFiles.value)
+
         // Use the existing payment_method from booking, or default to 'gcash'
         const paymentMethod = props.booking.payment_method && props.booking.payment_method !== 'pending'
           ? props.booking.payment_method
@@ -1483,14 +1576,14 @@ export default {
           // For cart transactions, use cartService
           response = await cartService.uploadProofOfPayment(
             props.booking.id,
-            file,
+            files,
             paymentMethod
           )
         } else {
           // For regular bookings, use bookingService
           response = await bookingService.uploadProofOfPayment(
             props.booking.id,
-            file,
+            files,
             paymentMethod
           )
         }
@@ -1503,12 +1596,19 @@ export default {
           props.booking.paid_at = response.data.paid_at
         }
 
+        // Clean up preview URLs
+        proofPreviewUrls.value.forEach(url => {
+          if (url.startsWith('blob:')) {
+            URL.revokeObjectURL(url)
+          }
+        })
+
         // Reset upload form
-        proofFile.value = null
-        proofPreviewUrl.value = ''
+        proofFiles.value = []
+        proofPreviewUrls.value = []
 
         // Show success message
-        alert('Proof of payment uploaded successfully! Booking is now marked as paid.')
+        alert(`Proof${files.length > 1 ? 's' : ''} of payment uploaded successfully! Booking is now marked as paid.`)
 
         // Emit event to refresh booking list if needed
         emit('attendance-updated', { bookingId: props.booking.id, status: 'paid' })
@@ -2039,8 +2139,8 @@ export default {
       rejectionReason,
       // Proof of Payment Upload state
       uploadingProof,
-      proofFile,
-      proofPreviewUrl,
+      proofFiles,
+      proofPreviewUrls,
       // Court editing state
       editingCourtItemIndex,
       selectedCourtId,
@@ -2062,8 +2162,11 @@ export default {
       onImageDialogClose,
       handleImageError,
       // Proof of Payment Upload methods
+      validateFileSize,
       handleProofFileChange,
+      removePreviewImage,
       uploadProofOfPayment,
+      getProofOfPaymentFiles,
       // QR Code methods
       loadQrCode,
       downloadQrCode,
@@ -2228,6 +2331,19 @@ export default {
 
 .gap-2 {
   gap: 8px;
+}
+
+/* Proof of Payment Preview Styles */
+.proof-preview-container {
+  position: relative;
+  display: inline-block;
+}
+
+.proof-preview-container .remove-preview-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  z-index: 1;
 }
 
 /* Court selector styles */

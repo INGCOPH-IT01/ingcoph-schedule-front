@@ -123,15 +123,23 @@ export const cartService = {
   },
 
   /**
-   * Upload proof of payment for a cart transaction
+   * Upload proof of payment for a cart transaction (supports multiple files)
    * @param {number} transactionId - Cart transaction ID
-   * @param {File} file - Proof of payment file
+   * @param {File|File[]} files - Proof of payment file(s)
    * @param {string} paymentMethod - Payment method (gcash, cash)
    */
-  async uploadProofOfPayment(transactionId, file, paymentMethod = 'gcash') {
+  async uploadProofOfPayment(transactionId, files, paymentMethod = 'gcash') {
     try {
       const formData = new FormData()
-      formData.append('proof_of_payment', file)
+
+      // Handle both single file and array of files
+      const fileArray = Array.isArray(files) ? files : [files]
+
+      // Append each file to FormData
+      fileArray.forEach((file) => {
+        formData.append('proof_of_payment[]', file)
+      })
+
       formData.append('payment_method', paymentMethod)
 
       const response = await api.post(`/cart-transactions/${transactionId}/upload-proof`, formData, {
