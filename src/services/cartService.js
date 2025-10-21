@@ -144,5 +144,18 @@ export const cartService = {
       console.error('Upload proof of payment error:', error)
       throw new Error(error.response?.data?.message || 'Failed to upload proof of payment')
     }
+  },
+
+  /**
+   * Resend confirmation email for an approved cart transaction
+   * @param {number} transactionId - Cart transaction ID
+   */
+  async resendConfirmationEmail(transactionId) {
+    try {
+      const response = await api.post(`/cart-transactions/${transactionId}/resend-confirmation`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to resend confirmation email')
+    }
   }
 }

@@ -154,5 +154,15 @@ export const bookingService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update attendance status')
     }
+  },
+
+  // Resend confirmation email
+  async resendConfirmationEmail(bookingId) {
+    try {
+      const response = await api.post(`/bookings/${bookingId}/resend-confirmation`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to resend confirmation email')
+    }
   }
 }

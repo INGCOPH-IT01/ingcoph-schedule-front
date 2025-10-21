@@ -694,6 +694,28 @@
           </v-card>
         </div>
 
+        <!-- Resend Confirmation Email (Approved Bookings Only) -->
+        <div class="detail-section mb-4" v-if="isApprovedBooking">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="primary">mdi-email</v-icon>
+            Confirmation Email
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <div class="text-body-2 mb-3">
+              Need the confirmation email again? Click below to resend it to {{ getDisplayUserEmail(booking) }}.
+            </div>
+            <v-btn
+              color="primary"
+              variant="tonal"
+              prepend-icon="mdi-email-send"
+              @click="resendConfirmationEmail"
+              :loading="resendingEmail"
+            >
+              Resend Confirmation Email
+            </v-btn>
+          </v-card>
+        </div>
+
         <!-- Attendance Status (Staff/Admin only, for approved bookings) -->
         <div class="detail-section mb-4" v-if="isStaffOrAdmin && (booking.approval_status === 'approved' || !isTransaction)">
           <h4 class="detail-section-title">
@@ -1020,6 +1042,9 @@ export default {
     const availableCourtsForItem = ref([])
     const loadingCourts = ref(false)
     const savingCourt = ref(false)
+
+    // Resend confirmation email state
+    const resendingEmail = ref(false)
 
     const closeDialog = () => {
       // Clean up blob URL if it exists
@@ -1803,6 +1828,30 @@ export default {
       return selectedCourtId.value !== originalCourtId.value
     })
 
+    // Resend confirmation email method
+    const resendConfirmationEmail = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        resendingEmail.value = true
+
+        // Determine if this is a transaction or regular booking and use appropriate service
+        let response
+        if (isTransaction.value) {
+          response = await cartService.resendConfirmationEmail(props.booking.id)
+        } else {
+          response = await bookingService.resendConfirmationEmail(props.booking.id)
+        }
+
+        showSnackbar(response.message || 'Confirmation email sent successfully', 'success')
+      } catch (error) {
+        console.error('Failed to resend confirmation email:', error)
+        showSnackbar(error.message || 'Failed to send confirmation email', 'error')
+      } finally {
+        resendingEmail.value = false
+      }
+    }
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -2000,6 +2049,8 @@ export default {
       loadingCourts,
       savingCourt,
       courtChanged,
+      // Resend confirmation email state
+      resendingEmail,
       // Methods
       closeDialog,
       formatTimeSlot,
@@ -2028,6 +2079,8 @@ export default {
       startCartItemCourtEdit,
       cancelCourtEdit,
       saveCartItemCourtChange,
+      // Resend confirmation email method
+      resendConfirmationEmail,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
