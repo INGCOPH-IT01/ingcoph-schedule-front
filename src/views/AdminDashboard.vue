@@ -217,16 +217,17 @@
           <div class="pa-4">
             <!-- Status Filter Chips -->
             <div class="mb-4">
-              <div class="text-subtitle-2 mb-2 font-weight-bold">Approval Status</div>
+              <div class="text-subtitle-2 mb-2 font-weight-bold">
+                Approval Status
+                <span v-if="statusFilter.length > 0" class="text-caption text-grey ml-2">
+                  ({{ statusFilter.length }} selected)
+                </span>
+              </div>
               <v-chip-group
                 v-model="statusFilter"
-                mandatory
+                multiple
                 selected-class="text-primary"
               >
-                <v-chip value="all" variant="outlined" filter>
-                  <v-icon start>mdi-format-list-bulleted</v-icon>
-                  All
-                </v-chip>
                 <v-chip value="pending" variant="outlined" filter>
                   <v-icon start>mdi-clock-alert</v-icon>
                   Pending
@@ -620,15 +621,27 @@ export default {
     const viewMode = ref('calendar')
 
     // Filter states
-    const statusFilter = ref('all')
+    const statusFilter = ref(['pending', 'approved']) // Default to pending and approved
     const userFilter = ref('')
     const sportFilter = ref(null)
 
-    // Initialize date filters with today's date as default
+    // Initialize date filters with start and end of current month as default
     const today = new Date()
-    const todayString = today.toISOString().split('T')[0]
-    const dateFromFilter = ref(todayString)
-    const dateToFilter = ref(todayString)
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+    // Format dates using local timezone to avoid timezone shift issues
+    const formatDateLocal = (date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const dateFromString = formatDateLocal(firstDayOfMonth)
+    const dateToString = formatDateLocal(lastDayOfMonth)
+    const dateFromFilter = ref(dateFromString)
+    const dateToFilter = ref(dateToString)
 
     // Sorting states
     const sortByModel = ref([{ key: 'created_at', order: 'asc' }])
@@ -892,7 +905,7 @@ export default {
 
     // Computed property to check if any filters are active
     const hasActiveFilters = computed(() => {
-      return statusFilter.value !== 'all' ||
+      return statusFilter.value.length > 0 ||
              userFilter.value !== '' ||
              sportFilter.value !== null ||
              dateFromFilter.value !== '' ||
@@ -901,7 +914,7 @@ export default {
 
     // Clear all filters function
     const clearAllFilters = () => {
-      statusFilter.value = 'all'
+      statusFilter.value = []
       userFilter.value = ''
       sportFilter.value = null
       dateFromFilter.value = ''
@@ -944,11 +957,11 @@ export default {
     const filteredTransactions = computed(() => {
       let filtered = pendingBookings.value
 
-      // Filter by approval status
-      if (statusFilter.value !== 'all') {
+      // Filter by approval status - multiple selection
+      if (statusFilter.value.length > 0) {
         filtered = filtered.filter(transaction => {
           const status = transaction.approval_status || 'pending'
-          return status === statusFilter.value
+          return statusFilter.value.includes(status)
         })
       }
 

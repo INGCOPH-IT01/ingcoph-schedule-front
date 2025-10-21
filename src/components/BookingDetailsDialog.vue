@@ -30,7 +30,7 @@
               <div class="detail-value">
                 {{ getDisplayUserName(booking) }}
                 <v-chip
-                  v-if="isAdminBooking(booking)"
+                  v-if="isBookedByAdminOrStaff(booking)"
                   size="x-small"
                   :color="getBookedByUserRoleColor(booking)"
                   variant="tonal"
@@ -1227,6 +1227,13 @@ export default {
       return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
     }
 
+    // Check if booking was created by an admin or staff user
+    const isBookedByAdminOrStaff = (booking) => {
+      if (!booking) return false
+      const role = booking.user?.role?.toLowerCase()
+      return role === 'admin' || role === 'staff'
+    }
+
     const getDisplayUserName = (booking) => {
       if (!booking) return 'N/A'
       const firstCartItem = booking.cart_items?.[0]
@@ -2035,6 +2042,7 @@ export default {
       getAttendanceLabel,
       // Admin booking display helpers
       isAdminBooking,
+      isBookedByAdminOrStaff,
       getDisplayUserName,
       getDisplayUserEmail,
       getDisplayUserPhone,

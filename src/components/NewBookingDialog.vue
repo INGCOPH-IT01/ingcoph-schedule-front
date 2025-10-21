@@ -291,6 +291,14 @@
                           >
                             {{ slot.is_booked ? 'Booked' : (slot.is_waitlist_available ? 'Waitlist' : 'Available') }}
                           </v-chip>
+                          <!-- Show customer name for Admin users when slot is booked or waitlist -->
+                          <div
+                            v-if="isAdminOrStaff && (slot.is_booked || slot.is_waitlist_available) && slot.display_name"
+                            class="customer-name-label mt-2"
+                          >
+                            <v-icon size="12" class="mr-1">mdi-account</v-icon>
+                            <span class="text-caption">{{ slot.display_name }}</span>
+                          </div>
                         </v-card-text>
                       </v-card>
                     </div>
@@ -491,15 +499,14 @@
                     return-object
                   >
                     <template v-slot:item="{ props, item }">
-                      <v-list-item>
+                      <v-list-item v-bind="props">
                         <template v-slot:prepend>
                           <v-avatar size="32" class="mr-2">
                             <v-img :src="`https://ui-avatars.com/api/?name=${item.raw.name}&background=3b82f6&color=fff`"></v-img>
                           </v-avatar>
                         </template>
                         <v-list-item-title>
-                          {{ item.raw.name }}
-                          <span v-if="item.raw.email" class="text-caption text-medium-emphasis ml-2">({{ item.raw.email }})</span>
+                          <span v-if="item.raw.email" class="text-caption text-medium-emphasis">{{ item.raw.email }}</span>
                         </v-list-item-title>
                       </v-list-item>
                     </template>
@@ -2488,6 +2495,37 @@ export default {
   overflow: hidden;
 }
 
+/* Customer Name Label */
+.customer-name-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  color: #1f2937 !important;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.customer-name-label span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+}
+
+.time-slot-card.unavailable .customer-name-label {
+  background: rgba(0, 0, 0, 0.1);
+  color: #6b7280 !important;
+}
+
+.time-slot-card.waitlist .customer-name-label {
+  background: rgba(255, 152, 0, 0.1);
+  color: #92400e !important;
+}
+
 .time-slot-card .v-card-text {
   color: #1f2937 !important;
 }
@@ -2844,6 +2882,14 @@ export default {
   .time-slot-card .v-card-text {
     padding: 8px !important;
     font-size: 0.8rem !important;
+  }
+
+  .customer-name-label {
+    padding: 2px 4px;
+  }
+
+  .customer-name-label span {
+    font-size: 0.65rem;
   }
 
   .booking-summary,
