@@ -455,7 +455,21 @@
               </v-chip>
             </template>
 
-            <template v-slot:[`item.notes`]="{ item }">
+            <template v-slot:[`item.admin_notes`]="{ item }">
+              <div v-if="item.cart_items && item.cart_items.length > 0 && item.cart_items[0].admin_notes" class="notes-cell">
+                <v-tooltip location="top">
+                  <template v-slot:activator="{ props }">
+                    <div v-bind="props" class="notes-preview">
+                      {{ item.cart_items[0].admin_notes }}
+                    </div>
+                  </template>
+                  <span>{{ item.cart_items[0].admin_notes }}</span>
+                </v-tooltip>
+              </div>
+              <span v-else class="text-caption text-grey">No admin notes</span>
+            </template>
+
+            <template v-slot:[`item.client_notes`]="{ item }">
               <div v-if="item.cart_items && item.cart_items.length > 0 && item.cart_items[0].notes" class="notes-cell">
                 <v-tooltip location="top">
                   <template v-slot:activator="{ props }">
@@ -466,7 +480,7 @@
                   <span>{{ item.cart_items[0].notes }}</span>
                 </v-tooltip>
               </div>
-              <span v-else class="text-caption text-grey">No notes</span>
+              <span v-else class="text-caption text-grey">No special request</span>
             </template>
 
             <template v-slot:[`item.actions`]="{ item }">
@@ -658,7 +672,8 @@ export default {
       { title: 'Payment Status', key: 'payment_status', sortable: false },
       { title: 'Approval Status', key: 'approval_status', sortable: false },
       { title: 'Attendance', key: 'attendance_status', sortable: false },
-      { title: 'Notes', key: 'notes', sortable: false },
+      { title: 'Admin Notes', key: 'admin_notes', sortable: false },
+      { title: 'Client Notes', key: 'client_notes', sortable: false },
       { title: 'Actions', key: 'actions', sortable: false }
     ]
 
