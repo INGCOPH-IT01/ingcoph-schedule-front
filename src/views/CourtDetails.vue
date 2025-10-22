@@ -187,6 +187,14 @@
                           >
                             {{ slot.available ? 'Available' : 'Booked' }}
                           </v-chip>
+                          <!-- Show customer name when slot is booked -->
+                          <div
+                            v-if="!slot.available && slot.display_name"
+                            class="customer-name-label mt-2"
+                          >
+                            <v-icon size="12" class="mr-1">mdi-account</v-icon>
+                            <span class="text-caption">{{ slot.display_name }}</span>
+                          </div>
                         </v-card-text>
                       </v-card>
                     </div>
@@ -903,6 +911,32 @@ export default {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
   border-color: #ef5350;
+}
+
+/* Customer Name Label */
+.customer-name-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  color: #1f2937 !important;
+  font-weight: 500;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.customer-name-label span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+}
+
+.time-slot-card.unavailable .customer-name-label {
+  background: rgba(244, 67, 54, 0.1);
+  color: #c62828 !important;
 }
 
 /* Legacy styles for backward compatibility */

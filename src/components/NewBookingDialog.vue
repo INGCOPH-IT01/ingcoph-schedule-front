@@ -291,9 +291,9 @@
                           >
                             {{ slot.is_booked ? 'Booked' : (slot.is_waitlist_available ? 'Waitlist' : 'Available') }}
                           </v-chip>
-                          <!-- Show customer name for Admin users when slot is booked or waitlist -->
+                          <!-- Show customer name when slot is booked or waitlist -->
                           <div
-                            v-if="isAdminOrStaff && (slot.is_booked || slot.is_waitlist_available) && slot.display_name"
+                            v-if="(slot.is_booked || slot.is_waitlist_available) && slot.display_name"
                             class="customer-name-label mt-2"
                           >
                             <v-icon size="12" class="mr-1">mdi-account</v-icon>
