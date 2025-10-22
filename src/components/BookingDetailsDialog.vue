@@ -361,7 +361,6 @@
                             @click="startCartItemCourtEdit(item, index)"
                           ></v-btn>
                           <v-btn
-                            v-if="isPendingStatus"
                             icon="mdi-delete"
                             size="x-small"
                             variant="text"
