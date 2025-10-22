@@ -337,6 +337,58 @@
                 </div>
               </div>
 
+              <!-- Admin Edit Mode for Date/Time -->
+              <div v-else-if="isAdmin && editingDateTimeItemIndex === index" class="mb-3">
+                <v-text-field
+                  v-model="selectedBookingDate"
+                  label="Booking Date"
+                  type="date"
+                  variant="outlined"
+                  density="compact"
+                  class="mb-2"
+                ></v-text-field>
+                <v-row class="mb-2">
+                  <v-col cols="6">
+                    <v-text-field
+                      v-model="selectedStartTime"
+                      label="Start Time"
+                      type="time"
+                      variant="outlined"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                  <v-col cols="6">
+                    <v-text-field
+                      v-model="selectedEndTime"
+                      label="End Time"
+                      type="time"
+                      variant="outlined"
+                      density="compact"
+                    ></v-text-field>
+                  </v-col>
+                </v-row>
+                <div class="d-flex gap-2">
+                  <v-btn
+                    size="small"
+                    color="success"
+                    variant="tonal"
+                    @click="saveCartItemDateTimeChange(item, index)"
+                    :loading="savingDateTime"
+                    :disabled="!dateTimeChanged"
+                  >
+                    Save
+                  </v-btn>
+                  <v-btn
+                    size="small"
+                    color="grey"
+                    variant="text"
+                    @click="cancelDateTimeEdit"
+                  >
+                    Cancel
+                  </v-btn>
+                </div>
+              </div>
+
               <!-- Display Mode -->
               <div v-else>
                 <div class="d-flex align-center justify-space-between mb-2">
@@ -359,14 +411,15 @@
                             variant="text"
                             color="primary"
                             @click="startCartItemCourtEdit(item, index)"
+                            title="Edit Court"
                           ></v-btn>
                           <v-btn
-                            v-if="isPendingStatus"
                             icon="mdi-delete"
                             size="x-small"
                             variant="text"
                             color="error"
                             @click="confirmDeleteTimeSlot(item, index)"
+                            title="Delete Time Slot"
                           ></v-btn>
                         </div>
                       </div>
@@ -385,6 +438,16 @@
                     <span class="text-body-2">
                       {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
                     </span>
+                    <div v-if="isAdmin" class="d-flex ml-2">
+                      <v-btn
+                        icon="mdi-calendar-edit"
+                        size="x-small"
+                        variant="text"
+                        color="primary"
+                        @click="startCartItemDateTimeEdit(item, index)"
+                        title="Edit Date/Time"
+                      ></v-btn>
+                    </div>
                   </div>
                   <span class="text-body-1 font-weight-bold text-success">
                     ₱{{ parseFloat(item.price).toFixed(2) }}
@@ -948,6 +1011,18 @@
             Reject
           </v-btn>
         </template>
+        <!-- Reject button for approved bookings (Admin only) -->
+        <template v-if="isAdmin && booking.approval_status === 'approved'">
+          <v-btn
+            color="error"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-close"
+            @click="showRejectDialog"
+          >
+            Reject Approved Booking
+          </v-btn>
+        </template>
         <v-spacer></v-spacer>
         <v-btn
           color="primary"
@@ -1200,6 +1275,16 @@ export default {
     const availableCourtsForItem = ref([])
     const loadingCourts = ref(false)
     const savingCourt = ref(false)
+
+    // Date/Time editing state
+    const editingDateTimeItemIndex = ref(null)
+    const selectedBookingDate = ref(null)
+    const selectedStartTime = ref(null)
+    const selectedEndTime = ref(null)
+    const originalBookingDate = ref(null)
+    const originalStartTime = ref(null)
+    const originalEndTime = ref(null)
+    const savingDateTime = ref(false)
 
     // Resend confirmation email state
     const resendingEmail = ref(false)
@@ -2080,6 +2165,99 @@ export default {
       return selectedCourtId.value !== originalCourtId.value
     })
 
+    // Computed property to check if date/time was changed
+    const dateTimeChanged = computed(() => {
+      return selectedBookingDate.value !== originalBookingDate.value ||
+             selectedStartTime.value !== originalStartTime.value ||
+             selectedEndTime.value !== originalEndTime.value
+    })
+
+    // Date/Time editing methods
+    const startCartItemDateTimeEdit = (item, index) => {
+      // Set current values from cart item
+      const bookingDate = item.booking_date ? new Date(item.booking_date) : null
+      selectedBookingDate.value = bookingDate ? bookingDate.toISOString().split('T')[0] : ''
+      selectedStartTime.value = item.start_time || ''
+      selectedEndTime.value = item.end_time || ''
+
+      // Store originals
+      originalBookingDate.value = selectedBookingDate.value
+      originalStartTime.value = selectedStartTime.value
+      originalEndTime.value = selectedEndTime.value
+
+      editingDateTimeItemIndex.value = index
+    }
+
+    const cancelDateTimeEdit = () => {
+      selectedBookingDate.value = originalBookingDate.value
+      selectedStartTime.value = originalStartTime.value
+      selectedEndTime.value = originalEndTime.value
+      editingDateTimeItemIndex.value = null
+    }
+
+    const saveCartItemDateTimeChange = async (item, index) => {
+      if (!selectedBookingDate.value || !selectedStartTime.value || !selectedEndTime.value) {
+        showSnackbar('Please fill in all date and time fields', 'error')
+        return
+      }
+
+      try {
+        savingDateTime.value = true
+
+        // Prepare the update data
+        const updateData = {
+          booking_date: selectedBookingDate.value,
+          start_time: selectedStartTime.value,
+          end_time: selectedEndTime.value
+        }
+
+        // Update the cart item via the cartService
+        const response = await cartService.updateCartItem(item.id, updateData)
+
+        // Update the cart item object with fresh data from the server
+        if (response.success && response.data) {
+          // Update the item with fresh data from the server
+          Object.assign(item, {
+            booking_date: response.data.booking_date,
+            start_time: response.data.start_time,
+            end_time: response.data.end_time
+          })
+
+          // Also update in the booking.cart_items array if it exists
+          if (props.booking?.cart_items) {
+            const cartItemIndex = props.booking.cart_items.findIndex(ci => ci.id === item.id)
+            if (cartItemIndex !== -1) {
+              props.booking.cart_items[cartItemIndex] = {
+                ...props.booking.cart_items[cartItemIndex],
+                booking_date: response.data.booking_date,
+                start_time: response.data.start_time,
+                end_time: response.data.end_time
+              }
+            }
+          }
+        }
+
+        // Update originals to new values
+        originalBookingDate.value = selectedBookingDate.value
+        originalStartTime.value = selectedStartTime.value
+        originalEndTime.value = selectedEndTime.value
+        editingDateTimeItemIndex.value = null
+
+        showSnackbar('Date and time updated successfully', 'success')
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+
+        // Emit event to parent
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'datetime_updated' })
+      } catch (error) {
+        const errorMessage = error.message || 'Failed to update date and time'
+        showSnackbar(errorMessage, 'error')
+      } finally {
+        savingDateTime.value = false
+      }
+    }
+
     // Delete time slot methods
     const confirmDeleteTimeSlot = (item, index) => {
       timeSlotToDelete.value = item
@@ -2395,6 +2573,16 @@ export default {
       loadingCourts,
       savingCourt,
       courtChanged,
+      // Date/Time editing state
+      editingDateTimeItemIndex,
+      selectedBookingDate,
+      selectedStartTime,
+      selectedEndTime,
+      originalBookingDate,
+      originalStartTime,
+      originalEndTime,
+      savingDateTime,
+      dateTimeChanged,
       // Resend confirmation email state
       resendingEmail,
       // Delete time slot state
@@ -2437,6 +2625,10 @@ export default {
       startCartItemCourtEdit,
       cancelCourtEdit,
       saveCartItemCourtChange,
+      // Date/Time editing methods
+      startCartItemDateTimeEdit,
+      cancelDateTimeEdit,
+      saveCartItemDateTimeChange,
       // Delete time slot methods
       confirmDeleteTimeSlot,
       deleteTimeSlot,
