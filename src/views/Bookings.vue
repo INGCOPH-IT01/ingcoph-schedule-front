@@ -15,6 +15,7 @@
         </p>
         <div class="header-actions">
           <v-btn
+            v-if="isAdmin"
             class="header-btn-primary"
             size="x-large"
             prepend-icon="mdi-calendar-plus"
@@ -1516,6 +1517,7 @@ export default {
     const user = ref(null)
     const authLoading = ref(true)
     const isAuthenticated = computed(() => !!user.value)
+    const isAdmin = computed(() => user.value?.role === 'admin')
     const tokenStatus = computed(() => {
       try {
         return localStorage.getItem('token') ? 'Present' : 'Missing'
@@ -3724,6 +3726,7 @@ export default {
       user,
       authLoading,
       isAuthenticated,
+      isAdmin,
       tokenStatus,
       maxDate,
       headers,
