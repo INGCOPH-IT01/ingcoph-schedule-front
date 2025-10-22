@@ -76,7 +76,7 @@
             </div>
           </div>
 
-          <!-- Cart Items (Grouped) -->
+          <!-- Cart Items (Grouped by Court) -->
           <v-card
             v-for="group in groupedCartItems"
             :key="group.id"
@@ -98,22 +98,23 @@
                 </div>
 
                 <div class="flex-grow-1">
+                  <!-- Court Header -->
                   <div class="d-flex align-center mb-2">
                     <v-icon v-if="group.sport" class="mr-2" :color="sportService.getSportColor(group.sport.name)">
                       {{ sportService.getSportIcon(group.sport.name, group.sport.icon) }}
                     </v-icon>
                     <h4 v-if="group.sport" class="text-subtitle-1 font-weight-bold">{{ group.sport.name }}</h4>
                     <v-chip
-                      v-if="group.slots && group.slots.length > 1"
+                      v-if="group.originalItems && group.originalItems.length > 1"
                       size="x-small"
                       color="primary"
                       class="ml-2"
                     >
-                      {{ group.slots.length }} slots
+                      {{ group.originalItems.length }} slots
                     </v-chip>
                   </div>
 
-                  <div v-if="group.court" class="text-body-2 mb-1">
+                  <div v-if="group.court" class="text-body-2 mb-2">
                     <v-icon size="small" class="mr-1">mdi-stadium</v-icon>
                     <strong>Court:</strong> {{ group.court.name }}
                     <span v-if="group.court.surface_type" class="text-caption text-grey ml-1">
@@ -121,22 +122,43 @@
                     </span>
                   </div>
 
-                  <div v-if="group.date" class="text-body-2 mb-1">
-                    <v-icon size="small" class="mr-1">mdi-calendar</v-icon>
-                    <strong>Date:</strong> {{ formatDate(group.date) }}
+                  <!-- Time Slots List -->
+                  <div v-if="group.timeSlots && group.timeSlots.length > 0" class="time-slots-list">
+                    <div class="text-caption text-grey mb-1">
+                      <v-icon size="small" class="mr-1">mdi-calendar-clock</v-icon>
+                      <strong>Booked Time Slots:</strong>
+                    </div>
+                    <div
+                      v-for="(slot, index) in group.timeSlots"
+                      :key="index"
+                      class="time-slot-item mb-1 pl-4"
+                    >
+                      <v-chip
+                        size="small"
+                        color="info"
+                        variant="tonal"
+                        class="mr-2"
+                      >
+                        <v-icon start size="small">mdi-calendar</v-icon>
+                        {{ formatDate(slot.date) }}
+                      </v-chip>
+                      <v-chip
+                        size="small"
+                        color="primary"
+                        variant="tonal"
+                      >
+                        <v-icon start size="small">mdi-clock-outline</v-icon>
+                        {{ slot.startTime }} - {{ slot.endTime }}
+                        <span class="text-caption ml-1">
+                          ({{ calculateDuration(slot.startTime, slot.endTime) }})
+                        </span>
+                      </v-chip>
+                    </div>
                   </div>
 
-                  <div v-if="group.startTime && group.endTime" class="text-body-2 mb-1">
-                    <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
-                    <strong>Time:</strong> {{ group.startTime }} - {{ group.endTime }}
-                    <span v-if="group.slots && group.slots.length > 1" class="text-caption text-grey ml-1">
-                      ({{ calculateDuration(group.startTime, group.endTime) }})
-                    </span>
-                  </div>
-
-                  <div class="text-body-2 mb-1">
+                  <div class="text-body-2 mt-2">
                     <v-icon size="small" class="mr-1">mdi-cash</v-icon>
-                    <strong>Price:</strong> ₱{{ calculateGroupPrice(group) }}
+                    <strong>Total Price:</strong> ₱{{ calculateGroupPrice(group) }}
                   </div>
 
                   <v-chip
@@ -249,8 +271,8 @@
           <!-- Payment Summary -->
           <v-alert type="info" variant="tonal" class="mb-4">
             <div class="text-h6 mb-2">Total Amount to Pay</div>
-            <div class="text-h4 font-weight-bold text-success">₱{{ totalPrice }}</div>
-            <div class="text-caption mt-2">{{ groupedCartItems.length }} booking(s) • {{ cartItems.length }} time slot(s)</div>
+            <div class="text-h4 font-weight-bold text-success">₱{{ selectedTotalPrice }}</div>
+            <div class="text-caption mt-2">{{ selectedGroups.length }} court(s) • {{ selectedSlotsCount }} time slot(s)</div>
           </v-alert>
 
           <!-- Instructions -->
@@ -261,7 +283,7 @@
                 Payment Instructions
               </h3>
               <ol class="payment-instructions">
-                <li>Send <strong>₱{{ totalPrice }}</strong> to our GCash number</li>
+                <li>Send <strong>₱{{ selectedTotalPrice }}</strong> to our GCash number</li>
                 <li>Take a screenshot of your payment receipt</li>
                 <li>Upload the screenshot below</li>
                 <li>Click "Complete Payment" to finish</li>
@@ -582,17 +604,14 @@ export default {
       }
     }
 
-    // Group consecutive time slots for the same court and date
+    // Group cart items by court, then merge adjacent time slots within each date
     const groupedCartItems = computed(() => {
       if (!cartItems.value || cartItems.value.length === 0) {
         return []
       }
 
-      const groups = []
-      const itemsCopy = [...cartItems.value]
-
-      // Sort by court, date, and start time
-      itemsCopy.sort((a, b) => {
+      // Sort items by court, date, and start time
+      const itemsCopy = [...cartItems.value].sort((a, b) => {
         if (!a.court || !b.court) return 0
         if (a.court.id !== b.court.id) return a.court.id - b.court.id
         const dateA = a.booking_date || a.date
@@ -601,58 +620,87 @@ export default {
         return a.start_time.localeCompare(b.start_time)
       })
 
-      let currentGroup = null
+      // Group by court first
+      const courtGroups = new Map()
+
+      itemsCopy.forEach(item => {
+        if (!item || !item.court) return
+
+        const courtId = item.court.id
+        if (!courtGroups.has(courtId)) {
+          courtGroups.set(courtId, {
+            court: item.court,
+            sport: item.sport || item.court.sport,
+            items: []
+          })
+        }
+        courtGroups.get(courtId).items.push(item)
+      })
+
+      // Process each court group to merge adjacent time slots
+      const groups = []
       let groupIdCounter = 0
 
-      itemsCopy.forEach((item, index) => {
-        if (!item || !item.court) {
-          return // Skip invalid items
-        }
+      courtGroups.forEach(courtGroup => {
+        // Group by date and merge adjacent time slots
+        const dateSlots = new Map()
 
-        const itemDate = item.booking_date || item.date
-        const itemStartTime = item.start_time
-        const itemEndTime = item.end_time
+        courtGroup.items.forEach(item => {
+          const itemDate = item.booking_date || item.date
 
-        if (!currentGroup) {
-          // Start a new group
-          currentGroup = {
-            id: `group-${groupIdCounter++}-${item.court.id}-${itemDate}-${itemStartTime}`,
-            sport: item.sport || item.court.sport,
-            court: item.court,
-            date: itemDate,
-            originalItems: [item],
-            startTime: itemStartTime,
-            endTime: itemEndTime
+          if (!dateSlots.has(itemDate)) {
+            dateSlots.set(itemDate, [])
           }
-        } else {
-          // Check if this item is consecutive to the current group
-          const isSameCourt = item.court.id === currentGroup.court.id
-          const isSameDate = itemDate === currentGroup.date
-          const isConsecutive = itemStartTime === currentGroup.endTime
+          dateSlots.get(itemDate).push(item)
+        })
 
-          if (isSameCourt && isSameDate && isConsecutive) {
-            // Add to current group
-            currentGroup.originalItems.push(item)
-            currentGroup.endTime = itemEndTime
-          } else {
-            // Save current group and start a new one
-            groups.push(currentGroup)
-            currentGroup = {
-              id: `group-${groupIdCounter++}-${item.court.id}-${itemDate}-${itemStartTime}`,
-              sport: item.sport || item.court.sport,
-              court: item.court,
-              date: itemDate,
-              originalItems: [item],
-              startTime: itemStartTime,
-              endTime: itemEndTime
+        // Merge adjacent time slots within each date
+        const timeSlotGroups = []
+
+        dateSlots.forEach((items, date) => {
+          let currentSlot = null
+
+          items.forEach(item => {
+            if (!currentSlot) {
+              currentSlot = {
+                date: date,
+                startTime: item.start_time,
+                endTime: item.end_time,
+                items: [item]
+              }
+            } else {
+              // Check if this slot is adjacent to the current one
+              if (item.start_time === currentSlot.endTime) {
+                // Merge adjacent slots
+                currentSlot.endTime = item.end_time
+                currentSlot.items.push(item)
+              } else {
+                // Non-adjacent, save current and start new
+                timeSlotGroups.push(currentSlot)
+                currentSlot = {
+                  date: date,
+                  startTime: item.start_time,
+                  endTime: item.end_time,
+                  items: [item]
+                }
+              }
             }
-          }
-        }
+          })
 
-        // Add the last group
-        if (index === itemsCopy.length - 1 && currentGroup) {
-          groups.push(currentGroup)
-        }
+          // Add the last slot for this date
+          if (currentSlot) {
+            timeSlotGroups.push(currentSlot)
+          }
+        })
+
+        // Create a group for each court with its time slots
+        groups.push({
+          id: `court-${courtGroup.court.id}-${groupIdCounter++}`,
+          court: courtGroup.court,
+          sport: courtGroup.sport,
+          timeSlots: timeSlotGroups,
+          originalItems: courtGroup.items
+        })
       })
 
       return groups
@@ -840,7 +888,7 @@ export default {
           // Use all details from Payment Settings module
           const gcashNumber = settings.payment_gcash_number.replace(/-/g, '')
           const accountName = settings.payment_gcash_name.replace(/\s+/g, '')
-          const amount = totalPrice.value
+          const amount = selectedTotalPrice.value
 
           // Generate QR code with GCash payment link format
           const qrData = `gcash://pay?number=${gcashNumber}&amount=${amount}&name=${accountName}`
@@ -946,7 +994,7 @@ export default {
           title: 'Payment Submitted!',
           html: `
             <p>Successfully submitted <strong>${response.bookings.length}</strong> booking(s) with payment!</p>
-            <p class="text-muted">Total: <strong>₱${totalPrice.value}</strong></p>
+            <p class="text-muted">Total: <strong>₱${selectedTotalPrice.value}</strong></p>
             <div class="mt-3 text-info">
               <small>Your bookings will be confirmed after admin verifies your payment.</small>
             </div>
@@ -1137,6 +1185,22 @@ export default {
 .qr-label {
   font-weight: 600;
   color: #2e7d32;
+}
+
+/* Time Slots List */
+.time-slots-list {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px;
+  border-left: 3px solid rgb(var(--v-theme-primary));
+}
+
+.time-slot-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
 }
 
 /* Time Slots Arrangement */
@@ -1342,6 +1406,11 @@ export default {
   .cart-item .text-body-2 {
     font-size: 13px;
     line-height: 1.6;
+  }
+
+  .time-slot-item {
+    flex-direction: column;
+    align-items: flex-start !important;
   }
 
   .time-slots-grid {
