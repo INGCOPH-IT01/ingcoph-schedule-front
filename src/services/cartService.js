@@ -164,5 +164,32 @@ export const cartService = {
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to resend confirmation email')
     }
+  },
+
+  /**
+   * Update cart item (Admin only) - supports updating court, date, and time
+   * @param {number} cartItemId - Cart item ID
+   * @param {Object} updateData - Data to update (court_id, booking_date, start_time, end_time)
+   */
+  async updateCartItem(cartItemId, updateData) {
+    try {
+      const response = await api.put(`/admin/cart-items/${cartItemId}`, updateData)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to update cart item')
+    }
+  },
+
+  /**
+   * Delete cart item (Admin only)
+   * @param {number} cartItemId - Cart item ID
+   */
+  async deleteCartItem(cartItemId) {
+    try {
+      const response = await api.delete(`/admin/cart-items/${cartItemId}`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to delete cart item')
+    }
   }
 }
