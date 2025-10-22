@@ -210,55 +210,57 @@
           </v-card>
         </div>
 
-        <!-- Cart Items in Transaction (Admin detailed view) -->
+        <!-- Cart Items in Transaction (Admin detailed view) - Grouped by Court -->
         <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && booking.cart_items && booking.cart_items.length > 0">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-cart</v-icon>
-            Cart Items ({{ booking.cart_items.length }})
+            <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
+            Booked Courts & Time Slots ({{ booking.cart_items.length }} items)
           </h4>
 
-          <!-- Overall Time Range (Adjacent Time Sensitive) -->
-          <div v-if="adjacentTimeRanges.length > 0">
-            <v-card
-              v-for="(range, index) in adjacentTimeRanges"
-              :key="index"
-              variant="tonal"
-              color="primary"
-              :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
-            >
-              <v-card-text class="pa-3">
-                <div class="d-flex align-center justify-space-between">
-                  <div class="d-flex align-center">
-                    <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
-                    <div>
-                      <div class="text-caption text-grey-darken-1 mb-1">
-                        {{ adjacentTimeRanges.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
-                      </div>
-                      <div class="text-h6 font-weight-bold">
-                        {{ formatTimeSlot(range.start) }} - {{ formatTimeSlot(range.end) }}
-                      </div>
-                    </div>
+          <!-- Grouped by Court -->
+          <v-card
+            v-for="group in groupedCartItems"
+            :key="group.id"
+            variant="outlined"
+            class="mb-3"
+          >
+            <!-- Court Header -->
+            <v-card-title class="bg-grey-lighten-4 pa-3">
+              <div class="d-flex align-center">
+                <v-avatar :color="sportService.getSportColor(group.sport?.name)" size="40" class="mr-3">
+                  <v-icon color="white" size="24">{{ sportService.getSportIcon(group.sport?.name, group.sport?.icon) }}</v-icon>
+                </v-avatar>
+                <div class="flex-grow-1">
+                  <div class="text-subtitle-1 font-weight-bold">
+                    {{ group.court.name }}
+                    <span v-if="group.court.surface_type" class="text-caption text-grey font-weight-normal ml-1">
+                      ({{ group.court.surface_type }})
+                    </span>
                   </div>
-                  <v-chip color="primary" size="small">
-                    <v-icon start size="16">mdi-calendar-clock</v-icon>
-                    {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
-                  </v-chip>
+                  <div class="text-caption text-grey">
+                    {{ group.sport?.name || 'Unknown Sport' }} • {{ group.originalItems.length }} slot{{ group.originalItems.length > 1 ? 's' : '' }}
+                  </div>
                 </div>
-              </v-card-text>
-            </v-card>
-          </div>
+                <v-chip color="success" variant="tonal" size="small">
+                  <v-icon start size="small">mdi-cash</v-icon>
+                  ₱{{ calculateCourtGroupPrice(group) }}
+                </v-chip>
+              </div>
+            </v-card-title>
 
-          <!-- Pricing Breakdown -->
-          <div class="pricing-breakdown">
-            <!-- Group items by date and court for better organization -->
-            <v-card
-              v-for="(item, index) in booking.cart_items"
-              :key="index"
-              variant="outlined"
-              class="pa-3 mb-3"
-            >
+            <v-divider></v-divider>
+
+            <!-- Time Slots with Edit/Delete functionality -->
+            <v-card-text class="pa-3">
+              <!-- Individual items within this court group -->
+              <v-card
+                v-for="item in group.originalItems"
+                :key="item.id"
+                variant="outlined"
+                class="pa-3 mb-3"
+              >
               <!-- Admin Edit Mode for Court -->
-              <div v-if="isAdmin && editingCourtItemIndex === index" class="mb-3">
+              <div v-if="isAdmin && editingCourtItemIndex === item.id" class="mb-3">
                 <v-select
                   v-model="selectedCourtId"
                   :items="availableCourtsForItem"
@@ -320,7 +322,7 @@
                     size="small"
                     color="success"
                     variant="tonal"
-                    @click="saveCartItemCourtChange(item, index)"
+                    @click="saveCartItemCourtChange(item)"
                     :loading="savingCourt"
                     :disabled="!courtChanged"
                   >
@@ -338,7 +340,7 @@
               </div>
 
               <!-- Admin Edit Mode for Date/Time -->
-              <div v-else-if="isAdmin && editingDateTimeItemIndex === index" class="mb-3">
+              <div v-else-if="isAdmin && editingDateTimeItemIndex === item.id" class="mb-3">
                 <v-text-field
                   v-model="selectedBookingDate"
                   label="Booking Date"
@@ -372,7 +374,7 @@
                     size="small"
                     color="success"
                     variant="tonal"
-                    @click="saveCartItemDateTimeChange(item, index)"
+                    @click="saveCartItemDateTimeChange(item)"
                     :loading="savingDateTime"
                     :disabled="!dateTimeChanged"
                   >
@@ -393,40 +395,28 @@
               <div v-else>
                 <div class="d-flex align-center justify-space-between mb-2">
                   <div class="d-flex align-center flex-grow-1">
-                    <v-avatar :color="sportService.getSportColor(item.sport?.name)" size="32" class="mr-3">
-                      <v-icon color="white" size="20">{{ sportService.getSportIcon(item.sport?.name, item.sport?.icon) }}</v-icon>
-                    </v-avatar>
-                    <div class="flex-grow-1">
-                      <div class="d-flex align-center">
-                        <div class="text-subtitle-2 font-weight-bold">
-                          {{ item.court?.name || 'Unknown Court' }}
-                          <span v-if="item.court?.surface_type" class="text-caption text-grey font-weight-normal ml-1">
-                            ({{ item.court.surface_type }})
-                          </span>
-                        </div>
-                        <div v-if="isAdmin" class="d-flex ml-2">
-                          <v-btn
-                            icon="mdi-pencil"
-                            size="x-small"
-                            variant="text"
-                            color="primary"
-                            @click="startCartItemCourtEdit(item, index)"
-                            title="Edit Court"
-                          ></v-btn>
-                          <v-btn
-                            icon="mdi-delete"
-                            size="x-small"
-                            variant="text"
-                            color="error"
-                            @click="confirmDeleteTimeSlot(item, index)"
-                            title="Delete Time Slot"
-                          ></v-btn>
-                        </div>
-                      </div>
-                      <div class="text-caption text-grey">
-                        {{ item.sport?.name || 'Unknown Sport' }} • {{ formatBookingDate(item.booking_date) }}
-                      </div>
-                    </div>
+                    <v-icon size="16" class="mr-2" color="grey">mdi-calendar-outline</v-icon>
+                    <span class="text-body-2 font-weight-medium">
+                      {{ formatBookingDate(item.booking_date) }}
+                    </span>
+                  </div>
+                  <div v-if="isAdmin" class="d-flex gap-2">
+                    <v-btn
+                      icon="mdi-pencil"
+                      size="x-small"
+                      variant="text"
+                      color="primary"
+                      @click="startCartItemCourtEdit(item)"
+                      title="Edit Court"
+                    ></v-btn>
+                    <v-btn
+                      icon="mdi-delete"
+                      size="x-small"
+                      variant="text"
+                      color="error"
+                      @click="confirmDeleteTimeSlot(item)"
+                      title="Delete Time Slot"
+                    ></v-btn>
                   </div>
                 </div>
 
@@ -444,7 +434,7 @@
                         size="x-small"
                         variant="text"
                         color="primary"
-                        @click="startCartItemDateTimeEdit(item, index)"
+                        @click="startCartItemDateTimeEdit(item)"
                         title="Edit Date/Time"
                       ></v-btn>
                     </div>
@@ -455,66 +445,91 @@
                 </div>
               </div>
             </v-card>
-          </div>
+            </v-card-text>
+          </v-card>
         </div>
 
-        <!-- Time Slots Details (Simple view for non-admin) -->
+        <!-- Time Slots Details (Simple view for non-admin) - Grouped by Court -->
         <div class="detail-section mb-4" v-if="(!showAdminFeatures || !isTransaction) && booking.cart_items && booking.cart_items.length > 0">
           <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="primary">mdi-clock-outline</v-icon>
-            Time Slots
+            <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
+            Booked Courts & Time Slots
           </h4>
 
-          <!-- Overall Time Range (Adjacent Time Sensitive) -->
-          <div v-if="adjacentTimeRanges.length > 0">
-            <v-card
-              v-for="(range, index) in adjacentTimeRanges"
-              :key="index"
-              variant="tonal"
-              color="primary"
-              :class="['mb-3 overall-time-range', { 'mt-0': index === 0 }]"
-            >
-              <v-card-text class="pa-3">
-                <div class="d-flex align-center justify-space-between">
-                  <div class="d-flex align-center">
-                    <v-icon color="primary" size="32" class="mr-3">mdi-clock-time-four-outline</v-icon>
-                    <div>
-                      <div class="text-caption text-grey-darken-1 mb-1">
-                        {{ adjacentTimeRanges.length > 1 ? `Time Range ${index + 1}` : 'Overall Time Range' }}
-                      </div>
-                      <div class="text-h6 font-weight-bold">
-                        {{ formatTimeSlot(range.start) }} - {{ formatTimeSlot(range.end) }}
-                      </div>
-                    </div>
-                  </div>
-                  <v-chip color="primary" size="small">
-                    <v-icon start size="16">mdi-calendar-clock</v-icon>
-                    {{ range.slotCount }} slot{{ range.slotCount > 1 ? 's' : '' }}
+          <!-- Grouped by Court -->
+          <v-card
+            v-for="group in groupedCartItems"
+            :key="group.id"
+            variant="outlined"
+            class="mb-3 pa-4"
+          >
+            <!-- Court Header -->
+            <div class="d-flex align-center mb-3">
+              <v-avatar :color="sportService.getSportColor(group.sport?.name)" size="40" class="mr-3">
+                <v-icon color="white" size="24">{{ sportService.getSportIcon(group.sport?.name, group.sport?.icon) }}</v-icon>
+              </v-avatar>
+              <div>
+                <div class="text-subtitle-1 font-weight-bold">
+                  {{ group.court.name }}
+                  <span v-if="group.court.surface_type" class="text-caption text-grey font-weight-normal ml-1">
+                    ({{ group.court.surface_type }})
+                  </span>
+                </div>
+                <div class="text-caption text-grey">
+                  {{ group.sport?.name || 'Unknown Sport' }} • {{ group.originalItems.length }} slot{{ group.originalItems.length > 1 ? 's' : '' }}
+                </div>
+              </div>
+            </div>
+
+            <v-divider class="mb-3"></v-divider>
+
+            <!-- Time Slots List -->
+            <div class="time-slots-list">
+              <div class="text-caption text-grey mb-2">
+                <v-icon size="small" class="mr-1">mdi-calendar-clock</v-icon>
+                <strong>Booked Time Slots:</strong>
+              </div>
+              <div
+                v-for="(slot, index) in group.timeSlots"
+                :key="index"
+                class="d-flex justify-space-between align-center mb-2"
+              >
+                <div class="d-flex align-center flex-wrap gap-2">
+                  <v-chip
+                    size="small"
+                    color="info"
+                    variant="tonal"
+                  >
+                    <v-icon start size="small">mdi-calendar</v-icon>
+                    {{ formatBookingDate(slot.date) }}
+                  </v-chip>
+                  <v-chip
+                    size="small"
+                    color="primary"
+                    variant="tonal"
+                  >
+                    <v-icon start size="small">mdi-clock-outline</v-icon>
+                    {{ formatTimeSlot(slot.startTime) }} - {{ formatTimeSlot(slot.endTime) }}
+                    <span class="text-caption ml-1">
+                      ({{ calculateDuration(slot.startTime, slot.endTime) }})
+                    </span>
                   </v-chip>
                 </div>
-              </v-card-text>
-            </v-card>
-          </div>
+                <span class="font-weight-bold text-success ml-2">
+                  ₱{{ calculateSlotGroupPrice(slot) }}
+                </span>
+              </div>
+            </div>
 
-          <v-card variant="outlined" class="pa-4">
-            <v-list dense>
-              <v-list-item
-                v-for="(item, index) in booking.cart_items"
-                :key="index"
-                class="px-0"
-              >
-                <v-list-item-title>
-                  <div class="d-flex justify-space-between align-center">
-                    <span>
-                      <v-icon size="small" class="mr-2">mdi-clock-outline</v-icon>
-                      {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
-                    </span>
-                    <span class="font-weight-bold">₱{{ formatPrice(item.price) }}</span>
-                  </div>
-                </v-list-item-title>
-                <v-divider v-if="index < booking.cart_items.length - 1" class="my-2"></v-divider>
-              </v-list-item>
-            </v-list>
+            <v-divider class="my-3"></v-divider>
+
+            <!-- Group Total -->
+            <div class="d-flex justify-space-between align-center">
+              <span class="text-subtitle-2">Court Total:</span>
+              <span class="text-h6 font-weight-bold text-success">
+                ₱{{ calculateCourtGroupPrice(group) }}
+              </span>
+            </div>
           </v-card>
         </div>
 
@@ -1788,6 +1803,51 @@ export default {
       // Silent error handling
     }
 
+    // Calculate duration between two times
+    const calculateDuration = (startTime, endTime) => {
+      if (!startTime || !endTime) {
+        return '0 hours'
+      }
+      try {
+        const start = startTime.split(':')
+        const end = endTime.split(':')
+        const startMinutes = parseInt(start[0]) * 60 + parseInt(start[1] || 0)
+        const endMinutes = parseInt(end[0]) * 60 + parseInt(end[1] || 0)
+        const durationMinutes = endMinutes - startMinutes
+        const hours = Math.floor(durationMinutes / 60)
+        const minutes = durationMinutes % 60
+
+        if (minutes === 0) {
+          return `${hours} hour${hours !== 1 ? 's' : ''}`
+        }
+        return `${hours}h ${minutes}m`
+      } catch (error) {
+        return '0 hours'
+      }
+    }
+
+    // Calculate price for a slot group (merged adjacent time slots)
+    const calculateSlotGroupPrice = (slot) => {
+      if (!slot || !slot.items || !Array.isArray(slot.items)) {
+        return '0.00'
+      }
+      return slot.items.reduce((sum, item) => {
+        const price = item.price || 0
+        return sum + parseFloat(price)
+      }, 0).toFixed(2)
+    }
+
+    // Calculate total price for a court group
+    const calculateCourtGroupPrice = (group) => {
+      if (!group || !group.originalItems || !Array.isArray(group.originalItems)) {
+        return '0.00'
+      }
+      return group.originalItems.reduce((sum, item) => {
+        const price = item.price || 0
+        return sum + parseFloat(price)
+      }, 0).toFixed(2)
+    }
+
     // Validation function for file sizes
     const validateFileSize = (files) => {
       if (!files) return true
@@ -2045,7 +2105,7 @@ export default {
       try {
         loadingCourts.value = true
         // Fetch courts with availability info for this specific cart item
-        const response = await api.get(`/cart-items/${cartItemId}/available-courts`)
+        const response = await api.get(`/admin/cart-items/${cartItemId}/available-courts`)
         availableCourtsForItem.value = response.data.data
       } catch (error) {
         showSnackbar('Failed to load available courts', 'error')
@@ -2064,14 +2124,14 @@ export default {
       }
     }
 
-    const startCartItemCourtEdit = async (item, index) => {
+    const startCartItemCourtEdit = async (item) => {
       // Load courts with availability info for this cart item
       await loadAvailableCourtsForItem(item.id)
 
       // Set current court ID from cart item
       selectedCourtId.value = item.court?.id || item.court_id
       originalCourtId.value = selectedCourtId.value
-      editingCourtItemIndex.value = index
+      editingCourtItemIndex.value = item.id
     }
 
     const cancelCourtEdit = () => {
@@ -2081,7 +2141,7 @@ export default {
       availableCourtsForItem.value = []
     }
 
-    const saveCartItemCourtChange = async (item, index) => {
+    const saveCartItemCourtChange = async (item) => {
       if (!selectedCourtId.value) return
 
       // Check if the selected court is available
@@ -2095,7 +2155,7 @@ export default {
         savingCourt.value = true
 
         // Update the cart item via the API
-        const response = await api.put(`/cart-items/${item.id}`, {
+        const response = await api.put(`/admin/cart-items/${item.id}`, {
           court_id: selectedCourtId.value
         })
 
@@ -2173,7 +2233,7 @@ export default {
     })
 
     // Date/Time editing methods
-    const startCartItemDateTimeEdit = (item, index) => {
+    const startCartItemDateTimeEdit = (item) => {
       // Set current values from cart item
       const bookingDate = item.booking_date ? new Date(item.booking_date) : null
       selectedBookingDate.value = bookingDate ? bookingDate.toISOString().split('T')[0] : ''
@@ -2185,7 +2245,7 @@ export default {
       originalStartTime.value = selectedStartTime.value
       originalEndTime.value = selectedEndTime.value
 
-      editingDateTimeItemIndex.value = index
+      editingDateTimeItemIndex.value = item.id
     }
 
     const cancelDateTimeEdit = () => {
@@ -2195,7 +2255,7 @@ export default {
       editingDateTimeItemIndex.value = null
     }
 
-    const saveCartItemDateTimeChange = async (item, index) => {
+    const saveCartItemDateTimeChange = async (item) => {
       if (!selectedBookingDate.value || !selectedStartTime.value || !selectedEndTime.value) {
         showSnackbar('Please fill in all date and time fields', 'error')
         return
@@ -2259,14 +2319,14 @@ export default {
     }
 
     // Delete time slot methods
-    const confirmDeleteTimeSlot = (item, index) => {
+    const confirmDeleteTimeSlot = (item) => {
       timeSlotToDelete.value = item
-      timeSlotToDeleteIndex.value = index
+      timeSlotToDeleteIndex.value = null // Not needed anymore, but kept for compatibility
       deleteTimeSlotDialog.value = true
     }
 
     const deleteTimeSlot = async () => {
-      if (!timeSlotToDelete.value || timeSlotToDeleteIndex.value === null) return
+      if (!timeSlotToDelete.value) return
 
       // Check if this is the last item
       if (props.booking?.cart_items?.length <= 1) {
@@ -2279,11 +2339,14 @@ export default {
         deletingTimeSlot.value = true
 
         // Delete the cart item via API
-        await api.delete(`/cart-items/${timeSlotToDelete.value.id}`)
+        await api.delete(`/admin/cart-items/${timeSlotToDelete.value.id}`)
 
         // Remove the item from the local cart_items array
         if (props.booking?.cart_items) {
-          props.booking.cart_items.splice(timeSlotToDeleteIndex.value, 1)
+          const itemIndex = props.booking.cart_items.findIndex(ci => ci.id === timeSlotToDelete.value.id)
+          if (itemIndex !== -1) {
+            props.booking.cart_items.splice(itemIndex, 1)
+          }
 
           // Recalculate total price
           const newTotal = props.booking.cart_items.reduce((sum, item) => {
@@ -2463,6 +2526,108 @@ export default {
       }
 
       return timeRanges
+    })
+
+    // Group cart items by court, then merge adjacent time slots within each date
+    const groupedCartItems = computed(() => {
+      if (!props.booking || !props.booking.cart_items || props.booking.cart_items.length === 0) {
+        return []
+      }
+
+      // Sort items by court, date, and start time
+      const itemsCopy = [...props.booking.cart_items].sort((a, b) => {
+        if (!a.court || !b.court) return 0
+        if (a.court.id !== b.court.id) return a.court.id - b.court.id
+        const dateA = a.booking_date || a.date
+        const dateB = b.booking_date || b.date
+        if (dateA !== dateB) return dateA.localeCompare(dateB)
+        return a.start_time.localeCompare(b.start_time)
+      })
+
+      // Group by court first
+      const courtGroups = new Map()
+
+      itemsCopy.forEach(item => {
+        if (!item || !item.court) return
+
+        const courtId = item.court.id
+        if (!courtGroups.has(courtId)) {
+          courtGroups.set(courtId, {
+            court: item.court,
+            sport: item.sport || item.court.sport,
+            items: []
+          })
+        }
+        courtGroups.get(courtId).items.push(item)
+      })
+
+      // Process each court group to merge adjacent time slots
+      const groups = []
+      let groupIdCounter = 0
+
+      courtGroups.forEach(courtGroup => {
+        // Group by date and merge adjacent time slots
+        const dateSlots = new Map()
+
+        courtGroup.items.forEach(item => {
+          const itemDate = item.booking_date || item.date
+
+          if (!dateSlots.has(itemDate)) {
+            dateSlots.set(itemDate, [])
+          }
+          dateSlots.get(itemDate).push(item)
+        })
+
+        // Merge adjacent time slots within each date
+        const timeSlotGroups = []
+
+        dateSlots.forEach((items, date) => {
+          let currentSlot = null
+
+          items.forEach(item => {
+            if (!currentSlot) {
+              currentSlot = {
+                date: date,
+                startTime: item.start_time,
+                endTime: item.end_time,
+                items: [item]
+              }
+            } else {
+              // Check if this slot is adjacent to the current one
+              if (item.start_time === currentSlot.endTime) {
+                // Merge adjacent slots
+                currentSlot.endTime = item.end_time
+                currentSlot.items.push(item)
+              } else {
+                // Non-adjacent, save current and start new
+                timeSlotGroups.push(currentSlot)
+                currentSlot = {
+                  date: date,
+                  startTime: item.start_time,
+                  endTime: item.end_time,
+                  items: [item]
+                }
+              }
+            }
+          })
+
+          // Add the last slot for this date
+          if (currentSlot) {
+            timeSlotGroups.push(currentSlot)
+          }
+        })
+
+        // Create a group for each court with its time slots
+        groups.push({
+          id: `court-${courtGroup.court.id}-${groupIdCounter++}`,
+          court: courtGroup.court,
+          sport: courtGroup.sport,
+          timeSlots: timeSlotGroups,
+          originalItems: courtGroup.items
+        })
+      })
+
+      return groups
     })
 
     const totalPrice = computed(() => {
@@ -2660,11 +2825,16 @@ export default {
       formattedDate,
       formattedTimeRange,
       adjacentTimeRanges,
+      groupedCartItems,
       totalPrice,
       formattedCreatedAt,
       bookingStatus,
       statusColor,
       numberOfPlayers,
+      // Helper functions
+      calculateDuration,
+      calculateSlotGroupPrice,
+      calculateCourtGroupPrice,
       // Services
       sportService,
       statusService,
@@ -3095,6 +3265,22 @@ export default {
   .booking-view-dialog .v-list-item-subtitle {
     font-size: 11px;
   }
+}
+
+/* Time Slots List */
+.time-slots-list {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px;
+  border-left: 3px solid rgb(var(--v-theme-primary));
+}
+
+.time-slot-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
 }
 
 /* Touch-friendly buttons */

@@ -172,23 +172,41 @@
         </v-card-title>
         <v-divider></v-divider>
         <v-card-text class="pa-4" style="max-height: 500px; overflow-y: auto;">
-          <v-list v-if="selectedDayEvents.length > 0">
-            <v-list-item
-              v-for="event in selectedDayEvents"
-              :key="event.id"
-              class="event-list-item"
-              :class="`event-${event.status}`"
-              @click="handleEventClick(event)"
-            >
-              <template v-slot:prepend>
-                <div class="event-status-indicator" :class="`status-${event.status}`"></div>
-              </template>
-              <v-list-item-title>{{ event.userName }}</v-list-item-title>
-              <v-list-item-subtitle>
-                {{ formatEventTime(event) }} • {{ formatPrice(event.totalPrice) }}
-              </v-list-item-subtitle>
-            </v-list-item>
-          </v-list>
+          <div v-if="groupedDayEvents.length > 0">
+            <!-- Loop through each court -->
+            <div v-for="(courtGroup, courtIndex) in groupedDayEvents" :key="courtIndex" class="court-group">
+              <div class="court-header">
+                <v-icon size="small" class="mr-2">mdi-tennis-ball</v-icon>
+                <span class="court-name">{{ courtGroup.courtName }}</span>
+                <span v-if="courtGroup.surfaceType" class="court-surface">{{ courtGroup.surfaceType }}</span>
+              </div>
+
+              <!-- Loop through bookings for this court -->
+              <div v-for="(booking, bookingIndex) in courtGroup.bookings" :key="bookingIndex" class="booking-item">
+                <div class="booking-header" @click="handleEventClick(booking.event)">
+                  <div class="d-flex align-center gap-2">
+                    <div class="event-status-indicator mr-2" :class="`status-${booking.event.status}`"></div>
+                    <span class="booking-user mr-2">{{ booking.event.userName }}</span>
+                    <span class="booking-price">{{ formatPrice(booking.courtTotalPrice) }}</span>
+                  </div>
+                </div>
+
+                <!-- Time slot groups -->
+                <div class="time-slots">
+                  <v-chip
+                    v-for="(slotGroup, slotIndex) in booking.timeSlotGroups"
+                    :key="slotIndex"
+                    size="small"
+                    variant="tonal"
+                    class="time-slot-chip"
+                  >
+                    <v-icon start size="x-small">mdi-clock-outline</v-icon>
+                    {{ formatTimeSlot(slotGroup.start, slotGroup.end) }}
+                  </v-chip>
+                </div>
+              </div>
+            </div>
+          </div>
           <div v-else class="text-center py-8 text-grey">
             No transactions on this day
           </div>
@@ -249,6 +267,98 @@ export default {
     const selectedDayEvents = computed(() => {
       if (!selectedDay.value) return []
       return selectedDay.value.events
+    })
+
+    // Group events by court and time slots
+    const groupedDayEvents = computed(() => {
+      if (!selectedDay.value || selectedDay.value.events.length === 0) return []
+
+      // Create a map to hold court groups
+      const courtMap = new Map()
+
+      selectedDay.value.events.forEach(event => {
+        const transaction = event.transaction
+        if (!transaction.cart_items) return
+
+        // Group cart items by court
+        const courtItemsMap = new Map()
+
+        transaction.cart_items.forEach(item => {
+          const courtName = item.court?.name || 'Unknown Court'
+          if (!courtItemsMap.has(courtName)) {
+            courtItemsMap.set(courtName, [])
+          }
+          courtItemsMap.get(courtName).push(item)
+        })
+
+        // Process each court
+        courtItemsMap.forEach((items, courtName) => {
+          if (!courtMap.has(courtName)) {
+            courtMap.set(courtName, {
+              surfaceType: items[0]?.court?.surface_type || null,
+              bookings: []
+            })
+          }
+
+          // Sort items by start time
+          const sortedItems = [...items].sort((a, b) =>
+            a.start_time.localeCompare(b.start_time)
+          )
+
+          // Group adjacent time slots
+          const timeSlotGroups = []
+          let currentGroup = null
+
+          sortedItems.forEach(item => {
+            if (!currentGroup) {
+              currentGroup = {
+                start: item.start_time,
+                end: item.end_time,
+                items: [item]
+              }
+            } else if (currentGroup.end === item.start_time) {
+              // Adjacent slot
+              currentGroup.end = item.end_time
+              currentGroup.items.push(item)
+            } else {
+              // Gap detected, save current group and start new one
+              timeSlotGroups.push(currentGroup)
+              currentGroup = {
+                start: item.start_time,
+                end: item.end_time,
+                items: [item]
+              }
+            }
+          })
+
+          // Add the last group
+          if (currentGroup) {
+            timeSlotGroups.push(currentGroup)
+          }
+
+          // Calculate total price for this court's time slots
+          const courtTotalPrice = sortedItems.reduce((sum, item) => {
+            return sum + (parseFloat(item.price) || 0)
+          }, 0)
+
+          // Add to court map
+          courtMap.get(courtName).bookings.push({
+            event,
+            transaction,
+            timeSlotGroups,
+            courtTotalPrice
+          })
+        })
+      })
+
+      // Convert map to array and sort
+      const result = Array.from(courtMap.entries()).map(([courtName, courtData]) => ({
+        courtName,
+        surfaceType: courtData.surfaceType,
+        bookings: courtData.bookings
+      })).sort((a, b) => a.courtName.localeCompare(b.courtName))
+
+      return result
     })
 
     // Generate calendar days for the current month
@@ -426,6 +536,20 @@ export default {
       return `₱${parseFloat(price || 0).toFixed(2)}`
     }
 
+    const formatTimeSlot = (startTime, endTime) => {
+      if (!startTime || !endTime) return ''
+
+      const formatTime = (time) => {
+        const [hours, minutes] = time.split(':')
+        const hour = parseInt(hours)
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour % 12 || 12
+        return `${displayHour}:${minutes} ${ampm}`
+      }
+
+      return `${formatTime(startTime)} - ${formatTime(endTime)}`
+    }
+
     const handleEventClick = (event) => {
       emit('event-click', event.transaction)
       dayEventsDialog.value = false
@@ -545,11 +669,13 @@ export default {
       selectedDay,
       selectedDayTitle,
       selectedDayEvents,
+      groupedDayEvents,
       monthYearPicker,
       selectedMonth,
       selectedYear,
       formatEventTime,
       formatPrice,
+      formatTimeSlot,
       handleEventClick,
       showDayEvents,
       previousMonth,
@@ -801,25 +927,12 @@ export default {
   background: var(--calendar-theme-hover, rgba(25, 118, 210, 0.2));
 }
 
-/* Event List Item in Dialog */
-.event-list-item {
-  cursor: pointer;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
-  padding: 12px !important;
-}
-
-.event-list-item:hover {
-  background: #f8fafc;
-  transform: translateX(4px);
-}
-
+/* Event Status Indicator */
 .event-status-indicator {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  margin-right: 8px;
+  flex-shrink: 0;
 }
 
 .event-status-indicator.status-pending {
@@ -832,6 +945,81 @@ export default {
 
 .event-status-indicator.status-rejected {
   background: #ef4444;
+}
+
+/* Court Group Styles */
+.court-group {
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.court-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--calendar-theme-light, rgba(25, 118, 210, 0.1));
+  border-bottom: 1px solid var(--calendar-theme-color, #BBDEFB);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.court-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.court-surface {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-left: 8px;
+}
+
+.booking-item {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.booking-item:last-child {
+  border-bottom: none;
+}
+
+.booking-header {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 4px 0;
+}
+
+.booking-header:hover {
+  opacity: 0.7;
+}
+
+.booking-user {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.booking-price {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.time-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding-left: 26px;
+}
+
+.time-slot-chip {
+  font-size: 0.813rem;
+  font-weight: 500;
 }
 
 /* Responsive Design */
