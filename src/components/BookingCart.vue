@@ -39,9 +39,35 @@
 
         <!-- Cart Items -->
         <div v-else>
+          <!-- Rejection Warning -->
+          <v-alert
+            v-if="cartTransaction && cartTransaction.approval_status === 'rejected'"
+            type="error"
+            variant="tonal"
+            class="mb-3"
+            density="compact"
+            prominent
+          >
+            <div class="d-flex align-center">
+              <v-icon class="mr-2">mdi-alert-circle</v-icon>
+              <div>
+                <strong>Booking Rejected</strong>
+                <p class="mb-0 mt-1">
+                  This booking has been rejected by the admin and cannot be processed.
+                  <span v-if="cartTransaction.rejection_reason" class="d-block mt-1">
+                    <strong>Reason:</strong> {{ cartTransaction.rejection_reason }}
+                  </span>
+                </p>
+                <p class="text-caption mb-0 mt-2">
+                  Please create a new booking or contact support.
+                </p>
+              </div>
+            </div>
+          </v-alert>
+
           <!-- Expiration Timer Warning -->
           <v-alert
-            v-if="timeRemaining && cartTransaction"
+            v-if="timeRemaining && cartTransaction && cartTransaction.approval_status !== 'rejected'"
             :type="expirationWarning ? 'warning' : 'info'"
             variant="tonal"
             class="mb-3"
@@ -245,7 +271,7 @@
           v-if="cartItems.length > 0"
           color="success"
           @click="openPaymentDialog"
-          :disabled="selectedGroups.length === 0"
+          :disabled="selectedGroups.length === 0 || (cartTransaction && cartTransaction.approval_status === 'rejected')"
         >
           <v-icon start>mdi-cash-multiple</v-icon>
           Proceed to Payment ({{ selectedGroups.length }})
@@ -965,6 +991,21 @@ export default {
         return
       }
 
+      // Validate that transaction hasn't been rejected
+      if (cartTransaction.value && cartTransaction.value.approval_status === 'rejected') {
+        showAlert({
+          icon: 'error',
+          title: 'Booking Rejected',
+          html: `<p>This booking has been rejected by the admin and cannot be processed.</p>
+                 ${cartTransaction.value.rejection_reason ? `<p class="mt-2"><strong>Reason:</strong> ${cartTransaction.value.rejection_reason}</p>` : ''}
+                 <p class="mt-2 text-caption">Please create a new booking or contact support.</p>`,
+          confirmButtonText: 'OK'
+        })
+        // Refresh the cart to remove rejected items
+        await loadCart()
+        return
+      }
+
       checkingOut.value = true
       try {
         // Get only selected cart items
@@ -1015,6 +1056,8 @@ export default {
       } catch (error) {
 
         let errorMessage = 'Failed to process payment. Please try again.'
+        let errorTitle = 'Payment Failed'
+
         if (error.response?.data?.message) {
           errorMessage = error.response.data.message
         } else if (error.response?.data?.error) {
@@ -1023,9 +1066,21 @@ export default {
           errorMessage = error.message
         }
 
+        // Special handling for rejected transactions
+        if (error.response?.data?.error === 'TRANSACTION_REJECTED') {
+          errorTitle = 'Booking Rejected'
+          if (error.response?.data?.rejection_reason) {
+            errorMessage += `<br><br><strong>Reason:</strong> ${error.response.data.rejection_reason}`
+          }
+          errorMessage += '<br><br><small>Please create a new booking or contact support.</small>'
+
+          // Refresh cart to remove rejected items
+          await loadCart()
+        }
+
         showAlert({
           icon: 'error',
-          title: 'Payment Failed',
+          title: errorTitle,
           html: `<p>${errorMessage}</p>${error.response?.data?.trace ? '<pre style="text-align: left; font-size: 10px; max-height: 200px; overflow: auto;">' + error.response.data.trace + '</pre>' : ''}`
         })
       } finally {
