@@ -948,6 +948,18 @@
             Reject
           </v-btn>
         </template>
+        <!-- Reject button for approved bookings (Admin only) -->
+        <template v-if="isAdmin && booking.approval_status === 'approved'">
+          <v-btn
+            color="error"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-close"
+            @click="showRejectDialog"
+          >
+            Reject Approved Booking
+          </v-btn>
+        </template>
         <v-spacer></v-spacer>
         <v-btn
           color="primary"
