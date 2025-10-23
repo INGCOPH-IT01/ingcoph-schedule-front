@@ -981,7 +981,16 @@ export default {
         filtered = filtered.filter(transaction => {
           const userName = transaction.user?.name?.toLowerCase() || ''
           const userEmail = transaction.user?.email?.toLowerCase() || ''
-          return userName.includes(searchTerm) || userEmail.includes(searchTerm)
+
+          // Also search the "booking for" user fields (for admin bookings)
+          const firstCartItem = transaction.cart_items?.[0]
+          const bookingForUserName = firstCartItem?.booking_for_user_name?.toLowerCase() || ''
+          const bookingForUserEmail = firstCartItem?.booking_for_user?.email?.toLowerCase() || ''
+
+          return userName.includes(searchTerm) ||
+                 userEmail.includes(searchTerm) ||
+                 bookingForUserName.includes(searchTerm) ||
+                 bookingForUserEmail.includes(searchTerm)
         })
       }
 
