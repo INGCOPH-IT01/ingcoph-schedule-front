@@ -131,6 +131,7 @@
           'today': day.isToday,
           'has-events': day.events.length > 0
         }"
+        @click="showDayEvents(day)"
       >
         <div class="day-number">{{ day.date.getDate() }}</div>
         <div class="day-events">
@@ -139,7 +140,7 @@
             :key="event.id"
             class="calendar-event"
             :class="`event-${event.status}`"
-            @click="handleEventClick(event)"
+            @click.stop="handleEventClick(event)"
           >
             <div class="event-indicator"></div>
             <div class="event-content">
@@ -150,7 +151,7 @@
           <div
             v-if="day.events.length > 3"
             class="more-events"
-            @click="showDayEvents(day)"
+            @click.stop="showDayEvents(day)"
           >
             +{{ day.events.length - 3 }} more
           </div>
