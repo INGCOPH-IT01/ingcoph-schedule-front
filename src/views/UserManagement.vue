@@ -154,6 +154,7 @@
       v-model="dialog"
       max-width="800px"
       persistent
+      scrollable
       class="responsive-dialog"
     >
       <v-card class="user-dialog">
@@ -695,45 +696,25 @@ export default {
   font-weight: 600;
 }
 
-/* Fixed Header and Footer for User Dialog */
+/* User Dialog */
 .user-dialog {
   display: flex;
   flex-direction: column;
   max-height: 90vh;
 }
 
-.user-dialog > .v-card-title,
-.user-dialog > .dialog-title {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.user-dialog > .v-card-text {
-  overflow-y: auto;
-  flex: 1;
-  max-height: calc(90vh - 160px);
-}
-
-.user-dialog > .v-card-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
-  background: white;
-  box-shadow: 0 -2px 4px rgba(0,0,0,0.1);
+.user-dialog .v-card-text {
+  padding: 24px !important;
 }
 
 /* Responsive */
 @media (max-width: 1280px) {
   .v-dialog.responsive-dialog {
-    margin: 0 !important;
+    margin: 12px !important;
   }
 
   .user-dialog {
-    max-height: 100vh;
-    height: 100vh;
+    max-height: calc(100vh - 24px);
   }
 }
 
