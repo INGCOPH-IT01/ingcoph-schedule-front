@@ -260,7 +260,7 @@
                 class="pa-3 mb-3"
               >
               <!-- Admin Edit Mode for Court -->
-              <div v-if="isAdmin && editingCourtItemIndex === item.id" class="mb-3">
+              <div v-if="isStaffOrAdmin && editingCourtItemIndex === item.id" class="mb-3">
                 <v-select
                   v-model="selectedCourtId"
                   :items="availableCourtsForItem"
@@ -340,7 +340,7 @@
               </div>
 
               <!-- Admin Edit Mode for Date/Time -->
-              <div v-else-if="isAdmin && editingDateTimeItemIndex === item.id" class="mb-3">
+              <div v-else-if="isStaffOrAdmin && editingDateTimeItemIndex === item.id" class="mb-3">
                 <v-text-field
                   v-model="selectedBookingDate"
                   label="Booking Date"
@@ -400,7 +400,7 @@
                       {{ formatBookingDate(item.booking_date) }}
                     </span>
                   </div>
-                  <div v-if="isAdmin" class="d-flex gap-2">
+                  <div v-if="isStaffOrAdmin" class="d-flex gap-2">
                     <v-btn
                       icon="mdi-pencil"
                       size="x-small"
@@ -428,7 +428,7 @@
                     <span class="text-body-2">
                       {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
                     </span>
-                    <div v-if="isAdmin" class="d-flex ml-2">
+                    <div v-if="isStaffOrAdmin" class="d-flex ml-2">
                       <v-btn
                         icon="mdi-calendar-edit"
                         size="x-small"
