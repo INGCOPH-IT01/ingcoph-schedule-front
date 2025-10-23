@@ -2921,10 +2921,8 @@ export default {
           // Load payment settings for payment QR code
           loadPaymentSettings()
 
-          // Load waitlist entries (only for admin/staff)
-          if (props.showAdminFeatures) {
-            loadWaitlistEntries()
-          }
+          // Load waitlist entries (for all users to see who's waiting)
+          loadWaitlistEntries()
 
           // Load QR code if booking is approved
           if (isApprovedBooking.value) {
