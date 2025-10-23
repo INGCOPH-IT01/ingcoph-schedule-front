@@ -433,14 +433,14 @@
 
             <template v-slot:[`item.approval_status`]="{ item }">
               <v-chip
-                :color="item.approval_status === 'approved' ? 'success' : item.approval_status === 'rejected' ? 'error' : 'warning'"
+                :color="getApprovalStatusColor(item.approval_status)"
                 variant="tonal"
                 size="small"
               >
                 <v-icon class="mr-1" size="small">
-                  {{ item.approval_status === 'approved' ? 'mdi-check-circle' : item.approval_status === 'rejected' ? 'mdi-close-circle' : 'mdi-clock-alert' }}
+                  {{ getApprovalStatusIcon(item.approval_status) }}
                 </v-icon>
-                {{ item.approval_status ? item.approval_status.charAt(0).toUpperCase() + item.approval_status.slice(1) : 'Pending' }}
+                {{ getApprovalStatusText(item.approval_status) }}
               </v-chip>
             </template>
 
@@ -495,7 +495,7 @@
                   View
                 </v-btn>
                 <v-btn
-                  v-if="item.approval_status === 'pending'"
+                  v-if="item.approval_status === 'pending' || item.approval_status === 'pending_waitlist'"
                   color="success"
                   variant="tonal"
                   size="small"
@@ -507,7 +507,7 @@
                   Approve
                 </v-btn>
                 <v-btn
-                  v-if="item.approval_status === 'pending'"
+                  v-if="item.approval_status === 'pending' || item.approval_status === 'pending_waitlist'"
                   color="error"
                   variant="tonal"
                   size="small"
@@ -881,6 +881,37 @@ export default {
       return icons[status] || 'mdi-information'
     }
 
+    // Approval status helper functions
+    const getApprovalStatusColor = (status) => {
+      const colors = {
+        'approved': 'success',
+        'rejected': 'error',
+        'pending': 'warning',
+        'pending_waitlist': 'info'
+      }
+      return colors[status] || 'warning'
+    }
+
+    const getApprovalStatusText = (status) => {
+      const texts = {
+        'approved': 'Approved',
+        'rejected': 'Rejected',
+        'pending': 'Pending',
+        'pending_waitlist': 'Pending Waitlist'
+      }
+      return texts[status] || 'Pending'
+    }
+
+    const getApprovalStatusIcon = (status) => {
+      const icons = {
+        'approved': 'mdi-check-circle',
+        'rejected': 'mdi-close-circle',
+        'pending': 'mdi-clock-alert',
+        'pending_waitlist': 'mdi-clock-check'
+      }
+      return icons[status] || 'mdi-clock-alert'
+    }
+
     // Additional helper functions for booking details
     const viewBookingDetails = (booking) => {
       selectedBooking.value = booking
@@ -952,7 +983,10 @@ export default {
 
     // Computed properties for transaction counts
     const pendingTransactionsCount = computed(() => {
-      return pendingBookings.value.filter(t => (t.approval_status || 'pending') === 'pending').length
+      return pendingBookings.value.filter(t => {
+        const status = t.approval_status || 'pending'
+        return status === 'pending' || status === 'pending_waitlist'
+      }).length
     })
 
     const approvedTransactionsCount = computed(() => {
@@ -1256,6 +1290,10 @@ export default {
       getPaymentStatusColor,
       getPaymentStatusText,
       getPaymentStatusIcon,
+      // Approval status functions
+      getApprovalStatusColor,
+      getApprovalStatusText,
+      getApprovalStatusIcon,
       // Booking details functions
       viewBookingDetails,
       handleAttendanceUpdated,

@@ -1103,11 +1103,85 @@
             </div>
           </v-card>
         </div>
+
+        <!-- Waitlist Section (Show for pending bookings with waitlist entries) -->
+        <div class="detail-section mb-4" v-if="waitlistEntries.length > 0 || loadingWaitlist">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="info">mdi-format-list-numbered</v-icon>
+            Waitlist Queue
+            <v-chip v-if="waitlistEntries.length > 0" size="small" color="info" variant="tonal" class="ml-2">
+              {{ waitlistEntries.length }} {{ waitlistEntries.length === 1 ? 'person' : 'people' }} waiting
+            </v-chip>
+          </h4>
+          <v-card variant="outlined">
+            <v-card-text class="pa-0">
+              <v-progress-linear v-if="loadingWaitlist" indeterminate color="info"></v-progress-linear>
+
+              <div v-else-if="waitlistEntries.length > 0">
+                <v-list lines="two">
+                  <v-list-item
+                    v-for="(entry, index) in waitlistEntries"
+                    :key="entry.id"
+                    class="waitlist-entry"
+                  >
+                    <template v-slot:prepend>
+                      <v-avatar :color="getWaitlistStatusColor(entry.status)" size="40" class="mr-3">
+                        <span class="text-white font-weight-bold">#{{ index + 1 }}</span>
+                      </v-avatar>
+                    </template>
+
+                    <v-list-item-title class="d-flex align-center">
+                      <span class="font-weight-bold mr-2">{{ entry.user?.name || 'Unknown User' }}</span>
+                      <v-chip :color="getWaitlistStatusColor(entry.status)" size="x-small" variant="tonal">
+                        {{ formatWaitlistStatus(entry.status) }}
+                      </v-chip>
+                    </v-list-item-title>
+
+                    <v-list-item-subtitle>
+                      <div class="d-flex flex-column gap-1 mt-1">
+                        <div class="d-flex align-center">
+                          <v-icon size="x-small" class="mr-1">mdi-email</v-icon>
+                          <span class="text-caption">{{ entry.user?.email || 'N/A' }}</span>
+                        </div>
+                        <div class="d-flex align-center">
+                          <v-icon size="x-small" class="mr-1">mdi-clock-outline</v-icon>
+                          <span class="text-caption">Joined {{ formatWaitlistDate(entry.created_at) }}</span>
+                        </div>
+                        <div v-if="entry.notified_at" class="d-flex align-center">
+                          <v-icon size="x-small" class="mr-1" color="success">mdi-bell-ring</v-icon>
+                          <span class="text-caption">Notified {{ formatWaitlistDate(entry.notified_at) }}</span>
+                        </div>
+                        <div v-if="entry.expires_at && entry.status === 'notified'" class="d-flex align-center">
+                          <v-icon size="x-small" class="mr-1" color="warning">mdi-clock-alert</v-icon>
+                          <span class="text-caption">Expires {{ formatWaitlistDate(entry.expires_at) }}</span>
+                        </div>
+                      </div>
+                    </v-list-item-subtitle>
+
+                    <template v-slot:append>
+                      <div class="d-flex flex-column align-end">
+                        <v-chip size="small" variant="outlined" color="primary">
+                          <v-icon start size="small">mdi-cash</v-icon>
+                          ₱{{ parseFloat(entry.price || 0).toFixed(2) }}
+                        </v-chip>
+                      </div>
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </div>
+
+              <div v-else class="pa-6 text-center text-grey">
+                <v-icon size="48" color="grey-lighten-1">mdi-format-list-numbered</v-icon>
+                <p class="mt-2">No waitlist entries</p>
+              </div>
+            </v-card-text>
+          </v-card>
+        </div>
       </v-card-text>
 
       <v-card-actions class="pa-4">
         <!-- Approve and Reject buttons for Admin only -->
-        <template v-if="isAdmin && booking.approval_status === 'pending'">
+        <template v-if="isAdmin && (booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist')">
           <v-btn
             color="success"
             variant="tonal"
@@ -1530,6 +1604,50 @@ export default {
     const formatDateTime = (dateTime) => {
       if (!dateTime) return 'N/A'
       return new Date(dateTime).toLocaleString()
+    }
+
+    // Waitlist helper functions
+    const getWaitlistStatusColor = (status) => {
+      const colors = {
+        'pending': 'warning',
+        'notified': 'info',
+        'converted': 'success',
+        'expired': 'grey',
+        'cancelled': 'error'
+      }
+      return colors[status] || 'grey'
+    }
+
+    const formatWaitlistStatus = (status) => {
+      const labels = {
+        'pending': 'Pending',
+        'notified': 'Notified',
+        'converted': 'Converted',
+        'expired': 'Expired',
+        'cancelled': 'Cancelled'
+      }
+      return labels[status] || status
+    }
+
+    const formatWaitlistDate = (dateTime) => {
+      if (!dateTime) return 'N/A'
+      const date = new Date(dateTime)
+      const now = new Date()
+      const diffMs = now - date
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+
+      if (diffMins < 1) return 'just now'
+      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
+      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      })
     }
 
     const getBookingDate = (booking) => {
@@ -2972,6 +3090,10 @@ export default {
       calculateDuration,
       calculateSlotGroupPrice,
       calculateCourtGroupPrice,
+      // Waitlist helper functions
+      getWaitlistStatusColor,
+      formatWaitlistStatus,
+      formatWaitlistDate,
       // Services
       sportService,
       statusService,
@@ -3456,5 +3578,29 @@ export default {
     max-height: calc(100vh - 120px);
     overflow-y: auto;
   }
+}
+
+/* Waitlist Styles */
+.waitlist-entry {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.waitlist-entry:last-child {
+  border-bottom: none;
+}
+
+.waitlist-entry:hover {
+  background: #f8fafc;
+}
+
+.waitlist-entry .v-avatar {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.waitlist-entry .text-caption {
+  font-size: 0.75rem;
+  color: #64748b;
 }
 </style>
