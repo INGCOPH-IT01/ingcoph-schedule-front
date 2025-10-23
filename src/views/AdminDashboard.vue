@@ -368,7 +368,7 @@
                       class="ml-2"
                     >
                       <v-icon size="x-small" class="mr-1">{{ getBookedByUserRoleIcon(item) }}</v-icon>
-                      Booked by {{ item.user?.role || 'Admin' }}
+                      Booked by {{ item.user?.name || 'Admin' }}
                     </v-chip>
                   </div>
                   <div class="text-caption" style="color: #475569;">{{ getDisplayUserEmail(item) }}</div>

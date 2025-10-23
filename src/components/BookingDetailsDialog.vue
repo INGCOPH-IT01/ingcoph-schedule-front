@@ -37,7 +37,7 @@
                   class="ml-2"
                 >
                   <v-icon size="x-small" class="mr-1">{{ getBookedByUserRoleIcon(booking) }}</v-icon>
-                  Booked by {{ booking.user?.role || 'Admin' }}
+                  Booked by {{ booking.user?.name || 'Admin' }}
                 </v-chip>
               </div>
             </div>

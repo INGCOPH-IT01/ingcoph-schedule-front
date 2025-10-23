@@ -252,7 +252,7 @@
                                 variant="outlined"
                                 class="ml-1"
                               >
-                                Admin
+                                By: {{ booking.user?.name || 'Admin' }}
                               </v-chip>
                             </div>
                           </div>
