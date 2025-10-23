@@ -7,8 +7,8 @@
     </div>
 
     <v-container fluid class="fill-height">
-      <v-row align="center" justify="center">
-        <v-col cols="12" sm="8" md="6" lg="4">
+      <v-row align="center" justify="center" class="pa-2">
+        <v-col cols="12" sm="10" md="8" lg="5" xl="4">
           <div class="auth-card">
             <div class="auth-header">
               <div class="header-badge">
@@ -28,22 +28,22 @@
                     <v-text-field
                       v-model="form.first_name"
                       label="First Name"
-                      :rules="firstNameRules"
                       required
                       variant="outlined"
                       prepend-inner-icon="mdi-account"
                       class="form-field mb-4"
+                      :error="!validations.firstName && form.first_name !== ''"
                     ></v-text-field>
                   </v-col>
                   <v-col cols="12" sm="6">
                     <v-text-field
                       v-model="form.last_name"
                       label="Last Name"
-                      :rules="lastNameRules"
                       required
                       variant="outlined"
                       prepend-inner-icon="mdi-account"
                       class="form-field mb-4"
+                      :error="!validations.lastName && form.last_name !== ''"
                     ></v-text-field>
                   </v-col>
                 </v-row>
@@ -52,50 +52,111 @@
                   v-model="form.email"
                   label="Email"
                   type="email"
-                  :rules="emailRules"
                   required
                   variant="outlined"
                   prepend-inner-icon="mdi-email"
                   class="form-field mb-4"
+                  :error="!validations.email && form.email !== ''"
                 ></v-text-field>
 
                 <v-text-field
-                  v-model="form.phone"
+                  v-model="phoneDisplay"
                   label="Mobile Number"
                   type="tel"
-                  :rules="phoneRules"
                   required
                   variant="outlined"
                   prepend-inner-icon="mdi-phone"
                   class="form-field mb-4"
-                  placeholder="+63 912 345 6789"
+                  placeholder="+639178021376"
+                  :error="!validations.phone && form.phone !== ''"
+                  @input="handlePhoneInput"
+                  maxlength="13"
+                  hint="Format: +639XXXXXXXXX"
+                  persistent-hint
                 ></v-text-field>
 
                 <v-text-field
                   v-model="form.password"
                   label="Password"
                   :type="showPassword ? 'text' : 'password'"
-                  :rules="passwordRules"
                   required
                   variant="outlined"
                   prepend-inner-icon="mdi-lock"
                   :append-inner-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
                   @click:append-inner="showPassword = !showPassword"
-                  class="form-field mb-4"
+                  class="form-field mb-2"
+                  :error="!validations.password && form.password !== ''"
                 ></v-text-field>
 
                 <v-text-field
                   v-model="form.password_confirmation"
                   label="Confirm Password"
                   :type="showPasswordConfirm ? 'text' : 'password'"
-                  :rules="confirmPasswordRules"
                   required
                   variant="outlined"
                   prepend-inner-icon="mdi-lock-check"
                   :append-inner-icon="showPasswordConfirm ? 'mdi-eye' : 'mdi-eye-off'"
                   @click:append-inner="showPasswordConfirm = !showPasswordConfirm"
-                  class="form-field mb-4"
+                  class="form-field mb-2"
+                  :error="!validations.passwordMatch && form.password_confirmation !== ''"
                 ></v-text-field>
+
+                <!-- Validation Requirements List -->
+                <div class="validation-requirements mb-4">
+                  <div class="requirements-header">
+                    <v-icon size="18" class="mr-1">mdi-shield-check</v-icon>
+                    <span>Registration Requirements</span>
+                  </div>
+
+                  <div class="requirements-list">
+                    <!-- Name Requirements -->
+                    <div class="requirement-item" :class="{ valid: validations.firstName, invalid: !validations.firstName && form.first_name }">
+                      <v-icon :color="validations.firstName ? 'success' : (form.first_name ? 'error' : 'grey')">
+                        {{ validations.firstName ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                      <span>First name (at least 2 characters)</span>
+                    </div>
+
+                    <div class="requirement-item" :class="{ valid: validations.lastName, invalid: !validations.lastName && form.last_name }">
+                      <v-icon :color="validations.lastName ? 'success' : (form.last_name ? 'error' : 'grey')">
+                        {{ validations.lastName ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                      <span>Last name (at least 2 characters)</span>
+                    </div>
+
+                    <!-- Email Requirements -->
+                    <div class="requirement-item" :class="{ valid: validations.email, invalid: !validations.email && form.email }">
+                      <v-icon :color="validations.email ? 'success' : (form.email ? 'error' : 'grey')">
+                        {{ validations.email ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                      <span>Valid email address</span>
+                    </div>
+
+                    <!-- Phone Requirements -->
+                    <div class="requirement-item" :class="{ valid: validations.phone, invalid: !validations.phone && form.phone }">
+                      <v-icon :color="validations.phone ? 'success' : (form.phone ? 'error' : 'grey')">
+                        {{ validations.phone ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                      <span>Mobile number (+639XXXXXXXXX format)</span>
+                    </div>
+
+                    <!-- Password Requirements -->
+                    <div class="requirement-item" :class="{ valid: validations.password, invalid: !validations.password && form.password }">
+                      <v-icon :color="validations.password ? 'success' : (form.password ? 'error' : 'grey')">
+                        {{ validations.password ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                      <span>Password (at least 6 characters)</span>
+                    </div>
+
+                    <!-- Password Confirmation Requirements -->
+                    <div class="requirement-item" :class="{ valid: validations.passwordMatch, invalid: !validations.passwordMatch && form.password_confirmation }">
+                      <v-icon :color="validations.passwordMatch ? 'success' : (form.password_confirmation ? 'error' : 'grey')">
+                        {{ validations.passwordMatch ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                      </v-icon>
+                      <span>Passwords match</span>
+                    </div>
+                  </div>
+                </div>
 
                 <v-alert
                   v-if="error"
@@ -120,7 +181,7 @@
                   size="large"
                   block
                   :loading="loading"
-                  :disabled="loading"
+                  :disabled="loading || !allValidationsPassed"
                   elevation="4"
                   @click.prevent="handleRegister"
                 >
@@ -168,42 +229,68 @@ export default {
     const showPassword = ref(false)
     const showPasswordConfirm = ref(false)
     const companyName = ref('Perfect Smash')
+    const phoneDisplay = ref('')
 
-    const firstNameRules = [
-      v => !!v || 'First name is required',
-      v => v.length >= 2 || 'First name must be at least 2 characters'
-    ]
+    // Phone number formatting handler
+    const handlePhoneInput = (event) => {
+      let value = event.target.value
 
-    const lastNameRules = [
-      v => !!v || 'Last name is required',
-      v => v.length >= 2 || 'Last name must be at least 2 characters'
-    ]
+      // Remove all non-numeric characters except +
+      value = value.replace(/[^\d+]/g, '')
 
-    const emailRules = [
-      v => !!v || 'Email is required',
-      v => /.+@.+\..+/.test(v) || 'Email must be valid'
-    ]
+      // Ensure it starts with +63
+      if (!value.startsWith('+63')) {
+        if (value.startsWith('63')) {
+          value = '+' + value
+        } else if (value.startsWith('9')) {
+          value = '+63' + value
+        } else if (value.startsWith('+')) {
+          value = '+63'
+        } else if (value.length > 0 && value !== '+') {
+          // If user starts typing any other number, prepend +63
+          value = '+63' + value.replace(/\+/g, '')
+        } else {
+          value = '+63'
+        }
+      }
 
-    const phoneRules = [
-      v => !!v || 'Mobile number is required',
-      v => v.length >= 10 || 'Mobile number must be at least 10 characters'
-    ]
+      // Limit to +63 followed by 10 digits (total 13 characters)
+      if (value.length > 13) {
+        value = value.substring(0, 13)
+      }
 
-    const passwordRules = [
-      v => !!v || 'Password is required',
-      v => v.length >= 6 || 'Password must be at least 6 characters'
-    ]
+      phoneDisplay.value = value
+      form.value.phone = value
+    }
 
-    const confirmPasswordRules = computed(() => [
-      v => !!v || 'Password confirmation is required',
-      v => v === form.value.password || 'Passwords do not match'
-    ])
+    // Computed validations for real-time feedback
+    const validations = computed(() => ({
+      firstName: form.value.first_name && form.value.first_name.length >= 2,
+      lastName: form.value.last_name && form.value.last_name.length >= 2,
+      email: form.value.email && /.+@.+\..+/.test(form.value.email),
+      phone: form.value.phone && form.value.phone.length === 13 && form.value.phone.startsWith('+639'),
+      password: form.value.password && form.value.password.length >= 6,
+      passwordMatch: form.value.password &&
+                     form.value.password_confirmation &&
+                     form.value.password === form.value.password_confirmation
+    }))
+
+    // Check if all validations pass
+    const allValidationsPassed = computed(() => {
+      return Object.values(validations.value).every(v => v === true)
+    })
 
     const handleRegister = async (event) => {
       // Prevent default form submission behavior
       if (event) {
         event.preventDefault()
         event.stopPropagation()
+      }
+
+      // Check if all validations pass
+      if (!allValidationsPassed.value) {
+        error.value = 'Please complete all requirements before registering'
+        return
       }
 
       try {
@@ -253,13 +340,11 @@ export default {
       showPassword,
       showPasswordConfirm,
       companyName,
-      firstNameRules,
-      lastNameRules,
-      emailRules,
-      phoneRules,
-      passwordRules,
-      confirmPasswordRules,
-      handleRegister
+      phoneDisplay,
+      validations,
+      allValidationsPassed,
+      handleRegister,
+      handlePhoneInput
     }
   }
 }
@@ -312,6 +397,14 @@ export default {
 
 .fill-height {
   min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.v-container {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Auth Card */
@@ -324,6 +417,9 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   z-index: 2;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* Auth Header */
@@ -378,6 +474,12 @@ export default {
   border-radius: 8px !important;
 }
 
+.form-field .v-messages__message {
+  color: #64748b;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
 .auth-btn-primary {
   background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
   color: white !important;
@@ -392,6 +494,91 @@ export default {
 .auth-btn-primary:hover {
   transform: translateY(-4px) !important;
   box-shadow: 0 12px 35px rgba(183, 28, 28, 0.6) !important;
+}
+
+/* Validation Requirements */
+.validation-requirements {
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.requirements-header {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.requirements-list {
+  display: grid;
+  gap: 8px;
+}
+
+.requirements-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.requirements-list::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.3);
+  border-radius: 3px;
+}
+
+.requirements-list::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.4);
+  border-radius: 3px;
+}
+
+.requirements-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+.requirement-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.9rem;
+}
+
+.requirement-item.valid {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
+}
+
+.requirement-item.invalid {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #dc2626;
+}
+
+.requirement-item span {
+  flex: 1;
+  font-weight: 500;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.requirement-item .v-icon {
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.requirement-item.valid .v-icon {
+  transform: scale(1.1);
 }
 
 /* Error Alert */
@@ -437,25 +624,317 @@ export default {
 }
 
 /* Responsive Design */
+@media (max-width: 960px) {
+  .auth-card {
+    padding: 40px 32px;
+  }
+
+  .auth-title {
+    font-size: 2rem;
+  }
+
+  .auth-subtitle {
+    font-size: 1rem;
+  }
+
+  .requirements-header {
+    font-size: 0.85rem;
+  }
+
+  .requirement-item {
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+}
+
 @media (max-width: 768px) {
   .auth-card {
     padding: 32px 24px;
-    margin: 16px;
+    margin: 0;
+    border-radius: 20px;
   }
 
   .auth-title {
     font-size: 1.8rem;
   }
+
+  .auth-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .header-badge {
+    font-size: 0.8rem;
+    padding: 6px 16px;
+  }
+
+  .header-badge .v-icon {
+    font-size: 18px !important;
+  }
+
+  .validation-requirements {
+    padding: 14px;
+  }
+
+  .requirements-header {
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+  }
+
+  .requirement-item {
+    font-size: 0.8rem;
+    padding: 6px 8px;
+    gap: 6px;
+  }
+
+  .requirement-item .v-icon {
+    font-size: 18px !important;
+  }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .fill-height {
+    min-height: auto;
+    padding: 16px 0;
+  }
+
   .auth-card {
-    padding: 24px 16px;
-    margin: 12px;
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .auth-header {
+    margin-bottom: 24px;
+  }
+
+  .header-badge {
+    font-size: 0.75rem;
+    padding: 6px 14px;
+    margin-bottom: 16px;
   }
 
   .auth-title {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+    margin-bottom: 12px;
+  }
+
+  .auth-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .validation-requirements {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .requirements-header {
+    font-size: 0.75rem;
+    margin-bottom: 8px;
+  }
+
+  .requirements-list {
+    gap: 6px;
+  }
+
+  .requirement-item {
+    font-size: 0.75rem;
+    padding: 5px 8px;
+    gap: 6px;
+  }
+
+  .requirement-item .v-icon {
+    font-size: 16px !important;
+  }
+
+  .auth-btn-primary {
+    font-size: 0.95rem !important;
+  }
+
+  .auth-footer {
+    margin-top: 20px;
+  }
+
+  .auth-link-text {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+
+  .auth-card {
+    padding: 20px 16px;
+    margin: 0;
+    border-radius: 12px;
+  }
+
+  .auth-header {
+    margin-bottom: 20px;
+  }
+
+  .header-badge {
+    font-size: 0.7rem;
+    padding: 5px 12px;
+    margin-bottom: 14px;
+  }
+
+  .header-badge .v-icon {
+    font-size: 16px !important;
+  }
+
+  .auth-title {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+  }
+
+  .auth-subtitle {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .form-field {
+    margin-bottom: 12px !important;
+  }
+
+  .form-field .v-messages__message {
+    font-size: 0.7rem;
+  }
+
+  .validation-requirements {
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 16px !important;
+  }
+
+  .requirements-header {
+    font-size: 0.7rem;
+    margin-bottom: 8px;
+  }
+
+  .requirements-header .v-icon {
+    font-size: 14px !important;
+  }
+
+  .requirements-list {
+    gap: 5px;
+  }
+
+  .requirement-item {
+    font-size: 0.7rem;
+    padding: 4px 6px;
+    gap: 5px;
+    border-radius: 6px;
+  }
+
+  .requirement-item .v-icon {
+    font-size: 14px !important;
+  }
+
+  .auth-btn-primary {
+    font-size: 0.9rem !important;
+    padding: 14px 24px !important;
+  }
+
+  .auth-footer {
+    margin-top: 16px;
+  }
+
+  .auth-link-text {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-card {
+    padding: 16px 12px;
+  }
+
+  .auth-title {
+    font-size: 1.25rem;
+  }
+
+  .auth-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .validation-requirements {
+    padding: 8px;
+  }
+
+  .requirement-item {
+    font-size: 0.65rem;
+    padding: 4px 5px;
+  }
+
+  .requirement-item .v-icon {
+    font-size: 12px !important;
+  }
+
+  .form-field .v-messages__message {
+    font-size: 0.65rem;
+  }
+}
+
+/* Landscape Mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+  .fill-height {
+    min-height: auto;
+    padding: 8px 0;
+  }
+
+  .auth-card {
+    padding: 20px 24px;
+    margin: 0;
+  }
+
+  .auth-header {
+    margin-bottom: 16px;
+  }
+
+  .header-badge {
+    margin-bottom: 8px;
+    padding: 4px 12px;
+  }
+
+  .auth-title {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+  }
+
+  .auth-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .form-field {
+    margin-bottom: 8px !important;
+  }
+
+  .validation-requirements {
+    padding: 10px;
+    margin-bottom: 12px !important;
+  }
+
+  .requirements-header {
+    margin-bottom: 6px;
+  }
+
+  .requirements-list {
+    gap: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .requirement-item {
+    padding: 4px 8px;
+  }
+
+  .auth-btn-primary {
+    padding: 12px 24px !important;
+  }
+
+  .auth-footer {
+    margin-top: 12px;
   }
 }
 </style>
