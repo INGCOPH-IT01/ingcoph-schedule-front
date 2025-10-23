@@ -575,6 +575,109 @@
           </v-card>
         </div>
 
+        <!-- Waitlist Section (Admin/Staff only) -->
+        <div class="detail-section mb-4" v-if="showAdminFeatures && !loadingWaitlist && waitlistEntries.length > 0">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="info">mdi-clock-alert-outline</v-icon>
+            Waitlist ({{ waitlistEntries.length }})
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+              <div class="text-caption">
+                <strong>Note:</strong> These users are waiting for this time slot to become available. If this booking is rejected or cancelled, they will be notified.
+              </div>
+            </v-alert>
+
+            <div
+              v-for="(entry, index) in waitlistEntries"
+              :key="entry.id"
+              class="waitlist-entry"
+              :class="{ 'mb-3': index < waitlistEntries.length - 1 }"
+            >
+              <v-card variant="outlined" class="pa-3">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="d-flex align-center gap-2">
+                    <v-chip
+                      size="small"
+                      :color="entry.status === 'pending' ? 'warning' : entry.status === 'notified' ? 'info' : 'grey'"
+                      variant="tonal"
+                    >
+                      <v-icon start size="small">{{ entry.status === 'pending' ? 'mdi-clock-alert' : entry.status === 'notified' ? 'mdi-bell-ring' : 'mdi-check' }}</v-icon>
+                      Position #{{ entry.position }}
+                    </v-chip>
+                    <v-chip
+                      size="small"
+                      :color="entry.status === 'pending' ? 'grey' : entry.status === 'notified' ? 'success' : entry.status === 'converted' ? 'success' : 'error'"
+                      variant="flat"
+                    >
+                      {{ entry.status.charAt(0).toUpperCase() + entry.status.slice(1) }}
+                    </v-chip>
+                  </div>
+                  <span class="text-caption text-grey">
+                    {{ new Date(entry.created_at).toLocaleDateString() }}
+                  </span>
+                </div>
+
+                <v-divider class="my-2"></v-divider>
+
+                <div class="d-flex align-center mb-2">
+                  <v-icon size="small" class="mr-2">mdi-account</v-icon>
+                  <span class="text-body-2 font-weight-bold">{{ entry.user?.name || 'Unknown User' }}</span>
+                </div>
+
+                <div class="d-flex align-center mb-2" v-if="entry.user?.email">
+                  <v-icon size="small" class="mr-2">mdi-email</v-icon>
+                  <span class="text-body-2">{{ entry.user.email }}</span>
+                </div>
+
+                <div class="d-flex align-center mb-2">
+                  <v-icon size="small" class="mr-2">mdi-tennis-ball</v-icon>
+                  <span class="text-body-2">{{ entry.court?.name || 'Unknown Court' }}</span>
+                  <span v-if="entry.court?.surface_type" class="text-caption text-grey ml-2">
+                    ({{ entry.court.surface_type }})
+                  </span>
+                </div>
+
+                <div class="d-flex align-center mb-2">
+                  <v-icon size="small" class="mr-2">mdi-clock-outline</v-icon>
+                  <span class="text-body-2">
+                    {{ new Date(entry.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} -
+                    {{ new Date(entry.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                  </span>
+                </div>
+
+                <div class="d-flex align-center" v-if="entry.number_of_players">
+                  <v-icon size="small" class="mr-2">mdi-account-group</v-icon>
+                  <span class="text-body-2">{{ entry.number_of_players }} player{{ entry.number_of_players > 1 ? 's' : '' }}</span>
+                </div>
+
+                <div v-if="entry.notified_at" class="mt-2 pt-2" style="border-top: 1px solid rgba(0,0,0,0.1)">
+                  <div class="d-flex align-center">
+                    <v-icon size="small" class="mr-2" color="info">mdi-bell-ring</v-icon>
+                    <span class="text-caption">
+                      Notified: {{ new Date(entry.notified_at).toLocaleString() }}
+                    </span>
+                  </div>
+                  <div v-if="entry.expires_at" class="d-flex align-center mt-1">
+                    <v-icon size="small" class="mr-2" color="warning">mdi-timer-sand</v-icon>
+                    <span class="text-caption">
+                      Expires: {{ new Date(entry.expires_at).toLocaleString() }}
+                    </span>
+                  </div>
+                </div>
+
+                <div v-if="entry.notes" class="mt-2 pt-2" style="border-top: 1px solid rgba(0,0,0,0.1)">
+                  <div class="text-caption text-grey mb-1">
+                    <v-icon size="x-small" class="mr-1">mdi-note-text</v-icon>
+                    Notes:
+                  </div>
+                  <div class="text-body-2">{{ entry.notes }}</div>
+                </div>
+              </v-card>
+            </div>
+          </v-card>
+        </div>
+
         <!-- Admin Notes (Staff/Admin only) -->
         <div class="detail-section mb-4" v-if="showAdminFeatures">
           <h4 class="detail-section-title">
@@ -1314,6 +1417,10 @@ export default {
     const timeSlotToDeleteIndex = ref(null)
     const deletingTimeSlot = ref(false)
 
+    // Waitlist state
+    const waitlistEntries = ref([])
+    const loadingWaitlist = ref(false)
+
     // Load payment settings
     const loadPaymentSettings = async () => {
       try {
@@ -1324,6 +1431,28 @@ export default {
         // Silent error handling
       } finally {
         loadingPaymentSettings.value = false
+      }
+    }
+
+    // Load waitlist entries
+    const loadWaitlistEntries = async () => {
+      if (!props.booking?.id) return
+
+      try {
+        loadingWaitlist.value = true
+
+        // Determine the correct endpoint based on whether this is a transaction or booking
+        const endpoint = isTransaction.value
+          ? `/cart-transactions/${props.booking.id}/waitlist`
+          : `/bookings/${props.booking.id}/waitlist`
+
+        const response = await api.get(endpoint)
+        waitlistEntries.value = response.data.data || []
+      } catch (error) {
+        // Silent error handling - if it fails, just keep empty array
+        waitlistEntries.value = []
+      } finally {
+        loadingWaitlist.value = false
       }
     }
 
@@ -2674,6 +2803,11 @@ export default {
           // Load payment settings for payment QR code
           loadPaymentSettings()
 
+          // Load waitlist entries (only for admin/staff)
+          if (props.showAdminFeatures) {
+            loadWaitlistEntries()
+          }
+
           // Load QR code if booking is approved
           if (isApprovedBooking.value) {
             loadQrCode()
@@ -2712,6 +2846,9 @@ export default {
       isTransaction,
       isStaffOrAdmin,
       isAdmin,
+      // Waitlist state
+      waitlistEntries,
+      loadingWaitlist,
       // Approve/Reject state
       approving,
       rejecting,
@@ -2998,6 +3135,23 @@ export default {
 
 .court-selector .v-select {
   font-size: 14px;
+}
+
+/* Waitlist entry styles */
+.waitlist-entry {
+  transition: all 0.2s ease;
+}
+
+.waitlist-entry:hover {
+  transform: translateY(-2px);
+}
+
+.waitlist-entry .v-card {
+  transition: all 0.2s ease;
+}
+
+.waitlist-entry .v-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Mobile Responsive Design */
