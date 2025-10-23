@@ -609,7 +609,9 @@ export default {
 
     const checkAdminStatus = async () => {
       try {
-        isAdmin.value = await authService.isAdmin()
+        const user = await authService.getCurrentUser()
+        // Allow both admin and staff to manage courts
+        isAdmin.value = user && (user.role === 'admin' || user.role === 'staff')
       } catch (error) {
         isAdmin.value = false
       }

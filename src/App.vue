@@ -122,9 +122,9 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Admin Panel - Only for admin users -->
+          <!-- Admin Panel - For admin and staff users -->
           <v-list-item
-            v-if="isAuthenticated && isAdmin"
+            v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-shield-account"
             title="Admin Panel"
             value="admin"
@@ -142,9 +142,9 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Sports Management - Only for admin users -->
+          <!-- Sports Management - For admin and staff users -->
           <v-list-item
-            v-if="isAuthenticated && isAdmin"
+            v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-tennis-ball"
             title="Sports Management"
             value="sports-management"
@@ -172,9 +172,9 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Holiday Management - Only for admin users -->
+          <!-- Holiday Management - For admin and staff users -->
           <v-list-item
-            v-if="isAuthenticated && isAdmin"
+            v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-calendar-star"
             title="Holiday Management"
             value="holiday-management"
