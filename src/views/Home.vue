@@ -136,7 +136,7 @@
                 </div>
               </div>
 
-              <!-- <div class="hero-actions">
+              <div class="hero-actions">
                 <v-btn
                     size="x-large"
                     class="hero-btn-primary"
@@ -146,7 +146,7 @@
                 >
                     Book Your Court Now
                 </v-btn>
-              </div> -->
+              </div>
             </div>
           </v-col>
         </v-row>
@@ -364,7 +364,7 @@
                           <span class="price-amount">{{ formatPriceTemplate(getSportPrice()) }}</span>
                           <span class="price-unit">/hour</span>
                         </div>
-                      <!-- <v-btn
+                      <v-btn
                           class="book-now-btn"
                           size="x-large"
                           @click="handleBookNowClick"
@@ -372,7 +372,7 @@
                           elevation="8"
                       >
                           Book Your Session
-                      </v-btn> -->
+                      </v-btn>
                       <div class="mt-3">
                         <PriceDisclaimerNote theme="light" />
                       </div>
@@ -444,13 +444,13 @@ export default {
         highlight: 'Tournament Ready',
         color: 'primary'
       },
-      // {
-      //   icon: 'mdi-clock-fast',
-      //   title: 'Instant Booking',
-      //   description: 'Book your court in seconds with our lightning-fast booking system and real-time availability',
-      //   highlight: 'Quick Response',
-      //   color: 'success'
-      // },
+      {
+        icon: 'mdi-clock-fast',
+        title: 'Instant Booking',
+        description: 'Book your court in seconds with our lightning-fast booking system and real-time availability',
+        highlight: 'Quick Response',
+        color: 'success'
+      },
       {
         icon: 'mdi-currency-php',
         title: 'Fair Pricing',
