@@ -148,7 +148,7 @@
                   :key="booking.id"
                   class="booking-card-compact"
                   :class="{
-                    'pending-card': booking.approval_status === 'pending',
+                    'pending-card': booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist',
                     'approved-card': booking.approval_status === 'approved',
                     'rejected-card': booking.approval_status === 'rejected'
                   }"
@@ -158,6 +158,10 @@
                     <div v-if="isBookingExpired(booking)" class="status-banner-compact expired-banner">
                       <v-icon size="x-small" class="mr-1">mdi-clock-remove</v-icon>
                       EXPIRED
+                    </div>
+                    <div v-else-if="booking.approval_status === 'pending_waitlist'" class="status-banner-compact waitlist-banner">
+                      <v-icon size="x-small" class="mr-1">mdi-clock-check</v-icon>
+                      WAITLIST PENDING
                     </div>
                     <div v-else-if="booking.approval_status === 'pending'" class="status-banner-compact pending-banner">
                       <v-icon size="x-small" class="mr-1">mdi-clock-alert</v-icon>
@@ -297,7 +301,7 @@
                           title="Show QR Code"
                         ></v-btn>
                         <v-btn
-                          v-if="booking.approval_status === 'pending'"
+                          v-if="booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist'"
                           icon="mdi-eye"
                           size="x-small"
                           variant="tonal"
@@ -315,7 +319,7 @@
                           title="View Rejection Reason"
                         ></v-btn>
                         <v-btn
-                          v-if="(booking.approval_status === 'pending' && booking.payment_status !== 'paid') || isBookingExpired(booking)"
+                          v-if="((booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist') && booking.payment_status !== 'paid') || isBookingExpired(booking)"
                           icon="mdi-delete"
                           size="x-small"
                           variant="tonal"
@@ -2020,7 +2024,7 @@ export default {
             // Check for expired bookings (unpaid for more than 1 hour)
             const now = new Date()
             const expiredBookings = transactionsData.filter(transaction => {
-              if (transaction.payment_status !== 'paid' && transaction.approval_status === 'pending') {
+              if (transaction.payment_status !== 'paid' && (transaction.approval_status === 'pending' || transaction.approval_status === 'pending_waitlist')) {
                 const createdAt = new Date(transaction.created_at)
                 const hoursSinceCreation = (now - createdAt) / (1000 * 60 * 60)
                 return hoursSinceCreation >= 1
@@ -2095,8 +2099,8 @@ export default {
         return false
       }
 
-      // Check if booking is unpaid and pending
-      if (booking.payment_status !== 'paid' && booking.approval_status === 'pending' && booking.created_at) {
+      // Check if booking is unpaid and pending (including waitlist pending)
+      if (booking.payment_status !== 'paid' && (booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist') && booking.created_at) {
         // Use business hours helper to calculate expiration
         return isExpiredByBusinessHours(booking.created_at)
       }
@@ -4180,6 +4184,12 @@ export default {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.waitlist-banner {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .expired-banner {

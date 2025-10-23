@@ -131,6 +131,7 @@
           'today': day.isToday,
           'has-events': day.events.length > 0
         }"
+        @click="showDayEvents(day)"
       >
         <div class="day-number">{{ day.date.getDate() }}</div>
         <div class="day-events">
@@ -139,7 +140,7 @@
             :key="event.id"
             class="calendar-event"
             :class="`event-${event.status}`"
-            @click="handleEventClick(event)"
+            @click.stop="handleEventClick(event)"
           >
             <div class="event-indicator"></div>
             <div class="event-content">
@@ -150,7 +151,7 @@
           <div
             v-if="day.events.length > 3"
             class="more-events"
-            @click="showDayEvents(day)"
+            @click.stop="showDayEvents(day)"
           >
             +{{ day.events.length - 3 }} more
           </div>
@@ -890,6 +891,16 @@ export default {
   background: #f59e0b;
 }
 
+.calendar-event.event-pending_waitlist {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
+  border-left: 3px solid #3b82f6;
+}
+
+.calendar-event.event-pending_waitlist .event-indicator {
+  background: #3b82f6;
+}
+
 .calendar-event.event-approved {
   background: rgba(16, 185, 129, 0.15);
   color: #065f46;
@@ -937,6 +948,10 @@ export default {
 
 .event-status-indicator.status-pending {
   background: #f59e0b;
+}
+
+.event-status-indicator.status-pending_waitlist {
+  background: #3b82f6;
 }
 
 .event-status-indicator.status-approved {

@@ -214,7 +214,7 @@
     />
 
     <!-- Floating Action Button for Quick Booking -->
-    <!-- <v-fab
+    <v-fab
       v-if="isAuthenticated"
       icon="mdi-calendar-plus"
       color="primary"
@@ -222,7 +222,7 @@
       location="bottom end"
       class="excel-fab"
       @click="openBookingDialog"
-    ></v-fab> -->
+    ></v-fab>
   </v-app>
 </template>
 

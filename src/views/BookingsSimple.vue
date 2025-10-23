@@ -83,6 +83,7 @@
           class="mb-4 transaction-card"
           :class="{
             'border-warning': transaction.approval_status === 'pending',
+            'border-info': transaction.approval_status === 'pending_waitlist',
             'border-success': transaction.approval_status === 'approved',
             'border-error': transaction.approval_status === 'rejected'
           }"
@@ -93,15 +94,17 @@
             class="status-banner"
             :class="{
               'bg-warning': transaction.approval_status === 'pending',
+              'bg-info': transaction.approval_status === 'pending_waitlist',
               'bg-success': transaction.approval_status === 'approved',
               'bg-error': transaction.approval_status === 'rejected'
             }"
           >
             <v-icon size="small" class="mr-2">
               {{ transaction.approval_status === 'approved' ? 'mdi-check-circle' :
-                 transaction.approval_status === 'rejected' ? 'mdi-close-circle' : 'mdi-clock-alert' }}
+                 transaction.approval_status === 'rejected' ? 'mdi-close-circle' :
+                 transaction.approval_status === 'pending_waitlist' ? 'mdi-clock-check' : 'mdi-clock-alert' }}
             </v-icon>
-            {{ transaction.approval_status.toUpperCase() }}
+            {{ transaction.approval_status === 'pending_waitlist' ? 'WAITLIST PENDING' : transaction.approval_status.toUpperCase() }}
           </div>
 
           <v-card-text class="pa-6">

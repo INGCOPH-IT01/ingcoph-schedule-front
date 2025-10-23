@@ -291,9 +291,9 @@
                           >
                             {{ slot.is_booked ? 'Booked' : (slot.is_waitlist_available ? 'Waitlist' : 'Available') }}
                           </v-chip>
-                          <!-- Show customer name when slot is booked or waitlist -->
+                          <!-- Show customer name when slot is booked or waitlist (Admin/Staff only) -->
                           <div
-                            v-if="(slot.is_booked || slot.is_waitlist_available) && slot.display_name"
+                            v-if="isAdminOrStaff && (slot.is_booked || slot.is_waitlist_available) && slot.display_name"
                             class="customer-name-label mt-2"
                           >
                             <v-icon size="12" class="mr-1">mdi-account</v-icon>
@@ -561,19 +561,54 @@
                 </v-card-text>
               </v-card>
 
-              <!-- Payment Options -->
-              <v-card variant="outlined" class="mt-4 payment-options">
+              <!-- Waitlist Booking Notice -->
+              <v-card v-if="hasWaitlistSlots" variant="outlined" class="mt-4 waitlist-notice">
+                <v-card-text>
+                  <h4 class="text-h6 mb-4">
+                    <v-icon class="mr-2" color="warning">mdi-clock-alert</v-icon>
+                    Waitlist Booking
+                  </h4>
+
+                  <v-alert type="warning" variant="tonal" class="mb-4">
+                    <div class="d-flex align-center">
+                      <div>
+                        <div class="font-weight-bold">You are booking waitlisted time slot(s)</div>
+                        <div class="text-caption mt-2">
+                          <span v-if="allSlotsAreWaitlist">All your selected slots are waitlisted.</span>
+                          <span v-else>Some of your selected slots are waitlisted.</span>
+                          You will be notified via email if the slot becomes available.
+                        </div>
+                        <div class="text-caption mt-2">
+                          <strong>Payment is not required at this time.</strong> You'll be able to upload proof of payment once notified.
+                        </div>
+                      </div>
+                    </div>
+                  </v-alert>
+                </v-card-text>
+              </v-card>
+
+              <!-- Payment Options (only show if not all waitlist or if admin/staff can skip) -->
+              <v-card v-if="!allSlotsAreWaitlist" variant="outlined" class="mt-4 payment-options">
                 <v-card-text>
                   <h4 class="text-h6 mb-4">
                     <v-icon class="mr-2" color="success">mdi-cellphone-check</v-icon>
                     {{ isAdminOrStaff ? 'Payment Options' : 'Payment Required' }}
                   </h4>
 
-                  <v-alert v-if="!isAdminOrStaff" type="info" variant="tonal" class="mb-4">
+                  <v-alert v-if="!isAdminOrStaff && !hasWaitlistSlots" type="info" variant="tonal" class="mb-4">
                     <div class="d-flex align-center">
                       <div>
                         <div class="font-weight-bold">Payment is required to complete your booking</div>
                         <div class="text-caption">All bookings must be paid via GCash before submission</div>
+                      </div>
+                    </div>
+                  </v-alert>
+
+                  <v-alert v-if="hasWaitlistSlots && !allSlotsAreWaitlist" type="info" variant="tonal" class="mb-4">
+                    <div class="d-flex align-center">
+                      <div>
+                        <div class="font-weight-bold">Mixed booking: Available + Waitlist</div>
+                        <div class="text-caption">Payment is only required for the available time slots. Waitlisted slots will require payment upon availability notification.</div>
                       </div>
                     </div>
                   </v-alert>
@@ -665,7 +700,7 @@
                 </v-card-text>
               </v-card>
 
-              <v-alert v-if="!skipPayment" type="info" class="mt-4" icon="mdi-information">
+              <v-alert v-if="!skipPayment && !allSlotsAreWaitlist" type="info" class="mt-4" icon="mdi-information">
                 <div class="font-weight-bold mb-1">Booking Confirmation Process</div>
                 <div>Your booking will be confirmed after payment verification.</div>
                 <div class="text-caption mt-2">
@@ -674,7 +709,7 @@
                 </div>
               </v-alert>
 
-              <v-alert v-if="skipPayment && isAdminOrStaff" type="warning" class="mt-4" icon="mdi-alert">
+              <v-alert v-if="skipPayment && isAdminOrStaff && !allSlotsAreWaitlist" type="warning" class="mt-4" icon="mdi-alert">
                 <div class="font-weight-bold">Booking without payment</div>
                 <div class="text-caption">Time slots will be marked as booked, but cannot be marked as "showed up" until payment is completed.</div>
                 <div class="text-caption mt-2">
@@ -708,6 +743,7 @@
           <v-icon end>mdi-arrow-right</v-icon>
         </v-btn>
         <template v-else>
+          <!-- Add to Cart button (always available) -->
           <v-btn
             color="info"
             variant="outlined"
@@ -718,8 +754,21 @@
             <v-icon start>mdi-cart-plus</v-icon>
             Add to Booking
           </v-btn>
+
+          <!-- Waitlist submission (all slots are waitlist) -->
           <v-btn
-            v-if="!skipPayment"
+            v-if="allSlotsAreWaitlist"
+            color="warning"
+            :loading="submitting"
+            @click="submitWaitlistBooking"
+          >
+            <v-icon start>mdi-clock-alert</v-icon>
+            Submit Waitlist
+          </v-btn>
+
+          <!-- Regular checkout with payment (no waitlist or mixed with payment required) -->
+          <v-btn
+            v-if="!allSlotsAreWaitlist && !skipPayment"
             color="success"
             :loading="submitting"
             :disabled="!proofOfPayment || proofOfPayment.length === 0"
@@ -728,8 +777,10 @@
             <v-icon start>mdi-cellphone-check</v-icon>
             Checkout
           </v-btn>
+
+          <!-- Admin/Staff skip payment -->
           <v-btn
-            v-if="skipPayment && isAdminOrStaff"
+            v-if="!allSlotsAreWaitlist && skipPayment && isAdminOrStaff"
             color="warning"
             :loading="submitting"
             @click="submitBookingWithoutPayment"
@@ -892,6 +943,19 @@ export default {
       return Object.values(courtTimeSlots.value).reduce((total, ct) => total + ct.slots.length, 0)
     })
 
+    // Check if any selected slots are waitlist
+    const hasWaitlistSlots = computed(() => {
+      return Object.values(courtTimeSlots.value).some(ct =>
+        ct.slots.some(slot => slot.is_waitlist)
+      )
+    })
+
+    // Check if ALL selected slots are waitlist
+    const allSlotsAreWaitlist = computed(() => {
+      const allSlots = Object.values(courtTimeSlots.value).flatMap(ct => ct.slots)
+      return allSlots.length > 0 && allSlots.every(slot => slot.is_waitlist)
+    })
+
     // Calculate the overall time range from all selected slots (adjacent time sensitive)
     const overallTimeRange = computed(() => {
       const allSlots = []
@@ -1011,7 +1075,8 @@ export default {
     }
 
     const toggleTimeSlot = (courtId, slot) => {
-      if (!slot.available) return
+      // Allow selection if available OR waitlist is available
+      if (!slot.available && !slot.is_waitlist_available) return
 
       if (!courtTimeSlots.value[courtId]) {
         courtTimeSlots.value[courtId] = {
@@ -1031,8 +1096,11 @@ export default {
           delete courtTimeSlots.value[courtId]
         }
       } else {
-        // Add slot
-        slots.push(slot)
+        // Add slot (include waitlist flag)
+        slots.push({
+          ...slot,
+          is_waitlist: slot.is_waitlist_available && !slot.available
+        })
       }
     }
 
@@ -1040,8 +1108,38 @@ export default {
       return courtTimeSlots.value[courtId]?.slots.some(s => s.start === slotStart) || false
     }
 
-    const nextStep = () => {
-      if (canProceed.value) {
+    const nextStep = async () => {
+      if (!canProceed.value) return
+
+      // If moving from Step 2 to Step 3 and there are waitlist slots, show warning
+      if (step.value === 2 && hasWaitlistSlots.value) {
+        const result = await showAlert({
+          icon: 'warning',
+          title: 'Waitlist Booking',
+          html: `
+            <div style="text-align: left;">
+              <p><strong>You have selected time slot(s) that are currently pending approval for another user.</strong></p>
+              <p style="margin-top: 12px;">By proceeding, you will be added to the waitlist:</p>
+              <ul style="margin-top: 8px; padding-left: 20px;">
+                <li>You <strong>cannot upload proof of payment</strong> at this time</li>
+                <li>Your position will be secured in the waitlist queue</li>
+                <li>You will receive an email notification if the slot becomes available</li>
+                <li>You'll have <strong>1 hour to complete payment</strong> once notified</li>
+              </ul>
+              ${!allSlotsAreWaitlist.value ? '<p style="margin-top: 12px; color: #f59e0b;"><strong>⚠️ Note:</strong> Some of your selected slots are available, while others are waitlist. You can submit all together.</p>' : ''}
+            </div>
+          `,
+          showCancelButton: true,
+          confirmButtonText: 'Continue to Waitlist',
+          cancelButtonText: 'Go Back',
+          confirmButtonColor: '#f59e0b',
+          width: '600px'
+        })
+
+        if (result.isConfirmed) {
+          step.value++
+        }
+      } else {
         step.value++
       }
     }
@@ -1669,6 +1767,126 @@ export default {
       }
     }
 
+    const submitWaitlistBooking = async () => {
+      submitting.value = true
+
+      try {
+        // Validate selections
+        if (!selectedSport.value || !selectedDate.value) {
+          showAlert({
+            icon: 'warning',
+            title: 'Incomplete Selection',
+            text: 'Please select sport and time slots before submitting to waitlist.'
+          })
+          submitting.value = false
+          return
+        }
+
+        // Prepare admin booking data if admin/staff
+        let adminBookingData = null
+        if (isAdminOrStaff.value) {
+          if (bookingForUser.value) {
+            if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
+              adminBookingData = {
+                booking_for_user_id: bookingForUser.value.id,
+                booking_for_user_name: bookingForUser.value.name
+              }
+            } else {
+              adminBookingData = {
+                booking_for_user_name: bookingForUser.value
+              }
+            }
+          }
+          if (adminNotes.value) {
+            if (!adminBookingData) {
+              adminBookingData = {}
+            }
+            adminBookingData.admin_notes = adminNotes.value
+          }
+        }
+
+        // Create cart items array for waitlist booking
+        const cartItems = []
+        Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
+          const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
+          if (court) {
+            courtData.slots.forEach(slot => {
+              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
+              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
+              const price = calculatePriceForRange(startDateTime, endDateTime)
+              const numPlayers = parseInt(numberOfPlayers.value) || 1
+
+              const cartItem = {
+                court_id: parseInt(courtId),
+                sport_id: selectedSport.value.id,
+                booking_date: selectedDate.value,
+                start_time: slot.start,
+                end_time: slot.end,
+                price: price,
+                number_of_players: numPlayers,
+                notes: bookingNotes.value || null,
+                is_waitlist: true // Mark as waitlist booking
+              }
+
+              if (adminBookingData) {
+                Object.assign(cartItem, adminBookingData)
+              }
+
+              cartItems.push(cartItem)
+            })
+          }
+        })
+
+        if (cartItems.length === 0) {
+          showAlert({
+            icon: 'warning',
+            title: 'No Time Slots Selected',
+            text: 'Please select at least one time slot for waitlist.'
+          })
+          submitting.value = false
+          return
+        }
+
+        // Submit to waitlist via addToCart (which handles waitlist logic)
+        const response = await cartService.addToCart(cartItems)
+
+        // Dispatch events to update UI
+        window.dispatchEvent(new CustomEvent('cart-updated'))
+        window.dispatchEvent(new CustomEvent('booking-created'))
+        emit('booking-created')
+
+        // Show success message
+        await showAlert({
+          icon: 'success',
+          title: 'Added to Waitlist!',
+          html: `
+            <div style="text-align: left;">
+              <p>Successfully added <strong>${cartItems.length}</strong> booking(s) to the waitlist!</p>
+              <p style="margin-top: 12px;">📧 You will receive an email notification when the slot becomes available.</p>
+              <p style="margin-top: 8px; color: #666; font-size: 0.9em;">The notification will give you 1 hour to complete your booking with payment.</p>
+            </div>
+          `,
+          confirmButtonText: 'OK'
+        })
+
+        emit('close')
+        resetForm()
+      } catch (error) {
+        let errorMessage = 'Failed to add bookings to waitlist. Please try again.'
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message
+        }
+
+        showAlert({
+          icon: 'error',
+          title: 'Waitlist Failed',
+          text: errorMessage
+        })
+      } finally {
+        submitting.value = false
+      }
+    }
+
     const submitBookingWithoutPayment = async () => {
       submitting.value = true
 
@@ -2139,7 +2357,10 @@ export default {
       addToCart,
       submitBookingWithGCash,
       submitBookingWithoutPayment,
+      submitWaitlistBooking,
       submitBooking,
+      hasWaitlistSlots,
+      allSlotsAreWaitlist,
       // Admin fields
       isAdmin,
       isAdminOrStaff,
