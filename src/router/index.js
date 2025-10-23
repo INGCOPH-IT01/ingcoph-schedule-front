@@ -114,8 +114,9 @@ const routes = [
     component: AdminDashboard,
     beforeEnter: async (to, from, next) => {
       try {
-        const isAdmin = await authService.isAdmin()
-        if (isAdmin) {
+        const user = await authService.getCurrentUser()
+        // Allow both admin and staff to access admin dashboard
+        if (user && (user.role === 'admin' || user.role === 'staff')) {
           next()
         } else {
           next('/')
@@ -165,8 +166,9 @@ const routes = [
     component: SportsManagement,
     beforeEnter: async (to, from, next) => {
       try {
-        const isAdmin = await authService.isAdmin()
-        if (isAdmin) {
+        const user = await authService.getCurrentUser()
+        // Allow both admin and staff to access sports management
+        if (user && (user.role === 'admin' || user.role === 'staff')) {
           next()
         } else {
           next('/')
@@ -216,8 +218,9 @@ const routes = [
     component: HolidayManagement,
     beforeEnter: async (to, from, next) => {
       try {
-        const isAdmin = await authService.isAdmin()
-        if (isAdmin) {
+        const user = await authService.getCurrentUser()
+        // Allow both admin and staff to access holiday management
+        if (user && (user.role === 'admin' || user.role === 'staff')) {
           next()
         } else {
           next('/')
