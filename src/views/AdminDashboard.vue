@@ -243,6 +243,38 @@
               </v-chip-group>
             </div>
 
+            <!-- Payment Status Filter Chips -->
+            <div class="mb-4">
+              <div class="text-subtitle-2 mb-2 font-weight-bold">
+                Payment Status
+                <span v-if="paymentStatusFilter.length > 0" class="text-caption text-grey ml-2">
+                  ({{ paymentStatusFilter.length }} selected)
+                </span>
+              </div>
+              <v-chip-group
+                v-model="paymentStatusFilter"
+                multiple
+                selected-class="text-primary"
+              >
+                <v-chip value="complete" variant="outlined" filter>
+                  <v-icon start>mdi-check-circle</v-icon>
+                  Complete
+                </v-chip>
+                <v-chip value="missing_proof" variant="outlined" filter>
+                  <v-icon start>mdi-camera-off</v-icon>
+                  Missing Proof
+                </v-chip>
+                <!-- <v-chip value="missing_method" variant="outlined" filter>
+                  <v-icon start>mdi-credit-card-off</v-icon>
+                  Missing Method
+                </v-chip> -->
+                <!-- <v-chip value="incomplete" variant="outlined" filter>
+                  <v-icon start>mdi-alert-circle</v-icon>
+                  Incomplete
+                </v-chip> -->
+              </v-chip-group>
+            </div>
+
             <!-- Additional Filters -->
             <v-row>
               <v-col cols="12" sm="6" md="3">
@@ -638,6 +670,7 @@ export default {
     const statusFilter = ref(['pending', 'approved']) // Default to pending and approved
     const userFilter = ref('')
     const sportFilter = ref(null)
+    const paymentStatusFilter = ref([])
 
     // Initialize date filters with start and end of current month as default
     const today = new Date()
@@ -949,6 +982,7 @@ export default {
       return statusFilter.value.length > 0 ||
              userFilter.value !== '' ||
              sportFilter.value !== null ||
+             paymentStatusFilter.value.length > 0 ||
              dateFromFilter.value !== '' ||
              dateToFilter.value !== ''
     })
@@ -958,6 +992,7 @@ export default {
       statusFilter.value = []
       userFilter.value = ''
       sportFilter.value = null
+      paymentStatusFilter.value = []
       // Reset date filters to default values (current month range)
       dateFromFilter.value = dateFromString
       dateToFilter.value = dateToString
@@ -1045,6 +1080,14 @@ export default {
           return transaction.cart_items.some(item =>
             item.court?.sport?.name === sportFilter.value
           )
+        })
+      }
+
+      // Filter by payment status
+      if (paymentStatusFilter.value.length > 0) {
+        filtered = filtered.filter(transaction => {
+          const paymentStatus = getBookingPaymentStatus(transaction)
+          return paymentStatusFilter.value.includes(paymentStatus)
         })
       }
 
@@ -1275,6 +1318,7 @@ export default {
       statusFilter,
       userFilter,
       sportFilter,
+      paymentStatusFilter,
       dateFromFilter,
       dateToFilter,
       sportOptions,
