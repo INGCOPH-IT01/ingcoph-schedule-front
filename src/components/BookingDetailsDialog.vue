@@ -2265,6 +2265,17 @@ export default {
               }
             }
           }
+
+          // Also update the booking.court object if this is a single-court booking
+          // This ensures the court information displayed in the UI is current
+          if (props.booking?.court) {
+            props.booking.court = {
+              ...props.booking.court,
+              id: response.data.data.court.id,
+              name: response.data.data.court.name,
+              surface_type: response.data.data.court.surface_type
+            }
+          }
         } else if (selectedCourt) {
           // Fallback: use the court from available courts list
           const newCourtData = {
@@ -2281,6 +2292,14 @@ export default {
             if (cartItemIndex !== -1) {
               props.booking.cart_items[cartItemIndex].court = newCourtData
               props.booking.cart_items[cartItemIndex].court_id = selectedCourtId.value
+            }
+          }
+
+          // Also update the booking.court object if this is a single-court booking
+          if (props.booking?.court) {
+            props.booking.court = {
+              ...props.booking.court,
+              ...newCourtData
             }
           }
         }
