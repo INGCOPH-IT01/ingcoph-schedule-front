@@ -397,6 +397,7 @@ import { courtService } from '../services/courtService'
 import { authService } from '../services/authService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
+import { formatTimeSlot, formatBookingDate, getBookingTimeRange, formatPriceValue } from '../utils/formatters'
 import api from '../services/api'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import TimeSlotDetailsDialog from '../components/TimeSlotDetailsDialog.vue'
@@ -490,44 +491,12 @@ export default {
       }
     }
 
-    const formatTimeSlot = (time) => {
-      if (!time) return ''
-      const [hours, minutes] = time.split(':')
-      const hour = parseInt(hours)
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const displayHour = hour % 12 || 12
-      return `${displayHour}:${minutes} ${ampm}`
-    }
-
-    const formatBookingDate = (date) => {
-      if (!date) return 'Unknown'
-      const d = new Date(date)
-      return d.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    }
-
     const getBookingDate = (booking) => {
       // Get the booking date from the first cart item
       if (booking.cart_items && booking.cart_items.length > 0) {
         return booking.cart_items[0].booking_date
       }
       return booking.created_at
-    }
-
-    const getBookingTimeRange = (booking) => {
-      if (booking.cart_items && booking.cart_items.length > 0) {
-        const items = booking.cart_items
-        // Sort items by start_time to get earliest and latest
-        const sortedItems = [...items].sort((a, b) => a.start_time.localeCompare(b.start_time))
-        const start = formatTimeSlot(sortedItems[0].start_time)
-        const end = formatTimeSlot(sortedItems[sortedItems.length - 1].end_time)
-        return `${start} - ${end}`
-      }
-      return 'N/A'
     }
 
     const getBookingPrice = (booking) => {

@@ -240,6 +240,10 @@
                   <v-icon start>mdi-close-circle</v-icon>
                   Rejected
                 </v-chip>
+                <v-chip value="pending_waitlist" variant="outlined" filter>
+                  <v-icon start>mdi-account-multiple-check</v-icon>
+                  Has Waitlist Queue
+                </v-chip>
               </v-chip-group>
             </div>
 
@@ -303,7 +307,7 @@
                 ></v-select>
               </v-col>
 
-              <v-col cols="12" sm="6" md="3">
+              <v-col v-if="viewMode === 'table'" cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="dateFromFilter"
                   label="Booking Date From"
@@ -316,7 +320,7 @@
                 ></v-text-field>
               </v-col>
 
-              <v-col cols="12" sm="6" md="3">
+              <v-col v-if="viewMode === 'table'" cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="dateToFilter"
                   label="Booking Date To"
@@ -370,6 +374,7 @@
             <CalendarView
               :transactions="filteredTransactions"
               @event-click="viewBookingDetails"
+              @month-changed="handleCalendarMonthChanged"
             />
           </div>
 
@@ -632,7 +637,21 @@ import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
-import { formatPrice } from '../utils/formatters'
+import {
+  formatPrice,
+  formatDate,
+  formatTimeOnly,
+  getPaymentStatus,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getPaymentStatusIcon,
+  getApprovalStatusColor,
+  formatApprovalStatus,
+  formatDateLocal,
+  getAttendanceColor,
+  getAttendanceIcon,
+  formatAttendanceLabel
+} from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import CalendarView from '../components/CalendarView.vue'
@@ -677,13 +696,7 @@ export default {
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
     const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
 
-    // Format dates using local timezone to avoid timezone shift issues
-    const formatDateLocal = (date) => {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+    // Format dates using local timezone to avoid timezone shift issues (imported from formatters)
 
     const dateFromString = formatDateLocal(firstDayOfMonth)
     const dateToString = formatDateLocal(lastDayOfMonth)
@@ -857,83 +870,11 @@ export default {
       window.URL.revokeObjectURL(url)
     }
 
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString()
-    }
-
-    const formatTime = (dateString) => {
-      return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-
-    // Payment status helper functions
-    const getBookingPaymentStatus = (booking) => {
-      const hasPaymentMethod = booking.payment_method && booking.payment_method.trim() !== ''
-      const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment.trim() !== ''
-
-      if (hasPaymentMethod && hasProofOfPayment) {
-        return 'complete'
-      } else if (hasPaymentMethod && !hasProofOfPayment) {
-        return 'missing_proof'
-      } else if (!hasPaymentMethod && hasProofOfPayment) {
-        return 'missing_method'
-      } else {
-        return 'incomplete'
-      }
-    }
-
-    const getPaymentStatusColor = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const colors = {
-        complete: 'success',
-        missing_proof: 'warning',
-        missing_method: 'warning',
-        incomplete: 'error'
-      }
-      return colors[status] || 'info'
-    }
-
-    const getPaymentStatusText = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const texts = {
-        complete: 'Complete',
-        missing_proof: 'Missing Proof',
-        missing_method: 'Missing Method',
-        incomplete: 'Incomplete'
-      }
-      return texts[status] || 'Unknown'
-    }
-
-    const getPaymentStatusIcon = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const icons = {
-        complete: 'mdi-check-circle',
-        missing_proof: 'mdi-camera-off',
-        missing_method: 'mdi-credit-card-off',
-        incomplete: 'mdi-alert-circle'
-      }
-      return icons[status] || 'mdi-information'
-    }
-
-    // Approval status helper functions
-    const getApprovalStatusColor = (status) => {
-      const colors = {
-        'approved': 'success',
-        'rejected': 'error',
-        'pending': 'warning',
-        'pending_waitlist': 'info'
-      }
-      return colors[status] || 'warning'
-    }
-
-    const getApprovalStatusText = (status) => {
-      const texts = {
-        'approved': 'Approved',
-        'rejected': 'Rejected',
-        'pending': 'Pending',
-        'pending_waitlist': 'Pending Waitlist'
-      }
-      return texts[status] || 'Pending'
-    }
+    // Use imported functions with local aliases
+    const formatTime = formatTimeOnly
+    const getApprovalStatusText = formatApprovalStatus
+    const getBookingPaymentStatus = getPaymentStatus
+    const getAttendanceLabel = formatAttendanceLabel
 
     const getApprovalStatusIcon = (status) => {
       const icons = {
@@ -1041,6 +982,18 @@ export default {
       if (statusFilter.value.length > 0) {
         filtered = filtered.filter(transaction => {
           const status = transaction.approval_status || 'pending'
+
+          // Special handling for 'pending_waitlist' filter
+          // This should show all parent bookings that have a waitlist queue
+          // BUT exclude approved parent bookings
+          if (statusFilter.value.includes('pending_waitlist')) {
+            const hasWaitlistQueue = transaction.waitlist_entries && transaction.waitlist_entries.length > 0
+            const isNotApproved = status !== 'approved'
+            if (hasWaitlistQueue && isNotApproved) {
+              return true
+            }
+          }
+
           return statusFilter.value.includes(status)
         })
       }
@@ -1115,33 +1068,7 @@ export default {
       }
     }
 
-    // Attendance status helper functions
-    const getAttendanceColor = (status) => {
-      const colors = {
-        'showed_up': 'success',
-        'no_show': 'error',
-        'not_set': 'grey'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const getAttendanceIcon = (status) => {
-      const icons = {
-        'showed_up': 'mdi-account-check',
-        'no_show': 'mdi-account-remove',
-        'not_set': 'mdi-account-question'
-      }
-      return icons[status] || 'mdi-account-question'
-    }
-
-    const getAttendanceLabel = (status) => {
-      const labels = {
-        'showed_up': 'Showed Up',
-        'no_show': 'No Show',
-        'not_set': 'Not Set'
-      }
-      return labels[status] || 'Not Set'
-    }
+    // Attendance status helper functions (imported from formatters)
 
     // Helper function to get unique sports from a transaction
     const getUniqueSports = (transaction) => {
@@ -1226,8 +1153,55 @@ export default {
       loadPendingBookings()
     }
 
+    // Handle calendar month changes to update date filters
+    const handleCalendarMonthChanged = (monthData) => {
+      if (viewMode.value === 'calendar') {
+        // Update date filters based on calendar month
+        dateFromFilter.value = monthData.firstDay
+        dateToFilter.value = monthData.lastDay
+      }
+    }
+
     // Track if component is mounted to prevent watcher from firing during initial setup
     const isMounted = ref(false)
+
+    // Store previous status filter state to restore when waitlist filter is removed
+    const previousStatusFilter = ref(['pending', 'approved'])
+
+    // Watch status filter to handle exclusive waitlist queue filter
+    watch(statusFilter, (newValue, oldValue) => {
+      // Only react to changes after the component has mounted
+      if (!isMounted.value) {
+        return
+      }
+
+      const hasWaitlist = newValue.includes('pending_waitlist')
+      const hadWaitlist = oldValue.includes('pending_waitlist')
+      const hasOtherFilters = newValue.some(f => f !== 'pending_waitlist')
+
+      // If waitlist was just added
+      if (hasWaitlist && !hadWaitlist) {
+        // Save current filters (excluding waitlist) before clearing
+        previousStatusFilter.value = oldValue.filter(f => f !== 'pending_waitlist')
+        // Clear all other filters and keep only waitlist
+        statusFilter.value = ['pending_waitlist']
+      }
+      // If waitlist is active and user added other filters
+      else if (hasWaitlist && hasOtherFilters && oldValue.length === 1 && oldValue[0] === 'pending_waitlist') {
+        // Remove waitlist and keep the newly selected filters
+        statusFilter.value = newValue.filter(f => f !== 'pending_waitlist')
+      }
+      // If waitlist was just removed
+      else if (!hasWaitlist && hadWaitlist) {
+        // Only restore if the user manually removed waitlist (not when replaced by other filters)
+        if (newValue.length === 0) {
+          // Restore previous filters or default to pending and approved
+          statusFilter.value = previousStatusFilter.value.length > 0
+            ? previousStatusFilter.value
+            : ['pending', 'approved']
+        }
+      }
+    })
 
     // Watch date filters and reload data when they change (with debounce)
     let dateFilterTimeout = null
@@ -1369,7 +1343,9 @@ export default {
       sortOrder,
       handleSortChange,
       // View mode
-      viewMode
+      viewMode,
+      // Calendar handlers
+      handleCalendarMonthChanged
     }
   }
 }

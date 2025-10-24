@@ -802,6 +802,7 @@ import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { paymentSettingService } from '../services/paymentSettingService'
 import { companySettingService } from '../services/companySettingService'
+import { formatTime, formatDateLong } from '../utils/formatters'
 import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
@@ -1228,20 +1229,8 @@ export default {
       }
     }
 
-    const formatTime = (time) => {
-      if (!time) return ''
-      const [hours, minutes] = time.split(':')
-      const hour = parseInt(hours)
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const hour12 = hour % 12 || 12
-      return `${hour12}:${minutes} ${ampm}`
-    }
-
-    const formatDate = (date) => {
-      if (!date) return ''
-      const d = new Date(date)
-      return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-    }
+    // Use imported formatDate as formatDate alias
+    const formatDate = formatDateLong
 
     /**
      * Get the price per hour for a specific date and time considering time-based pricing

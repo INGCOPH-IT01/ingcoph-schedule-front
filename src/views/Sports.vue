@@ -94,7 +94,7 @@
               </div>
               <div class="excel-feature-item">
                 <v-icon size="20" color="success" class="mr-2">mdi-cash</v-icon>
-                <span>₱{{ sport.price_per_hour || 0 }}/hour</span>
+                <span>Starts at ₱{{ sport.lowest_price_per_hour || sport.price_per_hour || 0 }}/hour</span>
               </div>
             </div>
           </div>
@@ -110,7 +110,7 @@
             :disabled="!sport.is_active"
           >
             <v-icon>mdi-calendar-plus</v-icon>
-            Book Now - {{ formatPriceTemplate(sport.price_per_hour || 0) }}/hour
+            Book Now - {{ formatPriceTemplate(sport.lowest_price_per_hour || sport.price_per_hour || 0) }}/hour
           </v-btn>
         </div> -->
         </div>

@@ -79,6 +79,15 @@ export const courtService = {
   async createBooking(bookingData) {
     try {
       const response = await api.post('/bookings', bookingData)
+
+      // Check if the response indicates a waitlist entry was created
+      if (response.data.waitlisted) {
+        return {
+          ...response.data,
+          isWaitlisted: true
+        }
+      }
+
       return response.data.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to create booking')

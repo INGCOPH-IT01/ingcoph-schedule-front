@@ -1372,28 +1372,54 @@ export default {
             timerProgressBar: true
           })
         } else {
-          result = await courtService.createBooking(bookingData).then(async (response) => {
-            if (form.value.proof_of_payment) {
-              await uploadProofOfPayment(response.id, form.value.proof_of_payment)
-            }
-            showSnackbar('Proof of payment uploaded successfully!', 'success')
-          }).catch((error) => {
-            showSnackbar('Failed to upload proof of payment', 'error')
-          }).finally((error) => {
-          })
-          // Dispatch event to refresh bookings table
-          window.dispatchEvent(new CustomEvent('booking-created'))
-          showSnackbar('Booking created successfully!', 'success')
+          result = await courtService.createBooking(bookingData)
 
-          // Show SweetAlert success message
-          Swal.fire({
-            icon: 'success',
-            title: 'Booking Submitted!',
-            text: 'Your booking has been submitted successfully and is pending admin approval.',
-            confirmButtonColor: '#1976d2',
-            timer: 4000,
-            timerProgressBar: true
-          })
+          // Check if the user was added to waitlist
+          if (result.isWaitlisted) {
+            // Dispatch event to refresh bookings table
+            window.dispatchEvent(new CustomEvent('booking-created'))
+
+            // Show waitlist notification
+            Swal.fire({
+              icon: 'info',
+              title: 'Added to Waitlist',
+              html: `
+                <p>${result.message}</p>
+                <p class="mt-3"><strong>Your waitlist position: #${result.position}</strong></p>
+                <p class="text-sm mt-2">You'll be notified if this slot becomes available.</p>
+              `,
+              confirmButtonColor: '#1976d2',
+              confirmButtonText: 'Understood',
+              timer: 6000,
+              timerProgressBar: true
+            })
+
+            showSnackbar(`Added to waitlist (Position #${result.position})`, 'info')
+          } else {
+            // Regular booking created
+            if (form.value.proof_of_payment && result.id) {
+              try {
+                await uploadProofOfPayment(result.id, form.value.proof_of_payment)
+                showSnackbar('Proof of payment uploaded successfully!', 'success')
+              } catch (error) {
+                showSnackbar('Failed to upload proof of payment', 'error')
+              }
+            }
+
+            // Dispatch event to refresh bookings table
+            window.dispatchEvent(new CustomEvent('booking-created'))
+            showSnackbar('Booking created successfully!', 'success')
+
+            // Show SweetAlert success message
+            Swal.fire({
+              icon: 'success',
+              title: 'Booking Submitted!',
+              text: 'Your booking has been submitted successfully and is pending admin approval.',
+              confirmButtonColor: '#1976d2',
+              timer: 4000,
+              timerProgressBar: true
+            })
+          }
         }
 
         // Close dialog

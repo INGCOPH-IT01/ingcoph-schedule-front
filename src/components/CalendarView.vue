@@ -220,6 +220,7 @@
 <script>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { companySettingService } from '../services/companySettingService'
+import { formatDateLocal, formatTimeSlot, formatPrice } from '../utils/formatters'
 
 export default {
   name: 'CalendarView',
@@ -229,7 +230,7 @@ export default {
       default: () => []
     }
   },
-  emits: ['event-click'],
+  emits: ['event-click', 'month-changed'],
   setup(props, { emit }) {
     const currentDate = ref(new Date())
     const dayEventsDialog = ref(false)
@@ -402,13 +403,7 @@ export default {
       return days
     })
 
-    // Helper function to format date in local timezone
-    const formatDateLocal = (date) => {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+    // Helper function to format date in local timezone (imported from formatters)
 
     // Get transactions for a specific day
     const getEventsForDay = (date) => {
@@ -540,34 +535,12 @@ export default {
 
     const formatEventTime = (event) => {
       if (!event.startTime || !event.endTime) return ''
-
-      const formatTime = (time) => {
-        const [hours, minutes] = time.split(':')
-        const hour = parseInt(hours)
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const displayHour = hour % 12 || 12
-        return `${displayHour}:${minutes} ${ampm}`
-      }
-
-      return `${formatTime(event.startTime)} - ${formatTime(event.endTime)}`
+      return `${formatTimeSlot(event.startTime)} - ${formatTimeSlot(event.endTime)}`
     }
 
-    const formatPrice = (price) => {
-      return `₱${parseFloat(price || 0).toFixed(2)}`
-    }
-
-    const formatTimeSlot = (startTime, endTime) => {
+    const formatTimeSlotRange = (startTime, endTime) => {
       if (!startTime || !endTime) return ''
-
-      const formatTime = (time) => {
-        const [hours, minutes] = time.split(':')
-        const hour = parseInt(hours)
-        const ampm = hour >= 12 ? 'PM' : 'AM'
-        const displayHour = hour % 12 || 12
-        return `${displayHour}:${minutes} ${ampm}`
-      }
-
-      return `${formatTime(startTime)} - ${formatTime(endTime)}`
+      return `${formatTimeSlot(startTime)} - ${formatTimeSlot(endTime)}`
     }
 
     const handleEventClick = (event) => {
@@ -668,11 +641,34 @@ export default {
     watch(() => currentDate.value, (newDate) => {
       selectedMonth.value = newDate.getMonth()
       selectedYear.value = newDate.getFullYear()
+
+      // Emit month changed event with first and last day of the month
+      const firstDay = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
+      const lastDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0)
+
+      emit('month-changed', {
+        firstDay: formatDateLocal(firstDay),
+        lastDay: formatDateLocal(lastDay),
+        year: newDate.getFullYear(),
+        month: newDate.getMonth()
+      })
     })
 
     onMounted(() => {
       loadThemeColors()
       window.addEventListener('background-colors-updated', handleBackgroundColorUpdate)
+
+      // Emit initial month on mount
+      const newDate = currentDate.value
+      const firstDay = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
+      const lastDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0)
+
+      emit('month-changed', {
+        firstDay: formatDateLocal(firstDay),
+        lastDay: formatDateLocal(lastDay),
+        year: newDate.getFullYear(),
+        month: newDate.getMonth()
+      })
     })
 
     onBeforeUnmount(() => {
@@ -695,7 +691,7 @@ export default {
       selectedYear,
       formatEventTime,
       formatPrice,
-      formatTimeSlot,
+      formatTimeSlot: formatTimeSlotRange,
       handleEventClick,
       showDayEvents,
       previousMonth,
