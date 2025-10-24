@@ -240,6 +240,10 @@
                   <v-icon start>mdi-close-circle</v-icon>
                   Rejected
                 </v-chip>
+                <v-chip value="pending_waitlist" variant="outlined" filter>
+                  <v-icon start>mdi-account-multiple-check</v-icon>
+                  Has Waitlist Queue
+                </v-chip>
               </v-chip-group>
             </div>
 
@@ -977,6 +981,18 @@ export default {
       if (statusFilter.value.length > 0) {
         filtered = filtered.filter(transaction => {
           const status = transaction.approval_status || 'pending'
+
+          // Special handling for 'pending_waitlist' filter
+          // This should show all parent bookings that have a waitlist queue
+          // BUT exclude approved parent bookings
+          if (statusFilter.value.includes('pending_waitlist')) {
+            const hasWaitlistQueue = transaction.waitlist_entries && transaction.waitlist_entries.length > 0
+            const isNotApproved = status !== 'approved'
+            if (hasWaitlistQueue && isNotApproved) {
+              return true
+            }
+          }
+
           return statusFilter.value.includes(status)
         })
       }
@@ -1138,6 +1154,44 @@ export default {
 
     // Track if component is mounted to prevent watcher from firing during initial setup
     const isMounted = ref(false)
+
+    // Store previous status filter state to restore when waitlist filter is removed
+    const previousStatusFilter = ref(['pending', 'approved'])
+
+    // Watch status filter to handle exclusive waitlist queue filter
+    watch(statusFilter, (newValue, oldValue) => {
+      // Only react to changes after the component has mounted
+      if (!isMounted.value) {
+        return
+      }
+
+      const hasWaitlist = newValue.includes('pending_waitlist')
+      const hadWaitlist = oldValue.includes('pending_waitlist')
+      const hasOtherFilters = newValue.some(f => f !== 'pending_waitlist')
+
+      // If waitlist was just added
+      if (hasWaitlist && !hadWaitlist) {
+        // Save current filters (excluding waitlist) before clearing
+        previousStatusFilter.value = oldValue.filter(f => f !== 'pending_waitlist')
+        // Clear all other filters and keep only waitlist
+        statusFilter.value = ['pending_waitlist']
+      }
+      // If waitlist is active and user added other filters
+      else if (hasWaitlist && hasOtherFilters && oldValue.length === 1 && oldValue[0] === 'pending_waitlist') {
+        // Remove waitlist and keep the newly selected filters
+        statusFilter.value = newValue.filter(f => f !== 'pending_waitlist')
+      }
+      // If waitlist was just removed
+      else if (!hasWaitlist && hadWaitlist) {
+        // Only restore if the user manually removed waitlist (not when replaced by other filters)
+        if (newValue.length === 0) {
+          // Restore previous filters or default to pending and approved
+          statusFilter.value = previousStatusFilter.value.length > 0
+            ? previousStatusFilter.value
+            : ['pending', 'approved']
+        }
+      }
+    })
 
     // Watch date filters and reload data when they change (with debounce)
     let dateFilterTimeout = null
