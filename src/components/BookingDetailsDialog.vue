@@ -622,7 +622,7 @@
 
                 <div class="d-flex align-center mb-2">
                   <v-icon size="small" class="mr-2">mdi-account</v-icon>
-                  <span class="text-body-2 font-weight-bold">{{ entry.user?.name || 'Unknown User' }}</span>
+                  <span class="text-body-2 font-weight-bold">{{ getWaitlistDisplayName(entry) }}</span>
                 </div>
 
                 <div class="d-flex align-center mb-2" v-if="entry.user?.email">
@@ -641,8 +641,7 @@
                 <div class="d-flex align-center mb-2">
                   <v-icon size="small" class="mr-2">mdi-clock-outline</v-icon>
                   <span class="text-body-2">
-                    {{ new Date(entry.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} -
-                    {{ new Date(entry.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                    {{ formatWaitlistTime(entry.start_time) }} - {{ formatWaitlistTime(entry.end_time) }}
                   </span>
                 </div>
 
@@ -1131,7 +1130,7 @@
                     </template>
 
                     <v-list-item-title class="d-flex align-center">
-                      <span class="font-weight-bold mr-2">{{ entry.user?.name || 'Unknown User' }}</span>
+                      <span class="font-weight-bold mr-2">{{ getWaitlistDisplayName(entry) }}</span>
                       <v-chip :color="getWaitlistStatusColor(entry.status)" size="x-small" variant="tonal">
                         {{ formatWaitlistStatus(entry.status) }}
                       </v-chip>
@@ -1606,6 +1605,34 @@ export default {
       return new Date(dateTime).toLocaleString()
     }
 
+    // Format waitlist time from datetime string (extracts time only, no timezone conversion)
+    const formatWaitlistTime = (dateTime) => {
+      if (!dateTime) return ''
+      // Handle ISO 8601 format from API: "2025-10-28T18:00:00.000000Z"
+      // Extract the time portion (HH:MM:SS) and format it
+      const dateTimeStr = dateTime.toString()
+
+      // Try to extract time from ISO format (with 'T' separator)
+      let timePart = ''
+      if (dateTimeStr.includes('T')) {
+        // ISO format: 2025-10-28T18:00:00.000000Z
+        const parts = dateTimeStr.split('T')
+        if (parts[1]) {
+          timePart = parts[1].split('.')[0] // Get time before milliseconds
+        }
+      } else if (dateTimeStr.includes(' ')) {
+        // Space-separated format: 2025-10-28 18:00:00
+        const parts = dateTimeStr.split(' ')
+        if (parts[1]) {
+          timePart = parts[1]
+        }
+      }
+
+      // Get HH:MM from the time string
+      const timeHHMM = timePart.substring(0, 5)
+      return formatTimeSlot(timeHHMM)
+    }
+
     // Waitlist helper functions
     const getWaitlistStatusColor = (status) => {
       const colors = {
@@ -1879,6 +1906,38 @@ export default {
       if (role === 'admin') return 'mdi-shield-crown'
       if (role === 'staff') return 'mdi-account-badge'
       return 'mdi-account-tie'
+    }
+
+    // Get display name for waitlist entry (similar to CalendarView's getUserName)
+    const getWaitlistDisplayName = (entry) => {
+      if (!entry || !entry.user) return 'Unknown User'
+
+      const userId = entry.user_id
+      const bookingForUserId = entry.booking_for_user_id
+      const userName = entry.user.name || 'Unknown User'
+      const userRole = entry.user.role?.toLowerCase()
+      const isAdminOrStaff = userRole === 'admin' || userRole === 'staff'
+
+      // Check if user_id equals booking_for_user_id (admin booked for themselves)
+      const isBookingForSelf = userId === bookingForUserId || !bookingForUserId
+
+      // Check for admin_notes
+      const adminNotes = entry.admin_notes
+
+      // Check if there's a booking_for_user_name field
+      const bookingForUserName = entry.booking_for_user_name
+
+      // If admin/staff booked for themselves and has admin notes, show notes in parentheses
+      if (isBookingForSelf && isAdminOrStaff && adminNotes) {
+        return `${userName} (${adminNotes})`
+      }
+
+      // If there's a booking_for_user_name (admin booked for someone else), show that instead
+      if (bookingForUserName) {
+        return bookingForUserName
+      }
+
+      return userName
     }
 
     const handleAttendanceUpdate = async (status) => {
@@ -3011,6 +3070,7 @@ export default {
       // Methods
       closeDialog,
       formatTimeSlot,
+      formatWaitlistTime,
       formatPrice,
       formatBookingDate,
       handleAttendanceUpdate,
@@ -3092,6 +3152,7 @@ export default {
       getWaitlistStatusColor,
       formatWaitlistStatus,
       formatWaitlistDate,
+      getWaitlistDisplayName,
       // Services
       sportService,
       statusService,
