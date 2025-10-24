@@ -230,7 +230,7 @@ export default {
       default: () => []
     }
   },
-  emits: ['event-click'],
+  emits: ['event-click', 'month-changed'],
   setup(props, { emit }) {
     const currentDate = ref(new Date())
     const dayEventsDialog = ref(false)
@@ -641,11 +641,34 @@ export default {
     watch(() => currentDate.value, (newDate) => {
       selectedMonth.value = newDate.getMonth()
       selectedYear.value = newDate.getFullYear()
+
+      // Emit month changed event with first and last day of the month
+      const firstDay = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
+      const lastDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0)
+
+      emit('month-changed', {
+        firstDay: formatDateLocal(firstDay),
+        lastDay: formatDateLocal(lastDay),
+        year: newDate.getFullYear(),
+        month: newDate.getMonth()
+      })
     })
 
     onMounted(() => {
       loadThemeColors()
       window.addEventListener('background-colors-updated', handleBackgroundColorUpdate)
+
+      // Emit initial month on mount
+      const newDate = currentDate.value
+      const firstDay = new Date(newDate.getFullYear(), newDate.getMonth(), 1)
+      const lastDay = new Date(newDate.getFullYear(), newDate.getMonth() + 1, 0)
+
+      emit('month-changed', {
+        firstDay: formatDateLocal(firstDay),
+        lastDay: formatDateLocal(lastDay),
+        year: newDate.getFullYear(),
+        month: newDate.getMonth()
+      })
     })
 
     onBeforeUnmount(() => {

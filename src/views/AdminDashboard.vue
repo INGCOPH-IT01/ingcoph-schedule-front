@@ -307,7 +307,7 @@
                 ></v-select>
               </v-col>
 
-              <v-col cols="12" sm="6" md="3">
+              <v-col v-if="viewMode === 'table'" cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="dateFromFilter"
                   label="Booking Date From"
@@ -320,7 +320,7 @@
                 ></v-text-field>
               </v-col>
 
-              <v-col cols="12" sm="6" md="3">
+              <v-col v-if="viewMode === 'table'" cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="dateToFilter"
                   label="Booking Date To"
@@ -374,6 +374,7 @@
             <CalendarView
               :transactions="filteredTransactions"
               @event-click="viewBookingDetails"
+              @month-changed="handleCalendarMonthChanged"
             />
           </div>
 
@@ -1152,6 +1153,15 @@ export default {
       loadPendingBookings()
     }
 
+    // Handle calendar month changes to update date filters
+    const handleCalendarMonthChanged = (monthData) => {
+      if (viewMode.value === 'calendar') {
+        // Update date filters based on calendar month
+        dateFromFilter.value = monthData.firstDay
+        dateToFilter.value = monthData.lastDay
+      }
+    }
+
     // Track if component is mounted to prevent watcher from firing during initial setup
     const isMounted = ref(false)
 
@@ -1333,7 +1343,9 @@ export default {
       sortOrder,
       handleSortChange,
       // View mode
-      viewMode
+      viewMode,
+      // Calendar handlers
+      handleCalendarMonthChanged
     }
   }
 }
