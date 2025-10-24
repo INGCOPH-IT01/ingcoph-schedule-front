@@ -1493,7 +1493,16 @@ import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import Swal from 'sweetalert2'
-import { formatPrice, formatNumber } from '../utils/formatters'
+import {
+  formatPrice,
+  formatNumber,
+  getFrequencyColor,
+  getPaymentStatus,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getPaymentStatusIcon,
+  formatTimeSlot
+} from '../utils/formatters'
 
 export default {
   name: 'Bookings',
@@ -2161,14 +2170,7 @@ export default {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
 
-    const formatTimeSlot = (time) => {
-      if (!time) return ''
-      const [hours, minutes] = time.split(':')
-      const hour = parseInt(hours)
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const hour12 = hour % 12 || 12
-      return `${hour12}:${minutes} ${ampm}`
-    }
+    // formatTimeSlot is now imported from formatters
 
     const calculateTotalDuration = (cartItems) => {
       if (!cartItems || cartItems.length === 0) return 0
@@ -2457,106 +2459,7 @@ export default {
       return types[type] || type
     }
 
-    const getFrequencyColor = (type) => {
-      const colors = {
-        once: 'grey',
-        daily: 'green',
-        weekly: 'blue',
-        monthly: 'orange',
-        yearly: 'red'
-      }
-      return colors[type] || 'grey'
-    }
-
-    // Payment status functions
-    const getPaymentStatus = (booking) => {
-      if (!booking) return 'unknown'
-
-      const hasPaymentMethod = booking.payment_method && booking.payment_method !== ''
-      const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment !== ''
-
-      if (hasPaymentMethod && hasProofOfPayment) {
-        return 'complete'
-      } else if (hasPaymentMethod && !hasProofOfPayment) {
-        return 'missing_proof'
-      } else if (!hasPaymentMethod && hasProofOfPayment) {
-        return 'missing_method'
-      } else {
-        return 'incomplete'
-      }
-    }
-
-    const getPaymentStatusColor = (booking) => {
-      // Check for new payment fields
-      if (booking.payment_status === 'paid') {
-        return 'success'
-      }
-
-      if (booking.payment_status === 'unpaid') {
-        return 'warning'
-      }
-
-      // Legacy payment status check
-      const status = getPaymentStatus(booking)
-      const colors = {
-        complete: 'success',
-        missing_proof: 'warning',
-        missing_method: 'warning',
-        incomplete: 'error',
-        unknown: 'grey'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const getPaymentStatusText = (booking) => {
-      // Check for new payment fields
-      if (booking.payment_status === 'paid') {
-        if (booking.payment_method === 'gcash') {
-          return 'GCash Paid'
-        }
-        return 'Paid'
-      }
-
-      if (booking.payment_status === 'unpaid') {
-        return 'Pending Payment'
-      }
-
-      // Legacy payment status check
-      const status = getPaymentStatus(booking)
-      const texts = {
-        complete: 'Complete',
-        missing_proof: 'Missing Proof',
-        missing_method: 'Missing Method',
-        incomplete: 'Incomplete',
-        unknown: 'Pending'
-      }
-      return texts[status] || 'Pending'
-    }
-
-    const getPaymentStatusIcon = (booking) => {
-      // Check for new payment fields
-      if (booking.payment_status === 'paid') {
-        if (booking.payment_method === 'gcash') {
-          return 'mdi-cellphone-check'
-        }
-        return 'mdi-check-circle'
-      }
-
-      if (booking.payment_status === 'unpaid') {
-        return 'mdi-clock-outline'
-      }
-
-      // Legacy payment status check
-      const status = getPaymentStatus(booking)
-      const icons = {
-        complete: 'mdi-check-circle',
-        missing_proof: 'mdi-alert-circle',
-        missing_method: 'mdi-alert-circle',
-        incomplete: 'mdi-close-circle',
-        unknown: 'mdi-help-circle'
-      }
-      return icons[status] || 'mdi-help-circle'
-    }
+    // All payment and frequency formatting functions are now imported from formatters
 
     // Clear all filters function
     const clearFilters = () => {

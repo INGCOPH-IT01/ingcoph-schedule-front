@@ -632,7 +632,21 @@ import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
-import { formatPrice } from '../utils/formatters'
+import {
+  formatPrice,
+  formatDate,
+  formatTimeOnly,
+  getPaymentStatus,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getPaymentStatusIcon,
+  getApprovalStatusColor,
+  formatApprovalStatus,
+  formatDateLocal,
+  getAttendanceColor,
+  getAttendanceIcon,
+  formatAttendanceLabel
+} from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import CalendarView from '../components/CalendarView.vue'
@@ -677,13 +691,7 @@ export default {
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
     const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
 
-    // Format dates using local timezone to avoid timezone shift issues
-    const formatDateLocal = (date) => {
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
+    // Format dates using local timezone to avoid timezone shift issues (imported from formatters)
 
     const dateFromString = formatDateLocal(firstDayOfMonth)
     const dateToString = formatDateLocal(lastDayOfMonth)
@@ -857,83 +865,11 @@ export default {
       window.URL.revokeObjectURL(url)
     }
 
-    const formatDate = (dateString) => {
-      return new Date(dateString).toLocaleDateString()
-    }
-
-    const formatTime = (dateString) => {
-      return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-
-    // Payment status helper functions
-    const getBookingPaymentStatus = (booking) => {
-      const hasPaymentMethod = booking.payment_method && booking.payment_method.trim() !== ''
-      const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment.trim() !== ''
-
-      if (hasPaymentMethod && hasProofOfPayment) {
-        return 'complete'
-      } else if (hasPaymentMethod && !hasProofOfPayment) {
-        return 'missing_proof'
-      } else if (!hasPaymentMethod && hasProofOfPayment) {
-        return 'missing_method'
-      } else {
-        return 'incomplete'
-      }
-    }
-
-    const getPaymentStatusColor = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const colors = {
-        complete: 'success',
-        missing_proof: 'warning',
-        missing_method: 'warning',
-        incomplete: 'error'
-      }
-      return colors[status] || 'info'
-    }
-
-    const getPaymentStatusText = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const texts = {
-        complete: 'Complete',
-        missing_proof: 'Missing Proof',
-        missing_method: 'Missing Method',
-        incomplete: 'Incomplete'
-      }
-      return texts[status] || 'Unknown'
-    }
-
-    const getPaymentStatusIcon = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const icons = {
-        complete: 'mdi-check-circle',
-        missing_proof: 'mdi-camera-off',
-        missing_method: 'mdi-credit-card-off',
-        incomplete: 'mdi-alert-circle'
-      }
-      return icons[status] || 'mdi-information'
-    }
-
-    // Approval status helper functions
-    const getApprovalStatusColor = (status) => {
-      const colors = {
-        'approved': 'success',
-        'rejected': 'error',
-        'pending': 'warning',
-        'pending_waitlist': 'info'
-      }
-      return colors[status] || 'warning'
-    }
-
-    const getApprovalStatusText = (status) => {
-      const texts = {
-        'approved': 'Approved',
-        'rejected': 'Rejected',
-        'pending': 'Pending',
-        'pending_waitlist': 'Pending Waitlist'
-      }
-      return texts[status] || 'Pending'
-    }
+    // Use imported functions with local aliases
+    const formatTime = formatTimeOnly
+    const getApprovalStatusText = formatApprovalStatus
+    const getBookingPaymentStatus = getPaymentStatus
+    const getAttendanceLabel = formatAttendanceLabel
 
     const getApprovalStatusIcon = (status) => {
       const icons = {
@@ -1115,33 +1051,7 @@ export default {
       }
     }
 
-    // Attendance status helper functions
-    const getAttendanceColor = (status) => {
-      const colors = {
-        'showed_up': 'success',
-        'no_show': 'error',
-        'not_set': 'grey'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const getAttendanceIcon = (status) => {
-      const icons = {
-        'showed_up': 'mdi-account-check',
-        'no_show': 'mdi-account-remove',
-        'not_set': 'mdi-account-question'
-      }
-      return icons[status] || 'mdi-account-question'
-    }
-
-    const getAttendanceLabel = (status) => {
-      const labels = {
-        'showed_up': 'Showed Up',
-        'no_show': 'No Show',
-        'not_set': 'Not Set'
-      }
-      return labels[status] || 'Not Set'
-    }
+    // Attendance status helper functions (imported from formatters)
 
     // Helper function to get unique sports from a transaction
     const getUniqueSports = (transaction) => {

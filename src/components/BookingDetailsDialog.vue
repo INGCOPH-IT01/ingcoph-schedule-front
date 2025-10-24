@@ -1394,6 +1394,29 @@ import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import { authService } from '../services/authService'
 import { paymentSettingService } from '../services/paymentSettingService'
+import {
+  formatTimeSlot,
+  formatPriceValue,
+  formatBookingDate,
+  formatDateTime,
+  formatWaitlistTime,
+  getWaitlistStatusColor,
+  formatWaitlistStatus,
+  formatWaitlistDate,
+  getBookingTimeRange,
+  getTotalPrice,
+  getPaymentStatus,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getPaymentStatusIcon,
+  formatFrequencyType,
+  getFrequencyColor,
+  getDayName,
+  getAttendanceColor,
+  getAttendanceIcon,
+  formatAttendanceLabel,
+  isAdminBooking as isAdminBookingUtil
+} from '../utils/formatters'
 import CourtImageGallery from './CourtImageGallery.vue'
 import ProofOfPaymentUpload from './ProofOfPaymentUpload.vue'
 
@@ -1575,253 +1598,11 @@ export default {
       return props.booking?.isTransaction || (props.booking?.cart_items && props.booking.cart_items.length > 0)
     })
 
-    const formatTimeSlot = (time) => {
-      if (!time) return ''
-      const [hours, minutes] = time.split(':')
-      const hour = parseInt(hours)
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const displayHour = hour % 12 || 12
-      return `${displayHour}:${minutes} ${ampm}`
-    }
+    // Use formatPriceValue alias for the local formatPrice usage
+    const formatPrice = formatPriceValue
 
-    const formatPrice = (price) => {
-      const numPrice = Math.abs(parseFloat(price || 0))
-      return numPrice.toFixed(2)
-    }
-
-    const formatBookingDate = (date) => {
-      if (!date) return 'Unknown'
-      const d = new Date(date)
-      return d.toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    }
-
-    const formatDateTime = (dateTime) => {
-      if (!dateTime) return 'N/A'
-      return new Date(dateTime).toLocaleString()
-    }
-
-    // Format waitlist time from datetime string (extracts time only, no timezone conversion)
-    const formatWaitlistTime = (dateTime) => {
-      if (!dateTime) return ''
-      // Handle ISO 8601 format from API: "2025-10-28T18:00:00.000000Z"
-      // Extract the time portion (HH:MM:SS) and format it
-      const dateTimeStr = dateTime.toString()
-
-      // Try to extract time from ISO format (with 'T' separator)
-      let timePart = ''
-      if (dateTimeStr.includes('T')) {
-        // ISO format: 2025-10-28T18:00:00.000000Z
-        const parts = dateTimeStr.split('T')
-        if (parts[1]) {
-          timePart = parts[1].split('.')[0] // Get time before milliseconds
-        }
-      } else if (dateTimeStr.includes(' ')) {
-        // Space-separated format: 2025-10-28 18:00:00
-        const parts = dateTimeStr.split(' ')
-        if (parts[1]) {
-          timePart = parts[1]
-        }
-      }
-
-      // Get HH:MM from the time string
-      const timeHHMM = timePart.substring(0, 5)
-      return formatTimeSlot(timeHHMM)
-    }
-
-    // Waitlist helper functions
-    const getWaitlistStatusColor = (status) => {
-      const colors = {
-        'pending': 'warning',
-        'notified': 'info',
-        'converted': 'success',
-        'expired': 'grey',
-        'cancelled': 'error'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const formatWaitlistStatus = (status) => {
-      const labels = {
-        'pending': 'Pending',
-        'notified': 'Notified',
-        'converted': 'Converted',
-        'expired': 'Expired',
-        'cancelled': 'Cancelled'
-      }
-      return labels[status] || status
-    }
-
-    const formatWaitlistDate = (dateTime) => {
-      if (!dateTime) return 'N/A'
-      const date = new Date(dateTime)
-      const now = new Date()
-      const diffMs = now - date
-      const diffMins = Math.floor(diffMs / 60000)
-      const diffHours = Math.floor(diffMs / 3600000)
-      const diffDays = Math.floor(diffMs / 86400000)
-
-      if (diffMins < 1) return 'just now'
-      if (diffMins < 60) return `${diffMins} min${diffMins > 1 ? 's' : ''} ago`
-      if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
-      if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
-
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-      })
-    }
-
-    const getBookingDate = (booking) => {
-      // Get the booking date from the first cart item or created_at
-      if (booking.cart_items && booking.cart_items.length > 0) {
-        return booking.cart_items[0].booking_date
-      }
-      return booking.created_at
-    }
-
-    const getBookingTimeRange = (booking) => {
-      if (booking.cart_items && booking.cart_items.length > 0) {
-        const items = booking.cart_items
-        const sortedItems = [...items].sort((a, b) => a.start_time.localeCompare(b.start_time))
-        const start = formatTimeSlot(sortedItems[0].start_time)
-        const end = formatTimeSlot(sortedItems[sortedItems.length - 1].end_time)
-        return `${start} - ${end}`
-      }
-      if (booking.start_time && booking.end_time) {
-        return `${formatDateTime(booking.start_time)} - ${formatDateTime(booking.end_time)}`
-      }
-      return 'N/A'
-    }
-
-    const getTotalPrice = (booking) => {
-      if (booking.cart_items && booking.cart_items.length > 0) {
-        const total = booking.cart_items.reduce((sum, item) => {
-          return sum + parseFloat(item.price || 0)
-        }, 0)
-        return total.toFixed(2)
-      }
-      return formatPrice(booking.total_price || 0)
-    }
-
-
-    // Payment status helper functions
-    const getBookingPaymentStatus = (booking) => {
-      const hasPaymentMethod = booking.payment_method && booking.payment_method.trim() !== ''
-      const hasProofOfPayment = booking.proof_of_payment && booking.proof_of_payment.trim() !== ''
-
-      if (hasPaymentMethod && hasProofOfPayment) {
-        return 'complete'
-      } else if (hasPaymentMethod && !hasProofOfPayment) {
-        return 'missing_proof'
-      } else if (!hasPaymentMethod && hasProofOfPayment) {
-        return 'missing_method'
-      } else {
-        return 'incomplete'
-      }
-    }
-
-    const getPaymentStatusColor = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const colors = {
-        complete: 'success',
-        missing_proof: 'warning',
-        missing_method: 'warning',
-        incomplete: 'error'
-      }
-      return colors[status] || 'info'
-    }
-
-    const getPaymentStatusText = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const texts = {
-        complete: 'Complete',
-        missing_proof: 'Missing Proof',
-        missing_method: 'Missing Method',
-        incomplete: 'Incomplete'
-      }
-      return texts[status] || 'Unknown'
-    }
-
-    const getPaymentStatusIcon = (booking) => {
-      const status = getBookingPaymentStatus(booking)
-      const icons = {
-        complete: 'mdi-check-circle',
-        missing_proof: 'mdi-camera-off',
-        missing_method: 'mdi-credit-card-off',
-        incomplete: 'mdi-alert-circle'
-      }
-      return icons[status] || 'mdi-information'
-    }
-
-    // Frequency helper functions
-    const formatFrequencyType = (type) => {
-      const types = {
-        once: 'One-time',
-        daily: 'Daily',
-        weekly: 'Weekly',
-        monthly: 'Monthly',
-        yearly: 'Yearly'
-      }
-      return types[type] || type
-    }
-
-    const getFrequencyColor = (type) => {
-      const colors = {
-        once: 'grey',
-        daily: 'green',
-        weekly: 'blue',
-        monthly: 'orange',
-        yearly: 'red'
-      }
-      return colors[type] || 'grey'
-    }
-
-    const getDayName = (dayNumber) => {
-      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-      return days[dayNumber] || 'Unknown'
-    }
-
-    // Attendance status helper functions
-    const getAttendanceColor = (status) => {
-      const colors = {
-        'showed_up': 'success',
-        'no_show': 'error',
-        'not_set': 'grey'
-      }
-      return colors[status] || 'grey'
-    }
-
-    const getAttendanceIcon = (status) => {
-      const icons = {
-        'showed_up': 'mdi-account-check',
-        'no_show': 'mdi-account-remove',
-        'not_set': 'mdi-account-question'
-      }
-      return icons[status] || 'mdi-account-question'
-    }
-
-    const getAttendanceLabel = (status) => {
-      const labels = {
-        'showed_up': 'Showed Up',
-        'no_show': 'No Show',
-        'not_set': 'Not Set'
-      }
-      return labels[status] || 'Not Set'
-    }
-
-    // Helper functions to determine display user for admin bookings
-    const isAdminBooking = (booking) => {
-      if (!booking) return false
-      // Check if the first cart item has booking_for_user_id or booking_for_user_name
-      const firstCartItem = booking.cart_items?.[0]
-      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
-    }
+    // Use imported isAdminBooking function
+    const isAdminBooking = isAdminBookingUtil
 
     // Check if booking was created by an admin or staff user
     const isBookedByAdminOrStaff = (booking) => {
@@ -3097,7 +2878,8 @@ export default {
       approveBooking,
       showRejectDialog: showRejectDialogFunc,
       confirmReject,
-      getBookingPaymentStatus,
+      getPaymentStatus,
+      getBookingPaymentStatus: getPaymentStatus,
       // Court editing methods
       loadAvailableCourtsForItem,
       startCartItemCourtEdit,
@@ -3123,7 +2905,9 @@ export default {
       // Attendance helpers
       getAttendanceColor,
       getAttendanceIcon,
-      getAttendanceLabel,
+      getAttendanceLabel: formatAttendanceLabel,
+      getBookingTimeRange,
+      getTotalPrice,
       // Admin booking display helpers
       isAdminBooking,
       isBookedByAdminOrStaff,

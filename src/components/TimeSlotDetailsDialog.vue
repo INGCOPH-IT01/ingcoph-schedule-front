@@ -227,6 +227,7 @@
 
 <script>
 import { computed } from 'vue'
+import { formatTimeSlot, formatPriceValue, formatDateLong, formatDuration } from '../utils/formatters'
 
 export default {
   name: 'TimeSlotDetailsDialog',
@@ -260,13 +261,7 @@ export default {
 
     const formattedDate = computed(() => {
       if (!props.date) return ''
-      const d = new Date(props.date)
-      return d.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
+      return formatDateLong(props.date)
     })
 
     // Customer Information computed properties
@@ -320,21 +315,10 @@ export default {
       return role.charAt(0).toUpperCase() + role.slice(1)
     })
 
-    const formatTimeSlot = (time) => {
-      if (!time) return ''
-      const [hours, minutes] = time.split(':')
-      const hour = parseInt(hours)
-      const ampm = hour >= 12 ? 'PM' : 'AM'
-      const displayHour = hour % 12 || 12
-      return `${displayHour}:${minutes} ${ampm}`
-    }
+    // Use imported functions with aliases
+    const formatPrice = formatPriceValue
 
-    const formatPrice = (price) => {
-      const numPrice = Math.abs(parseFloat(price || 0))
-      return numPrice.toFixed(2)
-    }
-
-    const formatDuration = (hours) => {
+    const formatDurationHours = (hours) => {
       const numHours = Math.abs(parseFloat(hours || 1))
       return numHours
     }
@@ -381,7 +365,7 @@ export default {
       formattedDate,
       formatTimeSlot,
       formatPrice,
-      formatDuration,
+      formatDuration: formatDurationHours,
       getBookingTypeColor,
       getBookingTypeIcon,
       getBookingTypeLabel,
