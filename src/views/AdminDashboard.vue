@@ -958,8 +958,9 @@ export default {
       statusFilter.value = []
       userFilter.value = ''
       sportFilter.value = null
-      dateFromFilter.value = ''
-      dateToFilter.value = ''
+      // Reset date filters to default values (current month range)
+      dateFromFilter.value = dateFromString
+      dateToFilter.value = dateToString
     }
 
     // Handle sort changes
@@ -1010,21 +1011,27 @@ export default {
       }
 
       // Filter by user (name or email)
+      // Searches in TWO places:
+      // 1. User who created the booking (transaction.user) - for regular user bookings
+      // 2. "Booking For" user (booking_for_user) - for admin-created bookings
       if (userFilter.value && userFilter.value.trim() !== '') {
         const searchTerm = userFilter.value.toLowerCase().trim()
         filtered = filtered.filter(transaction => {
+          // Search in the transaction creator (who made the booking)
           const userName = transaction.user?.name?.toLowerCase() || ''
           const userEmail = transaction.user?.email?.toLowerCase() || ''
 
-          // Also search the "booking for" user fields (for admin bookings)
-          const firstCartItem = transaction.cart_items?.[0]
-          const bookingForUserName = firstCartItem?.booking_for_user_name?.toLowerCase() || ''
-          const bookingForUserEmail = firstCartItem?.booking_for_user?.email?.toLowerCase() || ''
+          // Search in all "booking for" user fields (for admin-created bookings)
+          const hasMatchInBookingFor = transaction.cart_items?.some(item => {
+            const bookingForUserName = item.booking_for_user_name?.toLowerCase() || ''
+            const bookingForUserEmail = item.booking_for_user?.email?.toLowerCase() || ''
+            return bookingForUserName.includes(searchTerm) ||
+                   bookingForUserEmail.includes(searchTerm)
+          }) || false
 
           return userName.includes(searchTerm) ||
                  userEmail.includes(searchTerm) ||
-                 bookingForUserName.includes(searchTerm) ||
-                 bookingForUserEmail.includes(searchTerm)
+                 hasMatchInBookingFor
         })
       }
 
