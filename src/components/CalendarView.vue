@@ -513,10 +513,29 @@ export default {
 
     const getUserName = (transaction) => {
       const firstCartItem = transaction.cart_items?.[0]
+      const userId = transaction.user_id
+      const bookingForUserId = firstCartItem?.booking_for_user_id
+
+      // Check if user_id equals booking_for_user_id (admin booked for themselves or no booking_for)
+      const isBookingForSelf = userId === bookingForUserId
+
+      // Get user role and admin notes
+      const userRole = transaction.user?.role?.toLowerCase()
+      const isAdminOrStaff = userRole === 'admin' || userRole === 'staff'
+      const adminNotes = transaction.admin_notes || firstCartItem?.admin_notes
+      const userName = transaction.user?.name || 'N/A'
+
+      // If admin/staff booked for themselves and has admin notes, show notes in parentheses
+      if (isBookingForSelf && isAdminOrStaff && adminNotes) {
+        return `${userName} (${adminNotes})`
+      }
+
+      // Otherwise, show booking_for name if exists, or the user's name
       if (firstCartItem?.booking_for_user_name) {
         return firstCartItem.booking_for_user_name
       }
-      return transaction.user?.name || 'N/A'
+
+      return userName
     }
 
     const formatEventTime = (event) => {
