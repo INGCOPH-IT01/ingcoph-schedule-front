@@ -960,14 +960,21 @@ export default {
     // Calculate the overall time range from all selected slots (adjacent time sensitive)
     const overallTimeRange = computed(() => {
       const allSlots = []
+      const slotCountMap = new Map() // Track count of each time slot across all courts
 
       Object.values(courtTimeSlots.value).forEach(courtData => {
         if (courtData.slots && courtData.slots.length > 0) {
           courtData.slots.forEach(slot => {
+            const slotKey = `${slot.start}-${slot.end}`
+
+            // Track all slots for range calculation
             allSlots.push({
               start: slot.start,
               end: slot.end
             })
+
+            // Count how many times this time slot appears across all courts
+            slotCountMap.set(slotKey, (slotCountMap.get(slotKey) || 0) + 1)
           })
         }
       })
@@ -1007,9 +1014,15 @@ export default {
           currentSlots.push(slot)
         } else {
           // Gap detected, save current range and start new one
+          // Sum up the actual count of slots across all courts for this range
+          const totalSlotCount = currentSlots.reduce((sum, s) => {
+            const key = `${s.start}-${s.end}`
+            return sum + (slotCountMap.get(key) || 0)
+          }, 0)
+
           timeRanges.push({
             ...currentRange,
-            slotCount: currentSlots.length
+            slotCount: totalSlotCount
           })
           currentRange = {
             start: slot.start,
@@ -1021,9 +1034,15 @@ export default {
 
       // Add the last range
       if (currentRange) {
+        // Sum up the actual count of slots across all courts for this range
+        const totalSlotCount = currentSlots.reduce((sum, s) => {
+          const key = `${s.start}-${s.end}`
+          return sum + (slotCountMap.get(key) || 0)
+        }, 0)
+
         timeRanges.push({
           ...currentRange,
-          slotCount: currentSlots.length
+          slotCount: totalSlotCount
         })
       }
 
