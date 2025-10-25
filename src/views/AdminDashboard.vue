@@ -284,8 +284,8 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model="userFilter"
-                  label="Search User"
-                  placeholder="Enter user name or email"
+                  label="Search User / Admin Notes"
+                  placeholder="Enter user name, email, or admin notes"
                   prepend-inner-icon="mdi-account-search"
                   variant="outlined"
                   density="compact"
@@ -999,9 +999,10 @@ export default {
       }
 
       // Filter by user (name or email)
-      // Searches in TWO places:
+      // Searches in THREE places:
       // 1. User who created the booking (transaction.user) - for regular user bookings
       // 2. "Booking For" user (booking_for_user) - for admin-created bookings
+      // 3. Admin Notes - to find bookings with specific notes
       if (userFilter.value && userFilter.value.trim() !== '') {
         const searchTerm = userFilter.value.toLowerCase().trim()
         filtered = filtered.filter(transaction => {
@@ -1017,9 +1018,16 @@ export default {
                    bookingForUserEmail.includes(searchTerm)
           }) || false
 
+          // Search in admin notes
+          const hasMatchInAdminNotes = transaction.cart_items?.some(item => {
+            const adminNotes = item.admin_notes?.toLowerCase() || ''
+            return adminNotes.includes(searchTerm)
+          }) || false
+
           return userName.includes(searchTerm) ||
                  userEmail.includes(searchTerm) ||
-                 hasMatchInBookingFor
+                 hasMatchInBookingFor ||
+                 hasMatchInAdminNotes
         })
       }
 
