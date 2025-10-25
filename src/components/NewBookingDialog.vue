@@ -1509,30 +1509,91 @@ export default {
         // Add to booking via API
         const response = await cartService.addToCart(cartItems)
 
-        // Check if the response indicates waitlisted booking
+        // FIX #11: Handle improved waitlist response (supports multiple items and mixed scenarios)
         if (response.waitlisted) {
-          const waitlistEntry = response.waitlist_entry
+          // All items were waitlisted
+          const totalWaitlisted = response.total_waitlisted || 1
+          const waitlistEntries = response.waitlist_entries || [response.waitlist_entry]
+          const firstEntry = waitlistEntries[0]
           const position = response.position
+
+          let waitlistHtml = `
+            <div style="text-align: left;">
+              <p><strong>${totalWaitlisted > 1
+                ? 'These time slots are currently pending approval for other users.'
+                : 'This time slot is currently pending approval for another user.'}</strong></p>
+              <p style="margin-top: 12px;">You have been added to the waitlist:</p>
+          `
+
+          if (totalWaitlisted === 1) {
+            waitlistHtml += `
+              <ul style="margin-top: 8px; padding-left: 20px;">
+                <li><strong>Position:</strong> #${position} in queue</li>
+                <li><strong>Court:</strong> ${firstEntry.court.name}</li>
+                <li><strong>Time:</strong> ${new Date(firstEntry.start_time).toLocaleTimeString()} - ${new Date(firstEntry.end_time).toLocaleTimeString()}</li>
+              </ul>
+            `
+          } else {
+            waitlistHtml += `
+              <ul style="margin-top: 8px; padding-left: 20px;">
+                <li><strong>Total slots waitlisted:</strong> ${totalWaitlisted}</li>
+            `
+            waitlistEntries.slice(0, 3).forEach((entry, index) => {
+              waitlistHtml += `
+                <li><strong>Slot ${index + 1}:</strong> ${entry.court.name} - ${new Date(entry.start_time).toLocaleTimeString()} - ${new Date(entry.end_time).toLocaleTimeString()}</li>
+              `
+            })
+            if (totalWaitlisted > 3) {
+              waitlistHtml += `<li><em>...and ${totalWaitlisted - 3} more</em></li>`
+            }
+            waitlistHtml += `</ul>`
+          }
+
+          waitlistHtml += `
+              <p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive an email notification if ${totalWaitlisted > 1 ? 'any of the slots become' : 'the slot becomes'} available.</strong></p>
+              <p style="margin-top: 8px; font-size: 0.9em; color: #666;">The notification will give you 1 hour to complete your booking.</p>
+            </div>
+          `
 
           showAlert({
             icon: 'info',
             title: '⏳ Added to Waitlist',
+            html: waitlistHtml,
+            confirmButtonText: 'OK',
+            width: '600px'
+          })
+
+          emit('close')
+          resetForm()
+          return
+        }
+
+        // FIX #11: Handle mixed scenario (some added, some waitlisted)
+        if (response.has_waitlist && response.total_waitlisted > 0) {
+          const totalAdded = response.total_added || 0
+          const totalWaitlisted = response.total_waitlisted || 0
+
+          showAlert({
+            icon: 'info',
+            title: 'Booking Status',
             html: `
               <div style="text-align: left;">
-                <p><strong>This time slot is currently pending approval for another user.</strong></p>
-                <p style="margin-top: 12px;">You have been added to the waitlist:</p>
-                <ul style="margin-top: 8px; padding-left: 20px;">
-                  <li><strong>Position:</strong> #${position} in queue</li>
-                  <li><strong>Court:</strong> ${waitlistEntry.court.name}</li>
-                  <li><strong>Time:</strong> ${new Date(waitlistEntry.start_time).toLocaleTimeString()} - ${new Date(waitlistEntry.end_time).toLocaleTimeString()}</li>
+                <p><strong>Your booking request has been processed:</strong></p>
+                <ul style="margin-top: 12px; padding-left: 20px;">
+                  ${totalAdded > 0 ? `<li>✅ <strong>${totalAdded}</strong> time slot(s) successfully added to cart</li>` : ''}
+                  ${totalWaitlisted > 0 ? `<li>⏳ <strong>${totalWaitlisted}</strong> time slot(s) added to waitlist (pending approval from other users)</li>` : ''}
                 </ul>
-                <p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive an email notification if the slot becomes available.</strong></p>
-                <p style="margin-top: 8px; font-size: 0.9em; color: #666;">The notification will give you 1 hour to complete your booking.</p>
+                ${totalWaitlisted > 0 ? '<p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive email notifications if waitlisted slots become available.</strong></p>' : ''}
               </div>
             `,
             confirmButtonText: 'OK',
             width: '600px'
           })
+
+          // Dispatch custom events to update cart count and refresh bookings
+          window.dispatchEvent(new CustomEvent('cart-updated'))
+          window.dispatchEvent(new CustomEvent('booking-created'))
+          emit('booking-created')
 
           emit('close')
           resetForm()
@@ -1564,30 +1625,90 @@ export default {
         // Check if this is a specific error response that we should handle specially
         const errorData = error.response?.data
 
-        // Handle waitlist response from error (in case it comes as error)
+        // FIX #11: Handle waitlist response from error (in case it comes as error)
         if (errorData?.waitlisted) {
-          const waitlistEntry = errorData.waitlist_entry
+          const totalWaitlisted = errorData.total_waitlisted || 1
+          const waitlistEntries = errorData.waitlist_entries || [errorData.waitlist_entry]
+          const firstEntry = waitlistEntries[0]
           const position = errorData.position
+
+          let waitlistHtml = `
+            <div style="text-align: left;">
+              <p><strong>${totalWaitlisted > 1
+                ? 'These time slots are currently pending approval for other users.'
+                : 'This time slot is currently pending approval for another user.'}</strong></p>
+              <p style="margin-top: 12px;">You have been added to the waitlist:</p>
+          `
+
+          if (totalWaitlisted === 1) {
+            waitlistHtml += `
+              <ul style="margin-top: 8px; padding-left: 20px;">
+                <li><strong>Position:</strong> #${position} in queue</li>
+                <li><strong>Court:</strong> ${firstEntry.court.name}</li>
+                <li><strong>Time:</strong> ${new Date(firstEntry.start_time).toLocaleTimeString()} - ${new Date(firstEntry.end_time).toLocaleTimeString()}</li>
+              </ul>
+            `
+          } else {
+            waitlistHtml += `
+              <ul style="margin-top: 8px; padding-left: 20px;">
+                <li><strong>Total slots waitlisted:</strong> ${totalWaitlisted}</li>
+            `
+            waitlistEntries.slice(0, 3).forEach((entry, index) => {
+              waitlistHtml += `
+                <li><strong>Slot ${index + 1}:</strong> ${entry.court.name} - ${new Date(entry.start_time).toLocaleTimeString()} - ${new Date(entry.end_time).toLocaleTimeString()}</li>
+              `
+            })
+            if (totalWaitlisted > 3) {
+              waitlistHtml += `<li><em>...and ${totalWaitlisted - 3} more</em></li>`
+            }
+            waitlistHtml += `</ul>`
+          }
+
+          waitlistHtml += `
+              <p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive an email notification if ${totalWaitlisted > 1 ? 'any of the slots become' : 'the slot becomes'} available.</strong></p>
+              <p style="margin-top: 8px; font-size: 0.9em; color: #666;">The notification will give you 1 hour to complete your booking.</p>
+            </div>
+          `
 
           showAlert({
             icon: 'info',
             title: '⏳ Added to Waitlist',
+            html: waitlistHtml,
+            confirmButtonText: 'OK',
+            width: '600px'
+          })
+
+          emit('close')
+          resetForm()
+          return
+        }
+
+        // FIX #11: Handle mixed scenario from error path
+        if (errorData?.has_waitlist && errorData?.total_waitlisted > 0) {
+          const totalAdded = errorData.total_added || 0
+          const totalWaitlisted = errorData.total_waitlisted || 0
+
+          showAlert({
+            icon: 'info',
+            title: 'Booking Status',
             html: `
               <div style="text-align: left;">
-                <p><strong>This time slot is currently pending approval for another user.</strong></p>
-                <p style="margin-top: 12px;">You have been added to the waitlist:</p>
-                <ul style="margin-top: 8px; padding-left: 20px;">
-                  <li><strong>Position:</strong> #${position} in queue</li>
-                  <li><strong>Court:</strong> ${waitlistEntry.court.name}</li>
-                  <li><strong>Time:</strong> ${new Date(waitlistEntry.start_time).toLocaleTimeString()} - ${new Date(waitlistEntry.end_time).toLocaleTimeString()}</li>
+                <p><strong>Your booking request has been processed:</strong></p>
+                <ul style="margin-top: 12px; padding-left: 20px;">
+                  ${totalAdded > 0 ? `<li>✅ <strong>${totalAdded}</strong> time slot(s) successfully added to cart</li>` : ''}
+                  ${totalWaitlisted > 0 ? `<li>⏳ <strong>${totalWaitlisted}</strong> time slot(s) added to waitlist (pending approval from other users)</li>` : ''}
                 </ul>
-                <p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive an email notification if the slot becomes available.</strong></p>
-                <p style="margin-top: 8px; font-size: 0.9em; color: #666;">The notification will give you 1 hour to complete your booking.</p>
+                ${totalWaitlisted > 0 ? '<p style="margin-top: 12px; color: #ff9800;"><strong>📧 You will receive email notifications if waitlisted slots become available.</strong></p>' : ''}
               </div>
             `,
             confirmButtonText: 'OK',
             width: '600px'
           })
+
+          // Dispatch custom events to update cart count and refresh bookings
+          window.dispatchEvent(new CustomEvent('cart-updated'))
+          window.dispatchEvent(new CustomEvent('booking-created'))
+          emit('booking-created')
 
           emit('close')
           resetForm()
