@@ -796,6 +796,12 @@
       </v-card-actions>
     </v-card>
   </v-dialog>
+
+  <!-- Booking Disabled Snackbar -->
+  <BookingDisabledSnackbar
+    v-model="bookingDisabledSnackbar"
+    :message="bookingDisabledMessage"
+  />
 </template>
 
 <script>
@@ -811,11 +817,13 @@ import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 import ProofOfPaymentUpload from './ProofOfPaymentUpload.vue'
+import BookingDisabledSnackbar from './BookingDisabledSnackbar.vue'
 
 export default {
   name: 'NewBookingDialog',
   components: {
-    ProofOfPaymentUpload
+    ProofOfPaymentUpload,
+    BookingDisabledSnackbar
   },
   props: {
     canUsersBook: {
@@ -890,6 +898,10 @@ export default {
     // Facebook page settings
     const facebookPageUrl = ref('')
     const facebookPageName = ref('')
+
+    // Booking disabled snackbar
+    const bookingDisabledSnackbar = ref(false)
+    const bookingDisabledMessage = ref('')
 
     // Computed
     const minDate = computed(() => {
@@ -2261,8 +2273,33 @@ export default {
 
     const fetchSports = async () => {
       try {
+        // Check if user booking is enabled before fetching sports
+        const canBook = await companySettingService.isUserBookingEnabled()
+
+        if (!canBook) {
+          // Check if current user is admin or staff
+          const userString = localStorage.getItem('user')
+          let userRole = 'user'
+          if (userString) {
+            try {
+              const user = JSON.parse(userString)
+              userRole = user.role || 'user'
+            } catch (e) {
+              // Default to 'user' if parsing fails
+            }
+          }
+
+          // Show snackbar only for regular users (not admin/staff)
+          if (userRole !== 'admin' && userRole !== 'staff') {
+            bookingDisabledMessage.value = 'Booking is currently disabled. Please contact the administrator for more information.'
+            bookingDisabledSnackbar.value = true
+            return // Don't fetch sports if booking is disabled
+          }
+        }
+
         sports.value = await courtService.getSports()
       } catch (error) {
+        console.error('Error fetching sports:', error)
       }
     }
 
@@ -2509,6 +2546,9 @@ export default {
       // Facebook page settings
       facebookPageUrl,
       facebookPageName,
+      // Booking disabled snackbar
+      bookingDisabledSnackbar,
+      bookingDisabledMessage,
       // Services
       sportService
     }
@@ -3012,8 +3052,10 @@ export default {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
+/* Scrolling removed - shows all items without overflow */
 .rate-slots-list {
-  /* Scrolling removed - shows all items without overflow */
+  display: flex;
+  flex-direction: column;
 }
 
 .summary-item {

@@ -391,29 +391,10 @@
     </section>
 
     <!-- Booking Disabled Snackbar -->
-    <v-snackbar
+    <BookingDisabledSnackbar
       v-model="bookingDisabledSnackbar"
-      :timeout="5000"
-      color="error"
-      location="top"
-      multi-line
-    >
-      <div class="d-flex align-center">
-        <v-icon class="mr-3" size="28">mdi-alert-circle</v-icon>
-        <div>
-          <div class="font-weight-bold mb-1">Booking Unavailable</div>
-          <div>{{ bookingDisabledMessage }}</div>
-        </div>
-      </div>
-      <template v-slot:actions>
-        <v-btn
-          variant="text"
-          @click="bookingDisabledSnackbar = false"
-        >
-          Close
-        </v-btn>
-      </template>
-    </v-snackbar>
+      :message="bookingDisabledMessage"
+    />
   </div>
 </template>
 
@@ -425,11 +406,13 @@ import { companySettingService } from '../services/companySettingService'
 import { sportService } from '../services/sportService'
 import { formatPrice } from '../utils/formatters'
 import PriceDisclaimerNote from '../components/PriceDisclaimerNote.vue'
+import BookingDisabledSnackbar from '../components/BookingDisabledSnackbar.vue'
 
 export default {
   name: 'Home',
   components: {
-    PriceDisclaimerNote
+    PriceDisclaimerNote,
+    BookingDisabledSnackbar
   },
   setup() {
     const router = useRouter()
