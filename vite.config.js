@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { copyFileSync } from 'fs'
+import { copyFileSync, readFileSync } from 'fs'
 
 // Plugin to copy .htaccess after build
 const copyHtaccess = () => ({
@@ -14,6 +14,14 @@ const copyHtaccess = () => ({
     }
   }
 })
+
+// Read build metadata stamped by build-with-version.js
+let pkg = {}
+try {
+  pkg = JSON.parse(readFileSync('./package.json', 'utf8'))
+} catch (e) {
+  pkg = {}
+}
 
 export default defineConfig({
   plugins: [vue(), copyHtaccess()],
@@ -44,5 +52,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     // Generate new hashes on every build
     assetsInlineLimit: 0
+  },
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.buildVersion ?? null),
+    __APP_BUILD_DATE__: JSON.stringify(pkg.buildDate ?? null)
   }
 })

@@ -12,6 +12,13 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # Always fetch a fresh version.json
+    location = /version.json {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        add_header Expires "0";
+    }
+
     # Cache static assets with fingerprinting for 1 year
     location ~* \.(js|css|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$ {
         add_header Cache-Control "public, max-age=31536000, immutable";
@@ -23,4 +30,3 @@ server {
         try_files $uri $uri/ /index.html;
     }
 }
-
