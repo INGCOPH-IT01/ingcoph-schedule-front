@@ -136,17 +136,18 @@
                 </div>
               </div>
 
-              <!-- <div class="hero-actions">
+              <div class="hero-actions">
                 <v-btn
-                    size="x-large"
-                    class="hero-btn-primary"
+                  v-if="canUsersBook"
+                  size="x-large"
+                  class="hero-btn-primary"
                   @click="openBookingDialog"
                   prepend-icon="mdi-calendar-plus"
-                    elevation="8"
+                  elevation="8"
                 >
                     Book Your Court Now
                 </v-btn>
-              </div> -->
+              </div>
             </div>
           </v-col>
         </v-row>
@@ -364,7 +365,8 @@
                           <span class="price-amount">{{ formatPriceTemplate(getSportPrice()) }}</span>
                           <span class="price-unit">/hour</span>
                         </div>
-                      <!-- <v-btn
+                      <v-btn
+                          v-if="canUsersBook"
                           class="book-now-btn"
                           size="x-large"
                           @click="handleBookNowClick"
@@ -372,7 +374,7 @@
                           elevation="8"
                       >
                           Book Your Session
-                      </v-btn> -->
+                      </v-btn>
                       <div class="mt-3">
                         <PriceDisclaimerNote theme="light" />
                       </div>
@@ -387,6 +389,31 @@
         </v-row>
       </v-container>
     </section>
+
+    <!-- Booking Disabled Snackbar -->
+    <v-snackbar
+      v-model="bookingDisabledSnackbar"
+      :timeout="5000"
+      color="error"
+      location="top"
+      multi-line
+    >
+      <div class="d-flex align-center">
+        <v-icon class="mr-3" size="28">mdi-alert-circle</v-icon>
+        <div>
+          <div class="font-weight-bold mb-1">Booking Unavailable</div>
+          <div>{{ bookingDisabledMessage }}</div>
+        </div>
+      </div>
+      <template v-slot:actions>
+        <v-btn
+          variant="text"
+          @click="bookingDisabledSnackbar = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
@@ -412,6 +439,14 @@ export default {
     const error = ref(null)
     const companyName = ref('Perfect Smash')
     const companyLogoUrl = ref(null)
+
+    // User and permissions
+    const user = ref(null)
+    const canUsersBook = ref(true)
+
+    // Booking disabled snackbar
+    const bookingDisabledSnackbar = ref(false)
+    const bookingDisabledMessage = ref('')
 
     // Dashboard settings
     const dashboardSettings = ref({
@@ -600,18 +635,66 @@ export default {
       return colorMap[color] || '#B71C1C 0%, #C62828 100%'
     }
 
-    const openBookingDialog = () => {
-      // Emit event to parent (App.vue) to open the global booking dialog
-      window.dispatchEvent(new CustomEvent('open-booking-dialog'))
-    }
-
-    const handleBookNowClick = () => {
+    const openBookingDialog = async () => {
       // Check if user is authenticated
       const token = localStorage.getItem('token')
       if (!token) {
         router.push('/login')
         return
       }
+
+      // Get user role from localStorage
+      const userString = localStorage.getItem('user')
+      let userRole = 'user'
+      if (userString) {
+        try {
+          const user = JSON.parse(userString)
+          userRole = user.role || 'user'
+        } catch (e) {
+          // Default to 'user' if parsing fails
+        }
+      }
+
+      // Check if user can book
+      const canBook = await companySettingService.canUserCreateBookings(userRole)
+      if (!canBook) {
+        bookingDisabledMessage.value = 'Booking is currently disabled. Please contact the administrator for more information.'
+        bookingDisabledSnackbar.value = true
+        return
+      }
+
+      // Emit event to parent (App.vue) to open the global booking dialog
+      window.dispatchEvent(new CustomEvent('open-booking-dialog'))
+    }
+
+    const handleBookNowClick = async () => {
+      // Check if user is authenticated
+      const token = localStorage.getItem('token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+
+      // Get user role from localStorage
+      const userString = localStorage.getItem('user')
+      let userRole = 'user'
+      if (userString) {
+        try {
+          const user = JSON.parse(userString)
+          userRole = user.role || 'user'
+        } catch (e) {
+          // Default to 'user' if parsing fails
+        }
+      }
+
+      // Check if user can book
+      const canBook = await companySettingService.canUserCreateBookings(userRole)
+      if (!canBook) {
+        bookingDisabledMessage.value = 'Booking is currently disabled. Please contact the administrator for more information.'
+        bookingDisabledSnackbar.value = true
+        return
+      }
+
       router.push({ name: 'Courts' })
     }
 
@@ -688,7 +771,25 @@ export default {
     }
 
     onMounted(async () => {
+      // Get user from localStorage
+      const userString = localStorage.getItem('user')
+      if (userString) {
+        try {
+          user.value = JSON.parse(userString)
+        } catch (e) {
+          user.value = null
+        }
+      }
+
+      // Load data
       await Promise.all([fetchSports(), fetchCourts(), loadDashboardSettings()])
+
+      // Check booking permissions
+      try {
+        canUsersBook.value = await companySettingService.canUserCreateBookings(user.value?.role || 'user')
+      } catch (e) {
+        canUsersBook.value = true // Fail-open on error
+      }
 
       // Listen for dashboard settings updates
       window.addEventListener('dashboard-settings-updated', handleDashboardUpdate)
@@ -709,12 +810,16 @@ export default {
       dashboardSettings,
       companyName,
       companyLogoUrl,
+      user,
+      canUsersBook,
       operatingHoursEnabled,
       operatingHours,
       displayDays,
       allDaysMatchGeneral,
       hasClosedDays,
       closedDaysList,
+      bookingDisabledSnackbar,
+      bookingDisabledMessage,
       getSportPrice,
       openBookingDialog,
       handleBookNowClick,
