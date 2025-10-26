@@ -743,17 +743,21 @@
           <v-icon end>mdi-arrow-right</v-icon>
         </v-btn>
         <template v-else>
-          <!-- Add to Cart button (always available) -->
+          <!-- Add to Cart button (hidden if user booking disabled) -->
           <v-btn
             color="info"
             variant="outlined"
             :loading="addingToCart"
             @click="addToCart"
+            v-if="canUsersBook"
             class="mr-2"
           >
             <v-icon start>mdi-cart-plus</v-icon>
             Add to Booking
           </v-btn>
+          <v-alert v-else type="info" variant="tonal" density="compact" class="mr-2">
+            Booking creation is disabled for user accounts.
+          </v-alert>
 
           <!-- Waitlist submission (all slots are waitlist) -->
           <v-btn
@@ -812,6 +816,12 @@ export default {
   name: 'NewBookingDialog',
   components: {
     ProofOfPaymentUpload
+  },
+  props: {
+    canUsersBook: {
+      type: Boolean,
+      default: true
+    }
   },
   props: {
     isOpen: {

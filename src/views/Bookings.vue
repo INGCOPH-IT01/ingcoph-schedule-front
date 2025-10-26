@@ -15,7 +15,7 @@
         </p>
         <div class="header-actions">
           <v-btn
-            v-if="isAdmin"
+            v-if="isAdmin || canUsersBook"
             class="header-btn-primary"
             size="x-large"
             prepend-icon="mdi-calendar-plus"
@@ -62,87 +62,276 @@
 
     <!-- Main Content -->
     <div v-if="isAuthenticated">
-          <!-- Enhanced Toolbar -->
-          <div class="bookings-toolbar">
-            <div class="toolbar-section">
-              <div class="filters-section">
-                <v-text-field
-                  v-model="dateFilter"
-                  type="date"
-                  placeholder="Filter by date"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="filter-field"
-                  prepend-inner-icon="mdi-calendar"
-                  clearable
-                ></v-text-field>
-                <v-select
-                  v-model="statusFilter"
-                  :items="statusOptions"
-                  item-title="title"
-                  item-value="value"
-                  placeholder="All Status"
-                  variant="outlined"
-                  density="compact"
-                  hide-details
-                  class="filter-field"
-                ></v-select>
-                <v-btn
-                  class="filter-btn"
-                  variant="outlined"
-                  size="small"
-                  prepend-icon="mdi-filter"
-                  @click="clearFilters"
+      <!-- Transactions Card -->
+      <v-row>
+        <v-col cols="12">
+          <v-card>
+            <v-card-title class="text-h5 pa-6 pb-4">
+              <div class="d-flex align-center justify-space-between w-100">
+                <div class="d-flex align-center">
+                  <v-icon class="mr-2" color="primary">mdi-receipt-text</v-icon>
+                  My Transactions
+                </div>
+                <v-chip-group
+                  v-model="viewMode"
+                  mandatory
+                  selected-class="text-primary"
                 >
-                  Clear Filters
-                </v-btn>
-              <v-btn
+                  <v-chip value="cards" variant="outlined" filter>
+                    <v-icon start>mdi-view-grid-outline</v-icon>
+                    Cards
+                  </v-chip>
+                  <v-chip value="table" variant="outlined" filter>
+                    <v-icon start>mdi-table</v-icon>
+                    Data Table
+                  </v-chip>
+                </v-chip-group>
+              </div>
+            </v-card-title>
+            <v-divider></v-divider>
+
+            <!-- Filters -->
+            <div class="pa-4">
+              <!-- Status Filter Chips -->
+              <div class="mb-4">
+                <div class="text-subtitle-2 mb-2 font-weight-bold">
+                  Approval Status
+                  <span v-if="statusFilter.length > 0" class="text-caption text-grey ml-2">
+                    ({{ statusFilter.length }} selected)
+                  </span>
+                </div>
+                <v-chip-group
+                  v-model="statusFilter"
+                  multiple
+                  selected-class="text-primary"
+                >
+                  <v-chip value="pending" variant="outlined" filter>
+                    <v-icon start>mdi-clock-alert</v-icon>
+                    Pending
+                  </v-chip>
+                  <v-chip value="approved" variant="outlined" filter>
+                    <v-icon start>mdi-check-circle</v-icon>
+                    Approved
+                  </v-chip>
+                  <v-chip value="rejected" variant="outlined" filter>
+                    <v-icon start>mdi-close-circle</v-icon>
+                    Rejected
+                  </v-chip>
+                  <v-chip value="pending_waitlist" variant="outlined" filter>
+                    <v-icon start>mdi-clock-check</v-icon>
+                    Waitlist Pending
+                  </v-chip>
+                </v-chip-group>
+              </div>
+
+              <!-- Payment Status Filter Chips -->
+              <div class="mb-4">
+                <div class="text-subtitle-2 mb-2 font-weight-bold">
+                  Payment Status
+                  <span v-if="paymentStatusFilter.length > 0" class="text-caption text-grey ml-2">
+                    ({{ paymentStatusFilter.length }} selected)
+                  </span>
+                </div>
+                <v-chip-group
+                  v-model="paymentStatusFilter"
+                  multiple
+                  selected-class="text-primary"
+                >
+                  <v-chip value="complete" variant="outlined" filter>
+                    <v-icon start>mdi-check-circle</v-icon>
+                    Complete
+                  </v-chip>
+                  <v-chip value="missing_proof" variant="outlined" filter>
+                    <v-icon start>mdi-camera-off</v-icon>
+                    Missing Proof
+                  </v-chip>
+                </v-chip-group>
+              </div>
+
+              <!-- Additional Filters -->
+              <v-row>
+                <v-col cols="12" sm="6" md="2">
+                  <v-select
+                    v-model="sportFilter"
+                    :items="sportOptions"
+                    label="Filter by Sport"
+                    prepend-inner-icon="mdi-basketball"
+                    variant="outlined"
+                    density="compact"
+                    clearable
+                    hide-details
+                  ></v-select>
+                </v-col>
+
+                <v-col cols="12" sm="6" md="3">
+                  <v-text-field
+                    v-model="dateFromFilter"
+                    label="Booking Date From"
+                    type="date"
+                    prepend-inner-icon="mdi-calendar-start"
+                    variant="outlined"
+                    density="compact"
+                    clearable
+                    hide-details
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" sm="6" md="3">
+                  <v-text-field
+                    v-model="dateToFilter"
+                    label="Booking Date To"
+                    type="date"
+                    prepend-inner-icon="mdi-calendar-end"
+                    variant="outlined"
+                    density="compact"
+                    clearable
+                    hide-details
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" sm="12" md="1">
+                  <v-btn
+                    color="primary"
+                    variant="outlined"
+                    prepend-icon="mdi-refresh"
+                    @click="fetchBookings"
+                    :loading="loading"
+                  >
+                    Refresh
+                  </v-btn>
+                </v-col>
+              </v-row>
+
+              <!-- Clear All Filters Button -->
+              <v-row v-if="hasActiveFilters" class="mt-2">
+                <v-col cols="12">
+                  <v-btn
+                    variant="text"
+                    color="error"
+                    prepend-icon="mdi-filter-off"
+                    size="small"
+                    @click="clearFilters"
+                  >
+                    Clear All Filters
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </div>
+
+            <v-divider></v-divider>
+
+            <!-- Results Count -->
+            <div class="px-4 py-2 text-caption" style="color: #475569;">
+              Showing {{ filteredTransactions.length }} of {{ flattenedBookings.length }} transaction{{ flattenedBookings.length !== 1 ? 's' : '' }}
+            </div>
+
+            <!-- Data Table View -->
+            <v-data-table
+              v-if="viewMode === 'table'"
+              :headers="tableHeaders"
+              :items="filteredTransactions"
+              :loading="loading"
+              class="elevation-0"
+              no-data-text="No transactions found"
+            >
+              <template v-slot:[`item.user_name`]="{ item }">
+                <div class="d-flex align-center">
+                  <v-avatar size="28" color="primary" class="mr-2">
+                    <span class="text-white">{{ (getFirstCartItemBookingForName(item) || item.user?.name || 'U').charAt(0).toUpperCase() }}</span>
+                  </v-avatar>
+                  <div>
+                    <div class="font-weight-medium">
+                      {{ getFirstCartItemBookingForName(item) || item.user?.name || 'Unknown' }}
+                    </div>
+                    <div class="text-caption" style="color: #64748b;">
+                      {{ item.user?.email || (getFirstCartItemBookingForName(item) ? 'Walk-in customer' : 'No email') }}
+                    </div>
+                  </div>
+                </div>
+              </template>
+
+              <template v-slot:[`item.court_name`]="{ item }">
+                {{ item.court?.name || 'Unknown Court' }}
+              </template>
+
+              <template v-slot:[`item.sport_name`]="{ item }">
+                {{ item.sport?.name || item.court?.sport?.name || 'Unknown Sport' }}
+              </template>
+
+              <template v-slot:[`item.booking_date`]="{ item }">
+                {{ formatDate(item.booking_date) }}
+              </template>
+
+              <template v-slot:[`item.time_slots`]="{ item }">
+                {{ getGroupedTimeDisplay(item.cart_items) }}
+              </template>
+
+              <template v-slot:[`item.total_price`]="{ item }">
+                <div class="text-h6 font-weight-bold text-success">
+                  ₱{{ parseFloat(item.price || 0).toFixed(2) }}
+                </div>
+              </template>
+
+              <template v-slot:[`item.payment_status`]="{ item }">
+                <v-chip :color="getPaymentStatusColor(item)" variant="tonal" size="small">
+                  <v-icon class="mr-1" size="small">{{ getPaymentStatusIcon(item) }}</v-icon>
+                  {{ getPaymentStatusText(item) }}
+                </v-chip>
+              </template>
+
+              <template v-slot:[`item.approval_status`]="{ item }">
+                <v-chip :color="getApprovalStatusColor(item.approval_status)" variant="tonal" size="small">
+                  {{ formatApprovalStatus(item.approval_status) }}
+                </v-chip>
+              </template>
+
+              <template v-slot:[`item.actions`]="{ item }">
+                <div class="d-flex gap-2">
+                  <v-btn
+                    icon="mdi-eye"
+                    size="small"
+                    variant="tonal"
+                    color="primary"
+                    @click="viewBooking(item)"
+                  ></v-btn>
+                  <v-btn
+                    v-if="((item.approval_status === 'pending' || item.approval_status === 'pending_waitlist') && item.payment_status !== 'paid') || isBookingExpired(item)"
+                    icon="mdi-delete"
+                    size="small"
+                    variant="tonal"
+                    color="error"
+                    @click="cancelBooking(item)"
+                  ></v-btn>
+                </div>
+              </template>
+            </v-data-table>
+
+            <!-- Cards View -->
+            <div v-if="viewMode === 'cards'" class="pa-4">
+              <v-progress-circular
+                v-if="loading"
+                indeterminate
                 color="primary"
-                variant="outlined"
-                size="small"
-                prepend-icon="mdi-refresh"
-                @click="fetchBookings"
-                :loading="loading"
-                class="ml-2"
-              >
-                Refresh
-              </v-btn>
-              <v-btn
-                color="grey"
-                variant="outlined"
-                size="small"
-                prepend-icon="mdi-download"
-                class="excel-export-btn"
-              >
-                Export
-              </v-btn>
-            </div>
-          </div>
+                size="64"
+                class="loading-spinner"
+              ></v-progress-circular>
 
-          <!-- Cart Transactions List -->
-          <div class="bookings-cards-container">
-            <v-progress-circular
-              v-if="loading"
-              indeterminate
-              color="primary"
-              size="64"
-              class="loading-spinner"
-            ></v-progress-circular>
+              <div v-else-if="transactions.length === 0" class="no-bookings text-center py-8">
+                <v-icon size="80" color="grey-lighten-1">mdi-receipt-text-remove</v-icon>
+                <h3 class="mt-4">No transactions found</h3>
+                <p class="text-grey">Your booking transactions will appear here after checkout</p>
+                <v-btn
+                  v-if="canUsersBook"
+                  color="primary"
+                  class="mt-4"
+                  @click="openBookingDialog"
+                >
+                  <v-icon start>mdi-plus</v-icon>
+                  Create New Booking
+                </v-btn>
+              </div>
 
-            <div v-else-if="transactions.length === 0" class="no-bookings">
-              <v-icon size="80" color="grey-lighten-1">mdi-receipt-text-remove</v-icon>
-              <h3 class="mt-4">No transactions found</h3>
-              <p class="text-grey">Your booking transactions will appear here after checkout</p>
-              <v-btn color="primary" class="mt-4" @click="openBookingDialog">
-                <v-icon start>mdi-plus</v-icon>
-                Create New Booking
-              </v-btn>
-            </div>
-
-            <div v-else class="bookings-grid-container">
-              <!-- All Bookings Cards in Grid -->
-              <div class="bookings-grid">
+              <div v-else class="bookings-grid">
                 <v-card
                   v-for="booking in filteredTransactions"
                   :key="booking.id"
@@ -154,56 +343,56 @@
                   }"
                   elevation="2"
                 >
-                    <!-- Status Banner -->
-                    <div v-if="isBookingExpired(booking)" class="status-banner-compact expired-banner">
-                      <v-icon size="x-small" class="mr-1">mdi-clock-remove</v-icon>
-                      EXPIRED
-                    </div>
-                    <div v-else-if="booking.approval_status === 'pending_waitlist'" class="status-banner-compact waitlist-banner">
-                      <v-icon size="x-small" class="mr-1">mdi-clock-check</v-icon>
-                      WAITLIST PENDING
-                    </div>
-                    <div v-else-if="booking.approval_status === 'pending'" class="status-banner-compact pending-banner">
-                      <v-icon size="x-small" class="mr-1">mdi-clock-alert</v-icon>
-                      PENDING
-                    </div>
-                    <div v-else-if="booking.approval_status === 'approved'" class="status-banner-compact approved-banner">
-                      <v-icon size="x-small" class="mr-1">mdi-check-circle</v-icon>
-                      APPROVED
-                    </div>
-                    <div v-else-if="booking.approval_status === 'rejected'" class="status-banner-compact rejected-banner">
-                      <v-icon size="x-small" class="mr-1">mdi-close-circle</v-icon>
-                      REJECTED
+                  <!-- Status Banner -->
+                  <div v-if="isBookingExpired(booking)" class="status-banner-compact expired-banner">
+                    <v-icon size="x-small" class="mr-1">mdi-clock-remove</v-icon>
+                    EXPIRED
+                  </div>
+                  <div v-else-if="booking.approval_status === 'pending_waitlist'" class="status-banner-compact waitlist-banner">
+                    <v-icon size="x-small" class="mr-1">mdi-clock-check</v-icon>
+                    WAITLIST PENDING
+                  </div>
+                  <div v-else-if="booking.approval_status === 'pending'" class="status-banner-compact pending-banner">
+                    <v-icon size="x-small" class="mr-1">mdi-clock-alert</v-icon>
+                    PENDING
+                  </div>
+                  <div v-else-if="booking.approval_status === 'approved'" class="status-banner-compact approved-banner">
+                    <v-icon size="x-small" class="mr-1">mdi-check-circle</v-icon>
+                    APPROVED
+                  </div>
+                  <div v-else-if="booking.approval_status === 'rejected'" class="status-banner-compact rejected-banner">
+                    <v-icon size="x-small" class="mr-1">mdi-close-circle</v-icon>
+                    REJECTED
+                  </div>
+
+                  <v-card-text class="pa-3">
+                    <!-- Booking Date Header -->
+                    <div class="booking-date-header">
+                      <v-icon color="primary" size="16" class="mr-1">mdi-calendar</v-icon>
+                      <span class="booking-date-text">
+                        {{ formatDate(booking.booking_date) }}
+                      </span>
                     </div>
 
-                    <v-card-text class="pa-3">
-                      <!-- Booking Date Header -->
-                      <div class="booking-date-header">
-                        <v-icon color="primary" size="16" class="mr-1">mdi-calendar</v-icon>
-                        <span class="booking-date-text">
-                          {{ formatDate(booking.booking_date) }}
-                        </span>
+                    <!-- Court Info -->
+                    <div class="booking-court-info-compact">
+                      <div>
+                        <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
+                        <v-chip
+                          :color="sportService.getSportColor(booking.sport?.name)"
+                          size="x-small"
+                          variant="flat"
+                          class="text-white mt-1"
+                        >
+                          <v-icon start size="x-small">
+                            {{ sportService.getSportIcon(booking.sport?.name, booking.sport?.icon) }}
+                          </v-icon>
+                          {{ booking.sport?.name || 'Unknown Sport' }}
+                        </v-chip>
                       </div>
+                    </div>
 
-                      <!-- Court Info -->
-                      <div class="booking-court-info-compact">
-                        <div>
-                          <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
-                          <v-chip
-                            :color="sportService.getSportColor(booking.sport?.name)"
-                            size="x-small"
-                            variant="flat"
-                            class="text-white mt-1"
-                            >
-                            <v-icon start size="x-small">
-                              {{ sportService.getSportIcon(booking.sport?.name, booking.sport?.icon) }}
-                            </v-icon>
-                            {{ booking.sport?.name || 'Unknown Sport' }}
-                          </v-chip>
-                        </div>
-                      </div>
-
-                      <!-- Booking Details -->
+                    <!-- Booking Details -->
                       <div class="booking-details-compact">
                         <!-- Time Slots (Grouped) -->
                         <div class="detail-row-compact">
@@ -332,9 +521,11 @@
                 </v-card>
               </div>
             </div>
-          </div>
+          </v-card>
+        </v-col>
+      </v-row>
 
-          <!-- Old Data Table (Hidden) -->
+      <!-- Old Data Table (Hidden) -->
           <div v-if="false" class="excel-table-container">
             <v-data-table
               :headers="headers"
@@ -652,7 +843,7 @@
               </template>
             </v-data-table>
           </div>
-    </div>
+    </div> <!-- end v-if="isAuthenticated" -->
 
     <!-- Booking Details Dialog -->
     <BookingDetailsDialog
@@ -1282,6 +1473,7 @@
     <!-- New Booking Dialog with Improved Flow -->
     <NewBookingDialog
       :is-open="newBookingDialog"
+      :can-users-book="canUsersBook"
       @close="closeNewBookingDialog"
       @booking-created="onBookingCreated"
     />
@@ -1474,7 +1666,6 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
-    </div>
   </div>
 </template>
 
@@ -1485,6 +1676,7 @@ import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
 import { cartService } from '../services/cartService'
 import { bookingService } from '../services/bookingService'
+import { companySettingService } from '../services/companySettingService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
@@ -1501,6 +1693,8 @@ import {
   getPaymentStatusColor,
   getPaymentStatusText,
   getPaymentStatusIcon,
+  getApprovalStatusColor,
+  formatApprovalStatus,
   formatTimeSlot
 } from '../utils/formatters'
 
@@ -1518,13 +1712,58 @@ export default {
     const bookings = ref([])
     const transactions = ref([])
     const expandedTransactions = ref([])
-    const statusFilter = ref('')
-    const dateFilter = ref('')
+    // Approval status filter (AdminDashboard-style chips)
+    const statusFilter = ref(['pending', 'approved'])
+
+    // Payment status filter (AdminDashboard-style chips)
+    const paymentStatusFilter = ref([])
+
+    // Sport filter
+    const sportFilter = ref(null)
+    const sports = ref([])
+
+    // View mode state and persistence
+    const viewMode = ref('table')
+
+    // Data Table headers for transactions
+    const tableHeaders = [
+      { title: 'User', key: 'user_name', sortable: false },
+      { title: 'Court', key: 'court_name', sortable: false },
+      { title: 'Sport', key: 'sport_name', sortable: false },
+      { title: 'Booking Date', key: 'booking_date', sortable: true },
+      { title: 'Time Slots', key: 'time_slots', sortable: false },
+      { title: 'Total Price', key: 'total_price', sortable: true },
+      { title: 'Payment', key: 'payment_status', sortable: false },
+      { title: 'Approval', key: 'approval_status', sortable: false },
+      { title: 'Actions', key: 'actions', sortable: false }
+    ]
+
+    // Date range filters (AdminDashboard-style)
+    const today = new Date()
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+    const formatDateLocalHelper = (date) => {
+      if (!date) return ''
+      const d = date instanceof Date ? date : new Date(date)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const dateFromString = formatDateLocalHelper(firstDayOfMonth)
+    const dateToString = formatDateLocalHelper(lastDayOfMonth)
+    const dateFromFilter = ref(dateFromString)
+    const dateToFilter = ref(dateToString)
+
     const loading = ref(true)
     const error = ref(null)
     const cancelling = ref(null)
     const updating = ref(null)
     const newBookingDialog = ref(false)
+    const companySettings = ref({})
+    const canUsersBook = ref(true)
     const generateDialogOpen = ref(false)
 
     const user = ref(null)
@@ -1770,24 +2009,78 @@ export default {
       })
     })
 
+    // Computed property for sport options - using database sports
+    const sportOptions = computed(() => {
+      if (!sports.value || sports.value.length === 0) {
+        return ['All Sports']
+      }
+      const sportNames = sports.value.map(sport => sport.name).sort()
+      return ['All Sports', ...sportNames]
+    })
+
     const filteredTransactions = computed(() => {
       let filtered = flattenedBookings.value
 
-      // Filter by date
-      if (dateFilter.value) {
-        const filterDate = new Date(dateFilter.value)
+      // Filter by date range (AdminDashboard-style)
+      if (dateFromFilter.value || dateToFilter.value) {
         filtered = filtered.filter(t => {
-          if (t.booking_date) {
-            const bookingDate = new Date(t.booking_date)
-            return bookingDate.toDateString() === filterDate.toDateString()
+          if (!t.booking_date) return false
+
+          const bookingDate = new Date(t.booking_date)
+
+          if (dateFromFilter.value) {
+            const fromDate = new Date(dateFromFilter.value)
+            if (bookingDate < fromDate) return false
           }
-          return false
+
+          if (dateToFilter.value) {
+            const toDate = new Date(dateToFilter.value)
+            toDate.setHours(23, 59, 59, 999) // Include entire end date
+            if (bookingDate > toDate) return false
+          }
+
+          return true
         })
       }
 
-      // Filter by status
-      if (statusFilter.value) {
-        filtered = filtered.filter(t => t.approval_status === statusFilter.value)
+      // Filter by sport
+      if (sportFilter.value && sportFilter.value !== 'All Sports') {
+        filtered = filtered.filter(transaction => {
+          if (!transaction.cart_items || transaction.cart_items.length === 0) {
+            return false
+          }
+          // Check if any cart item has the selected sport
+          return transaction.cart_items.some(item =>
+            item.sport?.name === sportFilter.value ||
+            item.court?.sport?.name === sportFilter.value
+          )
+        })
+      }
+
+      // Filter by approval status (AdminDashboard-style, multi-select with special waitlist logic)
+      if (Array.isArray(statusFilter.value) && statusFilter.value.length > 0) {
+        filtered = filtered.filter(transaction => {
+          const status = transaction.approval_status || 'pending'
+
+          // Show parent transactions with waitlist queue but exclude approved ones
+          if (statusFilter.value.includes('pending_waitlist')) {
+            const hasWaitlistQueue = transaction.waitlist_entries && transaction.waitlist_entries.length > 0
+            const isNotApproved = status !== 'approved'
+            if (hasWaitlistQueue && isNotApproved) {
+              return true
+            }
+          }
+
+          return statusFilter.value.includes(status)
+        })
+      }
+
+      // Filter by payment status (AdminDashboard-style)
+      if (paymentStatusFilter.value.length > 0) {
+        filtered = filtered.filter(transaction => {
+          const paymentStatus = getPaymentStatus(transaction)
+          return paymentStatusFilter.value.includes(paymentStatus)
+        })
       }
 
       return filtered
@@ -2461,11 +2754,66 @@ export default {
 
     // All payment and frequency formatting functions are now imported from formatters
 
+    // Computed property to check if any filters are active
+    const hasActiveFilters = computed(() => {
+      return statusFilter.value.length > 0 ||
+             paymentStatusFilter.value.length > 0 ||
+             sportFilter.value !== null ||
+             dateFromFilter.value !== '' ||
+             dateToFilter.value !== ''
+    })
+
     // Clear all filters function
     const clearFilters = () => {
-      statusFilter.value = ''
-      dateFilter.value = ''
+      statusFilter.value = []
+      paymentStatusFilter.value = []
+      sportFilter.value = null
+      dateFromFilter.value = dateFromString
+      dateToFilter.value = dateToString
     }
+
+    // Load sports data
+    const loadSports = async () => {
+      try {
+        const courtServiceModule = await import('../services/courtService')
+        sports.value = await courtServiceModule.courtService.getSports()
+      } catch (error) {
+        console.error('Failed to load sports:', error)
+      }
+    }
+
+    // Track mount to avoid initial watcher trigger
+    const isMounted = ref(false)
+
+    // Preserve previous status filter when toggling waitlist exclusive filter
+    const previousStatusFilter = ref(['pending', 'approved'])
+
+    // Watch statusFilter to handle exclusive 'pending_waitlist' logic
+    watch(statusFilter, (newValue, oldValue) => {
+      if (!isMounted.value) return
+
+      const hasWaitlist = newValue.includes('pending_waitlist')
+      const hadWaitlist = oldValue?.includes && oldValue.includes('pending_waitlist')
+      const hasOtherFilters = newValue.some(f => f !== 'pending_waitlist')
+
+      if (hasWaitlist && !hadWaitlist) {
+        previousStatusFilter.value = oldValue ? oldValue.filter(f => f !== 'pending_waitlist') : []
+        statusFilter.value = ['pending_waitlist']
+      } else if (hasWaitlist && hasOtherFilters && Array.isArray(oldValue) && oldValue.length === 1 && oldValue[0] === 'pending_waitlist') {
+        statusFilter.value = newValue.filter(f => f !== 'pending_waitlist')
+      } else if (!hasWaitlist && hadWaitlist) {
+        if (newValue.length === 0) {
+          statusFilter.value = previousStatusFilter.value.length > 0 ? previousStatusFilter.value : ['pending', 'approved']
+        }
+      }
+    })
+
+    // Persist view mode
+    watch(viewMode, (val) => {
+      try {
+        localStorage.setItem('bookings_view_mode', val)
+      } catch (e) {}
+    })
 
     const getFrequencyDetailsText = (item) => {
       if (!item.frequency_type) return ''
@@ -3463,6 +3811,13 @@ export default {
     onMounted(async () => {
       authLoading.value = true
 
+      // Load company settings for UI toggles
+      try {
+        const settings = await companySettingService.getSettings()
+        companySettings.value = settings
+        canUsersBook.value = await companySettingService.canUserCreateBookings(user.value?.role || 'user')
+      } catch (e) {}
+
       // Wait a moment for App.vue to complete its auth check
       await new Promise(resolve => setTimeout(resolve, 50))
 
@@ -3485,7 +3840,21 @@ export default {
       // Load courts for edit dialog
       await loadCourts()
 
+      // Load sports for filter
+      await loadSports()
+
       authLoading.value = false
+
+      // Restore view mode
+      try {
+        const savedMode = localStorage.getItem('bookings_view_mode')
+        if (savedMode === 'table' || savedMode === 'cards') {
+          viewMode.value = savedMode
+        }
+      } catch (e) {}
+
+      // Mark mounted for watchers
+      setTimeout(() => { isMounted.value = true }, 100)
 
       // Listen for custom events to refresh bookings
       window.addEventListener('booking-created', handleBookingRefresh)
@@ -3619,8 +3988,16 @@ export default {
       toggleTransactionDetails,
       filteredTransactions,
       statusFilter,
-      dateFilter,
+      paymentStatusFilter,
+      sportFilter,
+      sportOptions,
+      dateFromFilter,
+      dateToFilter,
       statusOptions,
+      viewMode,
+      tableHeaders,
+      hasActiveFilters,
+      clearFilters,
       filteredBookings,
       groupedByDay,
       expandedCartItems,
@@ -3649,6 +4026,9 @@ export default {
       getTransactionDateGroups,
       getGroupedTimeDisplay,
       calculateCartItemDuration,
+      // Approval helpers
+      getApprovalStatusColor,
+      formatApprovalStatus,
       expanded,
       statusService,
       formatRecurrenceType,
@@ -3662,6 +4042,8 @@ export default {
       onBookingCreated,
       fetchBookings,
       newBookingDialog,
+      companySettings,
+      canUsersBook,
       generateDialogOpen,
       viewBooking,
       viewDialog,

@@ -377,6 +377,7 @@
       :slot="selectedBookingSlot"
       :court="court"
       :date="selectedDate"
+      :can-users-book="canUsersBook"
       @book-now="bookTimeSlot"
     />
 
@@ -433,6 +434,8 @@ export default {
     const bookingViewDialog = ref(false)
     const selectedBookingForView = ref(null)
     const userRole = ref(null)
+    const companySettings = ref({})
+    const canUsersBook = ref(true)
 
     // Computed property to check if user is admin or staff
     const isAdminOrStaff = computed(() => {
@@ -460,6 +463,16 @@ export default {
         loading.value = false
       }
     }
+    const fetchCompanySettings = async () => {
+      try {
+        const settings = await courtService.getCourts ? await import('../services/companySettingService').then(m => m.companySettingService.getSettings()) : {}
+        companySettings.value = settings || {}
+        canUsersBook.value = await import('../services/companySettingService').then(m => m.companySettingService.canUserCreateBookings('user'))
+      } catch (e) {
+        companySettings.value = {}
+      }
+    }
+
 
     const fetchAvailability = async () => {
       if (!selectedDate.value || !court.value) return
@@ -618,6 +631,7 @@ export default {
 
     onMounted(async () => {
       await checkUserRole()
+      await fetchCompanySettings()
       await fetchCourtDetails()
       // Fetch bookings after court is loaded
       if (court.value) {
@@ -661,6 +675,7 @@ export default {
       selectedBookingForView,
       viewBookingDetailsDialog,
       isAdminOrStaff,
+      canUsersBook,
       // Services
       sportService
     }

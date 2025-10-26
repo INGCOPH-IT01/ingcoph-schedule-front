@@ -4,7 +4,9 @@
  * and prompts user to reload
  */
 
-let currentVersion = null;
+// The version embedded at build time via Vite define
+const runningVersion = (typeof __APP_VERSION__ !== 'undefined' && __APP_VERSION__) || null;
+let currentVersion = runningVersion;
 let checkInterval = null;
 
 /**
@@ -13,7 +15,7 @@ let checkInterval = null;
 async function fetchVersion() {
   try {
     // Add timestamp to prevent caching
-    const response = await fetch(`/version.json?t=${Date.now()}`);
+    const response = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
     if (response.ok) {
       const data = await response.json();
       return data.version;
@@ -29,25 +31,19 @@ async function fetchVersion() {
  */
 async function checkForNewVersion() {
   const latestVersion = await fetchVersion();
-
-  if (latestVersion && currentVersion && latestVersion !== currentVersion) {
-    return true;
+  if (latestVersion && runningVersion && latestVersion !== runningVersion) {
+    return { hasNew: true, latestVersion };
   }
-
-  if (!currentVersion && latestVersion) {
-    currentVersion = latestVersion;
-  }
-
-  return false;
+  return { hasNew: false, latestVersion };
 }
 
 /**
  * Show notification to user about new version
  */
-function notifyNewVersion() {
+function notifyNewVersion(latestVersion) {
   if (window.confirm('A new version is available! Click OK to refresh and get the latest updates.')) {
-    // Force a hard reload
-    window.location.reload(true);
+    const url = `${window.location.pathname}?v=${encodeURIComponent(latestVersion || Date.now())}`;
+    window.location.replace(url);
   }
 }
 
@@ -55,20 +51,35 @@ function notifyNewVersion() {
  * Start version checking
  * @param {number} intervalMinutes - Check interval in minutes (default: 5)
  */
-export function startVersionCheck(intervalMinutes = 5) {
-  // Initial version fetch
-  fetchVersion().then(version => {
-    currentVersion = version;
+export function startVersionCheck(intervalMinutes = 1) {
+  // Immediate check on start
+  fetchVersion().then(latest => {
+    if (latest && runningVersion && latest !== runningVersion) {
+      notifyNewVersion(latest);
+      return;
+    }
+    currentVersion = latest || runningVersion;
   });
 
   // Check periodically
   checkInterval = setInterval(async () => {
-    const hasNewVersion = await checkForNewVersion();
-    if (hasNewVersion) {
-      notifyNewVersion();
+    const { hasNew, latestVersion } = await checkForNewVersion();
+    if (hasNew) {
+      notifyNewVersion(latestVersion);
       stopVersionCheck();
     }
-  }, intervalMinutes * 60 * 1000);
+  }, Math.max(1, intervalMinutes) * 60 * 1000);
+
+  // Also re-check when tab becomes visible
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible') {
+      const { hasNew, latestVersion } = await checkForNewVersion();
+      if (hasNew) {
+        notifyNewVersion(latestVersion);
+        stopVersionCheck();
+      }
+    }
+  });
 }
 
 /**

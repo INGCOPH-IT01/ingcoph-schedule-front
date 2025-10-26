@@ -28,5 +28,5 @@ app.mount('#app')
 // Start version checking (checks every 5 minutes)
 // This will notify users when a new version is deployed
 if (import.meta.env.PROD) {
-  startVersionCheck(5) // Check every 5 minutes in production
+  startVersionCheck(1) // Check every 1 minute in production
 }

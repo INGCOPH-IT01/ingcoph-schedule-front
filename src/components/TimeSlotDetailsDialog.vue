@@ -211,7 +211,7 @@
         </v-row>
       </v-card-text>
 
-      <v-card-actions v-if="slot.available">
+      <v-card-actions v-if="slot.available && canUsersBook">
         <v-spacer></v-spacer>
         <v-btn
           color="primary"
@@ -220,6 +220,12 @@
           <v-icon start>mdi-calendar-plus</v-icon>
           Book Now
         </v-btn>
+      </v-card-actions>
+      <v-card-actions v-else-if="slot.available && !canUsersBook">
+        <v-spacer></v-spacer>
+        <v-alert type="info" variant="tonal" density="compact">
+          Booking creation is disabled for user accounts. Please contact the administrator.
+        </v-alert>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -247,6 +253,10 @@ export default {
     date: {
       type: String,
       default: ''
+    },
+    canUsersBook: {
+      type: Boolean,
+      default: true
     }
   },
   emits: ['update:isOpen', 'book-now'],
