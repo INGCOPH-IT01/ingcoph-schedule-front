@@ -122,6 +122,7 @@
   <NewBookingDialog
     :is-open="bookingDialogOpen"
     :preselected-sport="selectedSportForBooking"
+    :can-users-book="canUsersBook"
     @close="closeBookingDialog"
     @booking-created="handleBookingCreated"
   />
@@ -132,6 +133,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
+import { companySettingService } from '../services/companySettingService'
 import { formatPrice } from '../utils/formatters'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
 
@@ -146,6 +148,8 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const bookingDialogOpen = ref(false)
+    const companySettings = ref({})
+    const canUsersBook = ref(true)
     const selectedSportForBooking = ref(null)
 
     const fetchSports = async () => {
@@ -190,6 +194,11 @@ export default {
 
     onMounted(async () => {
       await fetchSports()
+      try {
+        const settings = await companySettingService.getSettings()
+        companySettings.value = settings
+        canUsersBook.value = await companySettingService.canUserCreateBookings('user')
+      } catch (e) {}
     })
 
     return {
@@ -197,6 +206,8 @@ export default {
       loading,
       error,
       bookingDialogOpen,
+      companySettings,
+      canUsersBook,
       selectedSportForBooking,
       handleBookNowClick,
       closeBookingDialog,

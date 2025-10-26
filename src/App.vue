@@ -13,10 +13,11 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
-        v-if="isAuthenticated"
+        v-if="isAuthenticated && canUsersBook"
         icon
         class="excel-cart-btn mr-2"
         @click="cartDialogOpen = true"
+        :disabled="!canUsersBook && !isAdmin && !isStaff"
       >
         <v-badge
           :content="cartCount"
@@ -214,15 +215,15 @@
     />
 
     <!-- Floating Action Button for Quick Booking -->
-    <!-- <v-fab
-      v-if="isAuthenticated"
+    <v-fab
+      v-if="isAuthenticated & canUsersBook"
       icon="mdi-calendar-plus"
       color="primary"
       size="large"
       location="bottom end"
       class="excel-fab"
       @click="openBookingDialog"
-    ></v-fab> -->
+    ></v-fab>
   </v-app>
 </template>
 
@@ -251,6 +252,7 @@ export default {
     const cartDialogOpen = ref(false)
     const cartCount = ref(0)
     const companyName = ref('Perfect Smash')
+    const canUsersBook = ref(true)
     const companyLogo = ref(null)
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
@@ -375,6 +377,13 @@ export default {
         if (settings.bg_accent_color) {
           bgAccentColor.value = settings.bg_accent_color
         }
+
+        // Booking rules via service (source of truth)
+        try {
+          canUsersBook.value = await companySettingService.isUserBookingEnabled()
+        } catch (e) {
+          canUsersBook.value = true
+        }
       } catch (error) {
         // Keep default name, logo, and colors if loading fails
       }
@@ -432,6 +441,7 @@ export default {
       isAuthenticated,
       isAdmin,
       isStaff,
+        canUsersBook,
       bookingDialogOpen,
       cartDialogOpen,
       cartCount,

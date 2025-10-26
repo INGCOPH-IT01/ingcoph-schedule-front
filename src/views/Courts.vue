@@ -462,6 +462,7 @@
       :slot="selectedBookingSlot"
       :court="selectedCourtForBooking"
       :date="availabilityDate"
+      :can-users-book="canUsersBook"
       @book-now="bookFromDialog"
     />
   </div>
@@ -496,6 +497,7 @@ export default {
 
     // Company settings
     const companySettings = ref({})
+    const canUsersBook = ref(true)
 
     // Time slots state
     const courtTimeSlots = ref({})
@@ -624,12 +626,9 @@ export default {
     const fetchCompanySettings = async () => {
       try {
         const settings = await companySettingService.getSettings()
-        // Convert array of settings to object for easier access
-        const settingsObj = {}
-        settings.forEach(setting => {
-          settingsObj[setting.key] = setting.value
-        })
-        companySettings.value = settingsObj
+        // API already returns an object of key -> value
+        companySettings.value = settings
+        canUsersBook.value = await companySettingService.canUserCreateBookings('user')
       } catch (err) {
       }
     }
@@ -838,6 +837,7 @@ export default {
       selectedCourtForBooking,
       viewBookingDetails,
       bookFromDialog,
+      canUsersBook,
       // Services
       sportService
     }

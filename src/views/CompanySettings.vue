@@ -98,6 +98,28 @@
 
               <v-divider class="mb-6"></v-divider>
 
+              <!-- Booking Rules Section -->
+              <div class="mb-6">
+                <label class="text-subtitle-1 font-weight-bold mb-3 d-block">
+                  <v-icon class="mr-2" color="primary">mdi-account-cancel</v-icon>
+                  Booking Rules
+                </label>
+
+                <v-switch
+                  v-model="userBookingEnabled"
+                  :label="userBookingEnabled ? 'User booking enabled' : 'Disable user booking creation'"
+                  color="primary"
+                  hide-details
+                  class="mb-2"
+                ></v-switch>
+
+                <v-alert type="info" variant="tonal" density="compact" class="mt-2">
+                  <div class="text-caption">
+                    When disabled, regular user accounts cannot add to cart, checkout, or create bookings. Admin and staff are not affected.
+                  </div>
+                </v-alert>
+              </div>
+
               <!-- Contact Details Section -->
               <div class="mb-6">
                 <label class="text-subtitle-1 font-weight-bold mb-3 d-block">
@@ -677,6 +699,9 @@ export default {
     const bgSuccessMessage = ref('')
     const bgErrorMessage = ref('')
 
+        // Booking rules
+        const userBookingEnabled = ref(true)
+
     // Operating hours
     const operatingHoursEnabled = ref(true)
     const operatingHoursOpening = ref('08:00')
@@ -766,6 +791,8 @@ export default {
             ? settings[`operating_hours_${day}_operational`]
             : true
         })
+        // Load booking rules
+        userBookingEnabled.value = settings.user_booking_enabled !== undefined ? settings.user_booking_enabled : true
       } catch (error) {
         errorMessage.value = 'Failed to load company settings'
         showSnackbar('Failed to load settings', 'error')
@@ -834,7 +861,8 @@ export default {
           contact_mobile: contactMobile.value,
           contact_viber: contactViber.value,
           facebook_page_url: facebookPageUrl.value,
-          facebook_page_name: facebookPageName.value
+          facebook_page_name: facebookPageName.value,
+          user_booking_enabled: userBookingEnabled.value
         }
 
         // Add logo file if selected
@@ -1062,6 +1090,8 @@ export default {
       saveBackgroundColors,
       resetBackgroundColors,
       applyPreset,
+      // Booking rules
+      userBookingEnabled,
       // Operating hours
       operatingHoursEnabled,
       operatingHoursOpening,
