@@ -3849,7 +3849,6 @@ export default {
       try {
         const settings = await companySettingService.getSettings()
         companySettings.value = settings
-        canUsersBook.value = await companySettingService.canUserCreateBookings(user.value?.role || 'user')
       } catch (e) {}
 
       // Wait a moment for App.vue to complete its auth check
@@ -3867,6 +3866,11 @@ export default {
       } else {
         user.value = null
       }
+
+      // Check booking permissions after user is loaded
+      try {
+        canUsersBook.value = await companySettingService.canUserCreateBookings(user.value?.role || 'user')
+      } catch (e) {}
 
       // Always try to fetch bookings regardless of auth status
       await fetchBookings()
