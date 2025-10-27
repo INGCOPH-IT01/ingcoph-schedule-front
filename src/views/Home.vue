@@ -427,6 +427,7 @@ export default {
     // User and permissions
     const user = ref(null)
     const companySettings = ref({})
+    const settingsLoaded = ref(false)
 
     // Computed property: Admin/Staff can always book, regular users depend on setting
     const canUsersBook = computed(() => {
@@ -451,6 +452,11 @@ export default {
       }
 
       // Regular users depend on the company setting
+      // Wait for settings to load before making a decision
+      if (!settingsLoaded.value) {
+        return false // Don't show button until we know the actual setting
+      }
+
       const userBookingEnabled = companySettings.value?.user_booking_enabled
       return userBookingEnabled === undefined ? true : (userBookingEnabled === '1' || userBookingEnabled === true || userBookingEnabled === 1)
     })
@@ -756,8 +762,13 @@ export default {
             }
           }
         }
+
+        // Mark settings as loaded
+        settingsLoaded.value = true
       } catch (error) {
         // Keep default values on error
+        // Still mark as loaded to prevent indefinite waiting
+        settingsLoaded.value = true
       }
     }
 
