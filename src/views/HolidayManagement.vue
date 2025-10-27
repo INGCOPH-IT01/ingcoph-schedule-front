@@ -382,7 +382,21 @@ const deleteHoliday = async () => {
 
 // Format date
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('en-US', {
+  if (!date) return ''
+
+  // If the string is in YYYY-MM-DD format (date-only, no time component),
+  // parse it as local date to avoid timezone shift issues
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+  let d
+  if (dateOnlyPattern.test(date)) {
+    const [year, month, day] = date.split('-').map(Number)
+    // Create date in local timezone (month is 0-indexed)
+    d = new Date(year, month - 1, day)
+  } else {
+    d = new Date(date)
+  }
+
+  return d.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',

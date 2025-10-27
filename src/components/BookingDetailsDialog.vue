@@ -2341,8 +2341,20 @@ export default {
     // Date/Time editing methods
     const startCartItemDateTimeEdit = (item) => {
       // Set current values from cart item
-      const bookingDate = item.booking_date ? new Date(item.booking_date) : null
-      selectedBookingDate.value = bookingDate ? bookingDate.toISOString().split('T')[0] : ''
+      // Parse booking_date safely to avoid timezone shift
+      let selectedDate = ''
+      if (item.booking_date) {
+        const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+        if (dateOnlyPattern.test(item.booking_date)) {
+          // Already in YYYY-MM-DD format, use it directly
+          selectedDate = item.booking_date
+        } else {
+          // For datetime strings, convert to YYYY-MM-DD
+          const bookingDate = new Date(item.booking_date)
+          selectedDate = bookingDate.toISOString().split('T')[0]
+        }
+      }
+      selectedBookingDate.value = selectedDate
       selectedStartTime.value = item.start_time || ''
       selectedEndTime.value = item.end_time || ''
 

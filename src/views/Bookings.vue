@@ -2003,8 +2003,19 @@ export default {
 
       // Sort by booking date (oldest first)
       return flattened.sort((a, b) => {
-        const dateA = new Date(a.booking_date)
-        const dateB = new Date(b.booking_date)
+        // Parse dates safely to avoid timezone issues
+        const parseLocalDate = (dateStr) => {
+          if (!dateStr) return new Date(0)
+          const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+          if (dateOnlyPattern.test(dateStr)) {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            return new Date(year, month - 1, day)
+          }
+          return new Date(dateStr)
+        }
+
+        const dateA = parseLocalDate(a.booking_date)
+        const dateB = parseLocalDate(b.booking_date)
         return dateA - dateB
       })
     })
@@ -2026,15 +2037,25 @@ export default {
         filtered = filtered.filter(t => {
           if (!t.booking_date) return false
 
-          const bookingDate = new Date(t.booking_date)
+          // Parse date strings as local dates to avoid timezone shift
+          const parseLocalDate = (dateStr) => {
+            const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+            if (dateOnlyPattern.test(dateStr)) {
+              const [year, month, day] = dateStr.split('-').map(Number)
+              return new Date(year, month - 1, day)
+            }
+            return new Date(dateStr)
+          }
+
+          const bookingDate = parseLocalDate(t.booking_date)
 
           if (dateFromFilter.value) {
-            const fromDate = new Date(dateFromFilter.value)
+            const fromDate = parseLocalDate(dateFromFilter.value)
             if (bookingDate < fromDate) return false
           }
 
           if (dateToFilter.value) {
-            const toDate = new Date(dateToFilter.value)
+            const toDate = parseLocalDate(dateToFilter.value)
             toDate.setHours(23, 59, 59, 999) // Include entire end date
             if (bookingDate > toDate) return false
           }
@@ -2456,6 +2477,19 @@ export default {
     }
 
     const formatDate = (dateTime) => {
+      if (!dateTime) return ''
+
+      // If the string is in YYYY-MM-DD format (date-only, no time component),
+      // parse it as local date to avoid timezone shift issues
+      const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+      if (dateOnlyPattern.test(dateTime)) {
+        const [year, month, day] = dateTime.split('-').map(Number)
+        // Create date in local timezone (month is 0-indexed)
+        const date = new Date(year, month - 1, day)
+        return date.toLocaleDateString()
+      }
+
+      // For datetime strings, use standard parsing
       return new Date(dateTime).toLocaleDateString()
     }
 

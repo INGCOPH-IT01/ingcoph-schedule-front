@@ -415,9 +415,18 @@ export default {
           const bookingDate = transaction.cart_items?.[0]?.booking_date
           if (!bookingDate) return false
 
-          // Convert booking date to local timezone format
-          const bookingDateObj = new Date(bookingDate)
-          const transactionDateStr = formatDateLocal(bookingDateObj)
+          // If booking date is in YYYY-MM-DD format, parse it safely to avoid timezone shift
+          let transactionDateStr
+          const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+          if (dateOnlyPattern.test(bookingDate)) {
+            // Already in YYYY-MM-DD format, use it directly
+            transactionDateStr = bookingDate
+          } else {
+            // For datetime strings, convert to local date format
+            const bookingDateObj = new Date(bookingDate)
+            transactionDateStr = formatDateLocal(bookingDateObj)
+          }
+
           return transactionDateStr === dateStr
         })
         .map(transaction => {
