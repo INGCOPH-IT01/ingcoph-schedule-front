@@ -830,9 +830,7 @@ export default {
     canUsersBook: {
       type: Boolean,
       default: true
-    }
-  },
-  props: {
+    },
     isOpen: {
       type: Boolean,
       default: false

@@ -228,7 +228,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { authService } from './services/authService'
 import { cartService } from './services/cartService'
@@ -395,6 +395,38 @@ export default {
       if (colors.accent) bgAccentColor.value = colors.accent
     }
 
+    // Store interval IDs for cleanup
+    let cartCountInterval = null
+    let userDataRefreshInterval = null
+
+    /**
+     * Refresh user data to detect role changes
+     * This ensures user permissions stay current even if changed by admin
+     */
+    const refreshUserData = async () => {
+      try {
+        if (authService.isAuthenticated()) {
+          const userData = await authService.refreshUserData()
+          if (userData && user.value) {
+            // Check if role changed
+            if (user.value.role !== userData.role) {
+              console.log(`User role changed from ${user.value.role} to ${userData.role}`)
+              // Dispatch event so other components can react
+              window.dispatchEvent(new CustomEvent('user-role-changed', {
+                detail: { oldRole: user.value.role, newRole: userData.role, user: userData }
+              }))
+            }
+            user.value = userData
+            // Dispatch auth change event
+            window.dispatchEvent(new CustomEvent('auth-changed', { detail: { user: userData } }))
+          }
+        }
+      } catch (error) {
+        // Silently fail - user data will be refreshed on next interval
+        console.warn('Failed to refresh user data:', error)
+      }
+    }
+
     onMounted(() => {
       updateCartCount()
       checkAuth()
@@ -403,7 +435,11 @@ export default {
 
       // Update cart count every 30 seconds (for expiration detection)
       // This helps notify users when cart items expire
-      setInterval(updateCartCount, 30000) // 30 seconds instead of 5
+      cartCountInterval = setInterval(updateCartCount, 30000) // 30 seconds instead of 5
+
+      // Refresh user data every 2 minutes to detect role changes
+      // This ensures permissions stay current if admin changes user roles
+      userDataRefreshInterval = setInterval(refreshUserData, 120000) // 2 minutes
 
       // Listen for custom event from child components
       window.addEventListener('open-booking-dialog', openBookingDialog)
@@ -424,6 +460,16 @@ export default {
       window.addEventListener('background-colors-updated', (event) => {
         updateBackgroundColors(event.detail)
       })
+    })
+
+    onUnmounted(() => {
+      // Clean up intervals
+      if (cartCountInterval) {
+        clearInterval(cartCountInterval)
+      }
+      if (userDataRefreshInterval) {
+        clearInterval(userDataRefreshInterval)
+      }
     })
 
     // Watch for route changes to ensure components re-initialize

@@ -74,14 +74,19 @@ export const authService = {
         return null
       }
 
-      // Try to get user data from API
+      // Try to get user data from API (this also updates localStorage)
       const response = await api.get('/user')
-      return response.data.user
-    } catch (error) {
-      // Return a fallback user object if API fails but token exists
-      if (this.isAuthenticated()) {
-        return { id: 'unknown', name: 'User', role: 'user' }
+      const user = response.data.user
+      // Always update localStorage to ensure it's fresh
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
       }
+      return user
+    } catch (error) {
+      // For role-based permissions, we should NOT rely on potentially stale data
+      // Return null to indicate the user data couldn't be fetched
+      // Let the calling code handle this appropriately
+      console.warn('Failed to fetch current user, returning null:', error.message)
       return null
     }
   },
@@ -106,5 +111,49 @@ export const authService = {
     } catch (error) {
       return 'user'
     }
+  },
+
+  /**
+   * Force refresh user data from the server
+   * This invalidates any cached data and fetches fresh user information
+   * Useful when role changes or user data updates occur
+   */
+  async refreshUserData() {
+    try {
+      if (!this.isAuthenticated()) {
+        return null
+      }
+
+      // Fetch fresh user data from API
+      const response = await api.get('/user')
+      const user = response.data.user
+
+      // Update localStorage with fresh data
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user))
+      }
+
+      return user
+    } catch (error) {
+      console.error('Failed to refresh user data:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Get user data from localStorage (cached)
+   * WARNING: This may contain stale data. Use only for non-critical operations
+   * For role-based permissions, always use getCurrentUser() or refreshUserData()
+   */
+  getCachedUser() {
+    try {
+      const storedUser = localStorage.getItem('user')
+      if (storedUser) {
+        return JSON.parse(storedUser)
+      }
+    } catch (e) {
+      console.error('Failed to parse cached user data:', e)
+    }
+    return null
   }
 }

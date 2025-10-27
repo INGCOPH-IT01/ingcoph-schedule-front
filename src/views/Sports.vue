@@ -129,7 +129,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
@@ -150,8 +150,35 @@ export default {
     const error = ref(null)
     const bookingDialogOpen = ref(false)
     const companySettings = ref({})
-    const canUsersBook = ref(true)
+    const user = ref(null)
     const selectedSportForBooking = ref(null)
+
+    // Computed property: Admin/Staff can always book, regular users depend on setting
+    const canUsersBook = computed(() => {
+      let role = user.value?.role
+
+      // If user.value is not loaded yet, try localStorage as fallback
+      if (!role) {
+        try {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            role = parsedUser?.role
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      }
+
+      // Admin and Staff bypass the user booking restriction
+      if (role === 'admin' || role === 'staff') {
+        return true
+      }
+
+      // Regular users depend on the company setting
+      const userBookingEnabled = companySettings.value?.user_booking_enabled
+      return userBookingEnabled === undefined ? true : (userBookingEnabled === '1' || userBookingEnabled === true || userBookingEnabled === 1)
+    })
 
     const fetchSports = async () => {
       try {
@@ -198,8 +225,9 @@ export default {
       try {
         const settings = await companySettingService.getSettings()
         companySettings.value = settings
-        const user = await authService.getCurrentUser()
-        canUsersBook.value = await companySettingService.canUserCreateBookings(user?.role || 'user')
+        const userData = await authService.getCurrentUser()
+        user.value = userData
+        // canUsersBook is now a computed property - no need to set it manually
       } catch (e) {}
     })
 
