@@ -333,7 +333,7 @@
                 ></v-text-field>
               </v-col>
 
-              <v-col cols="12" sm="12" md="1">
+              <v-col cols="12" sm="6" md="1">
                 <v-btn
                   color="primary"
                   variant="outlined"
@@ -342,6 +342,18 @@
                   :loading="loading"
                 >
                   Refresh
+                </v-btn>
+              </v-col>
+
+              <v-col cols="12" sm="6" md="1">
+                <v-btn
+                  color="success"
+                  variant="outlined"
+                  prepend-icon="mdi-file-excel"
+                  @click="exportToExcel"
+                  :disabled="filteredTransactions.length === 0"
+                >
+                  Export
                 </v-btn>
               </v-col>
             </v-row>
@@ -655,6 +667,7 @@ import {
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import CalendarView from '../components/CalendarView.vue'
+import ExcelJS from 'exceljs'
 export default {
   name: 'AdminDashboard',
   components: {
@@ -844,30 +857,228 @@ export default {
       }
     }
 
-    const exportBookings = () => {
-      // Simple CSV export
-      const csvContent = [
-        ['User', 'Court', 'Sport', 'Date', 'Start Time', 'End Time', 'Total Price', 'Status', 'Notes'],
-        ...pendingBookings.value.map(booking => [
-          booking.user.name,
-          booking.court.surface_type ? `${booking.court.name} (${booking.court.surface_type})` : booking.court.name,
-          booking.sport?.name || booking.court?.sport?.name || 'Unknown Sport',
-          formatDate(booking.start_time),
-          formatTime(booking.start_time),
-          formatTime(booking.end_time),
-          `₱${(parseFloat(booking.total_price) || 0).toFixed(2)}`,
-          booking.status,
-          booking.notes || ''
-        ])
-      ].map(row => row.join(',')).join('\n')
+    const exportToExcel = async () => {
+      try {
+        const workbook = new ExcelJS.Workbook()
+        workbook.creator = 'Admin Dashboard'
+        workbook.created = new Date()
 
-      const blob = new Blob([csvContent], { type: 'text/csv' })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `pending-bookings-${new Date().toISOString().split('T')[0]}.csv`
-      a.click()
-      window.URL.revokeObjectURL(url)
+        // Create Summary Sheet
+        const summarySheet = workbook.addWorksheet('Summary', {
+          views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+        })
+
+        // Define Summary columns
+        summarySheet.columns = [
+          { header: 'Booking ID', key: 'id', width: 12 },
+          { header: 'User', key: 'user', width: 25 },
+          { header: 'Email', key: 'email', width: 30 },
+          { header: 'Sports', key: 'sports', width: 20 },
+          { header: 'Courts', key: 'courts', width: 35 },
+          { header: 'Booking Date', key: 'bookingDate', width: 15 },
+          { header: 'Overall Time Range', key: 'timeRange', width: 20 },
+          { header: 'Total Price', key: 'totalPrice', width: 15 },
+          { header: 'Payment Status', key: 'paymentStatus', width: 18 },
+          { header: 'Approval Status', key: 'approvalStatus', width: 18 },
+          { header: 'Attendance', key: 'attendance', width: 15 },
+          { header: 'Admin Notes', key: 'adminNotes', width: 30 },
+          { header: 'Client Notes', key: 'clientNotes', width: 30 }
+        ]
+
+        // Style the header row
+        summarySheet.getRow(1).font = { bold: true, size: 11 }
+        summarySheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF3B82F6' }
+        }
+        summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+        summarySheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' }
+
+        // Sort transactions by booking date and time range
+        const sortedTransactions = [...filteredTransactions.value].sort((a, b) => {
+          const aDate = a.cart_items?.[0]?.booking_date || ''
+          const bDate = b.cart_items?.[0]?.booking_date || ''
+
+          // First sort by date
+          if (aDate !== bDate) {
+            return aDate.localeCompare(bDate)
+          }
+
+          // Then sort by start time
+          const aStartTime = a.cart_items?.[0]?.start_time || ''
+          const bStartTime = b.cart_items?.[0]?.start_time || ''
+          return aStartTime.localeCompare(bStartTime)
+        })
+
+        // Add Summary data
+        sortedTransactions.forEach(transaction => {
+          const cartItems = transaction.cart_items || []
+
+          // Get unique sports
+          const sports = getUniqueSports(transaction).map(s => s.name).join(', ') || 'N/A'
+
+          // Get unique courts concatenated
+          const uniqueCourts = [...new Set(cartItems.map(item => item.court?.name || 'Unknown'))]
+          const courts = uniqueCourts.join(', ')
+
+          // Get booking date from first cart item
+          const bookingDate = cartItems[0]?.booking_date ? formatDate(cartItems[0].booking_date) : 'N/A'
+
+          // Calculate overall time range
+          let timeRange = 'N/A'
+          if (cartItems.length > 0) {
+            // Cart items have start_time and end_time directly (not in time_slots array)
+            const itemsWithTimes = cartItems.filter(item => item.start_time && item.end_time)
+            if (itemsWithTimes.length > 0) {
+              // Get all start and end times with proper datetime format
+              const times = itemsWithTimes.flatMap(item => {
+                // Extract just the time portion (HH:MM:SS or HH:MM)
+                const startTimeStr = item.start_time
+                const endTimeStr = item.end_time
+                return [
+                  { time: startTimeStr, isStart: true },
+                  { time: endTimeStr, isStart: false }
+                ]
+              })
+
+              // Extract just the time strings for comparison
+              const startTimes = times.filter(t => t.isStart).map(t => t.time)
+              const endTimes = times.filter(t => !t.isStart).map(t => t.time)
+
+              // Sort and get earliest start and latest end
+              startTimes.sort()
+              endTimes.sort()
+
+              const earliestStart = startTimes[0]
+              const latestEnd = endTimes[endTimes.length - 1]
+
+              if (earliestStart && latestEnd) {
+                timeRange = `${earliestStart} - ${latestEnd}`
+              }
+            }
+          }
+
+          const row = summarySheet.addRow({
+            id: transaction.id,
+            user: getDisplayUserName(transaction),
+            email: getDisplayUserEmail(transaction),
+            sports: sports,
+            courts: courts,
+            bookingDate: bookingDate,
+            timeRange: timeRange,
+            totalPrice: parseFloat(transaction.total_price ?? 0),
+            paymentStatus: getPaymentStatusText(transaction),
+            approvalStatus: getApprovalStatusText(transaction.approval_status),
+            attendance: getAttendanceLabel(transaction.attendance_status),
+            adminNotes: cartItems[0]?.admin_notes || '',
+            clientNotes: cartItems[0]?.notes || ''
+          })
+
+          // Apply currency format to Total Price cell
+          row.getCell('totalPrice').numFmt = '₱#,##0.00'
+        })
+
+        // Create Detailed Sheet
+        const detailedSheet = workbook.addWorksheet('Detailed', {
+          views: [{ state: 'frozen', xSplit: 0, ySplit: 1 }]
+        })
+
+        // Define Detailed columns
+        detailedSheet.columns = [
+          { header: 'Booking ID', key: 'id', width: 12 },
+          { header: 'User', key: 'user', width: 25 },
+          { header: 'Email', key: 'email', width: 30 },
+          { header: 'Sport', key: 'sport', width: 20 },
+          { header: 'Court', key: 'court', width: 25 },
+          { header: 'Booking Date', key: 'bookingDate', width: 15 },
+          { header: 'Time Slot', key: 'timeSlot', width: 20 },
+          { header: 'Price', key: 'price', width: 15 },
+          { header: 'Payment Status', key: 'paymentStatus', width: 18 },
+          { header: 'Approval Status', key: 'approvalStatus', width: 18 },
+          { header: 'Attendance', key: 'attendance', width: 15 },
+          { header: 'Admin Notes', key: 'adminNotes', width: 30 },
+          { header: 'Client Notes', key: 'clientNotes', width: 30 }
+        ]
+
+        // Style the header row
+        detailedSheet.getRow(1).font = { bold: true, size: 11 }
+        detailedSheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF10B981' }
+        }
+        detailedSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+        detailedSheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' }
+
+        // Add Detailed data (use the same sorted transactions)
+        sortedTransactions.forEach(transaction => {
+          const cartItems = transaction.cart_items || []
+
+          // Sort cart items by booking date and start time
+          const sortedCartItems = [...cartItems].sort((a, b) => {
+            const aDate = a.booking_date || ''
+            const bDate = b.booking_date || ''
+
+            if (aDate !== bDate) {
+              return aDate.localeCompare(bDate)
+            }
+
+            const aStartTime = a.start_time || ''
+            const bStartTime = b.start_time || ''
+            return aStartTime.localeCompare(bStartTime)
+          })
+
+          sortedCartItems.forEach(item => {
+            const court = item.court?.name || 'Unknown'
+            const sport = item.sport?.name || 'N/A'
+            const bookingDate = item.booking_date ? formatDate(item.booking_date) : 'N/A'
+
+            // Cart items have start_time and end_time directly (not in time_slots array)
+            const startTime = item.start_time || 'N/A'
+            const endTime = item.end_time || 'N/A'
+            const timeSlot = (startTime !== 'N/A' && endTime !== 'N/A')
+              ? `${startTime} - ${endTime}`
+              : 'N/A'
+
+            const row = detailedSheet.addRow({
+              id: transaction.id,
+              user: getDisplayUserName(transaction),
+              email: getDisplayUserEmail(transaction),
+              sport: sport,
+              court: court,
+              bookingDate: bookingDate,
+              timeSlot: timeSlot,
+              price: parseFloat(item.price ?? 0),
+              paymentStatus: getPaymentStatusText(transaction),
+              approvalStatus: getApprovalStatusText(transaction.approval_status),
+              attendance: getAttendanceLabel(transaction.attendance_status),
+              adminNotes: item.admin_notes || '',
+              clientNotes: item.notes || ''
+            })
+
+            // Apply currency format to Price cell
+            row.getCell('price').numFmt = '₱#,##0.00'
+          })
+        })
+
+        // Generate Excel file
+        const buffer = await workbook.xlsx.writeBuffer()
+        const blob = new Blob([buffer], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        })
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `bookings-export-${new Date().toISOString().split('T')[0]}.xlsx`
+        a.click()
+        window.URL.revokeObjectURL(url)
+
+        showSnackbar('Excel file exported successfully', 'success')
+      } catch (error) {
+        console.error('Export error:', error)
+        showSnackbar('Failed to export Excel file', 'error')
+      }
     }
 
     // Use imported functions with local aliases
@@ -1315,7 +1526,7 @@ export default {
       approveBooking,
       showRejectDialog,
       confirmReject,
-      exportBookings,
+      exportToExcel,
       formatDate,
       formatTime,
       // Payment status functions
