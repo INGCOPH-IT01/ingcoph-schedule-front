@@ -467,8 +467,8 @@
                 </v-card-text>
               </v-card>
 
-              <!-- Admin Booking Field - Only for admin users -->
-              <v-card v-if="isAdmin" variant="outlined" class="mt-4 admin-booking-field">
+              <!-- Admin/Staff Booking Field - Only for admin and staff users -->
+              <v-card v-if="isAdminOrStaff" variant="outlined" class="mt-4 admin-booking-field">
                 <v-card-text>
                   <h4 class="text-h6 mb-4">
                     <v-icon class="mr-2" color="warning">mdi-account-cog</v-icon>
@@ -1476,7 +1476,7 @@ export default {
 
         // Prepare admin booking data - include admin_notes even if not booking for someone else
         let adminBookingData = null
-        if (isAdmin.value) {
+        if (isAdminOrStaff.value) {
           if (bookingForUser.value) {
             // Booking for another user
             if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
@@ -1795,7 +1795,7 @@ export default {
 
         // Prepare admin booking data - include admin_notes even if not booking for someone else
         let adminBookingData = null
-        if (isAdmin.value) {
+        if (isAdminOrStaff.value) {
           if (bookingForUser.value) {
             // Booking for another user
             if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
@@ -2191,9 +2191,9 @@ export default {
     const submitBooking = async () => {
       submitting.value = true
       try {
-        // Prepare admin booking data if admin is booking for someone else
+        // Prepare admin booking data if admin/staff is booking for someone else
         const adminBookingData = {}
-        if (isAdmin.value && bookingForUser.value) {
+        if (isAdminOrStaff.value && bookingForUser.value) {
           // Check if bookingForUser is an object (existing user) or string (custom name)
           if (typeof bookingForUser.value === 'object' && bookingForUser.value.id) {
             adminBookingData.booking_for_user_id = bookingForUser.value.id
