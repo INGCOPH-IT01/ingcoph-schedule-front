@@ -812,6 +812,7 @@ import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { paymentSettingService } from '../services/paymentSettingService'
 import { companySettingService } from '../services/companySettingService'
+import { authService } from '../services/authService'
 import { formatTime, formatDateLong } from '../utils/formatters'
 import api from '../services/api'
 import Swal from 'sweetalert2'
@@ -2273,28 +2274,14 @@ export default {
 
     const fetchSports = async () => {
       try {
-        // Check if user booking is enabled before fetching sports
-        const canBook = await companySettingService.isUserBookingEnabled()
+        // Get current user and check if they can create bookings
+        const user = await authService.getCurrentUser()
+        const canBook = await companySettingService.canUserCreateBookings(user?.role || 'user')
 
         if (!canBook) {
-          // Check if current user is admin or staff
-          const userString = localStorage.getItem('user')
-          let userRole = 'user'
-          if (userString) {
-            try {
-              const user = JSON.parse(userString)
-              userRole = user.role || 'user'
-            } catch (e) {
-              // Default to 'user' if parsing fails
-            }
-          }
-
-          // Show snackbar only for regular users (not admin/staff)
-          if (userRole !== 'admin' && userRole !== 'staff') {
-            bookingDisabledMessage.value = 'Booking is currently disabled. Please contact the administrator for more information.'
-            bookingDisabledSnackbar.value = true
-            return // Don't fetch sports if booking is disabled
-          }
+          bookingDisabledMessage.value = 'Booking is currently disabled. Please contact the administrator for more information.'
+          bookingDisabledSnackbar.value = true
+          return // Don't fetch sports if booking is disabled
         }
 
         sports.value = await courtService.getSports()
@@ -2312,11 +2299,7 @@ export default {
 
     const fetchCurrentUser = async () => {
       try {
-        const token = localStorage.getItem('token')
-        if (token) {
-          const userData = JSON.parse(localStorage.getItem('user') || '{}')
-          currentUser.value = userData
-        }
+        currentUser.value = await authService.getCurrentUser()
       } catch (error) {
         currentUser.value = null
       }

@@ -404,6 +404,7 @@ import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { companySettingService } from '../services/companySettingService'
 import { sportService } from '../services/sportService'
+import { authService } from '../services/authService'
 import { formatPrice } from '../utils/formatters'
 import PriceDisclaimerNote from '../components/PriceDisclaimerNote.vue'
 import BookingDisabledSnackbar from '../components/BookingDisabledSnackbar.vue'
@@ -626,17 +627,8 @@ export default {
         return
       }
 
-      // Get user role from localStorage
-      const userString = localStorage.getItem('user')
-      let userRole = 'user'
-      if (userString) {
-        try {
-          const user = JSON.parse(userString)
-          userRole = user.role || 'user'
-        } catch (e) {
-          // Default to 'user' if parsing fails
-        }
-      }
+      // Use already loaded user data
+      const userRole = user.value?.role || 'user'
 
       // Check if user can book
       const canBook = await companySettingService.canUserCreateBookings(userRole)
@@ -658,17 +650,8 @@ export default {
         return
       }
 
-      // Get user role from localStorage
-      const userString = localStorage.getItem('user')
-      let userRole = 'user'
-      if (userString) {
-        try {
-          const user = JSON.parse(userString)
-          userRole = user.role || 'user'
-        } catch (e) {
-          // Default to 'user' if parsing fails
-        }
-      }
+      // Use already loaded user data
+      const userRole = user.value?.role || 'user'
 
       // Check if user can book
       const canBook = await companySettingService.canUserCreateBookings(userRole)
@@ -754,14 +737,11 @@ export default {
     }
 
     onMounted(async () => {
-      // Get user from localStorage
-      const userString = localStorage.getItem('user')
-      if (userString) {
-        try {
-          user.value = JSON.parse(userString)
-        } catch (e) {
-          user.value = null
-        }
+      // Get user from authService
+      try {
+        user.value = await authService.getCurrentUser()
+      } catch (e) {
+        user.value = null
       }
 
       // Load data
