@@ -1763,13 +1763,41 @@ export default {
     const updating = ref(null)
     const newBookingDialog = ref(false)
     const companySettings = ref({})
-    const canUsersBook = ref(true)
     const generateDialogOpen = ref(false)
 
     const user = ref(null)
     const authLoading = ref(true)
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
+
+    // Computed property: Admin/Staff can always book, regular users depend on setting
+    const canUsersBook = computed(() => {
+      let role = user.value?.role
+
+      // If user.value is not loaded yet, try localStorage as fallback
+      if (!role) {
+        try {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            role = parsedUser?.role
+            console.log('[Bookings] Using localStorage role fallback:', role)
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      }
+
+      // Admin and Staff bypass the user booking restriction
+      if (role === 'admin' || role === 'staff') {
+        return true
+      }
+
+      // Regular users depend on the company setting
+      const userBookingEnabled = companySettings.value?.user_booking_enabled
+      const result = userBookingEnabled === undefined ? true : (userBookingEnabled === '1' || userBookingEnabled === true || userBookingEnabled === 1)
+      return result
+    })
     const tokenStatus = computed(() => {
       try {
         return localStorage.getItem('token') ? 'Present' : 'Missing'
@@ -3867,10 +3895,8 @@ export default {
         user.value = null
       }
 
-      // Check booking permissions after user is loaded
-      try {
-        canUsersBook.value = await companySettingService.canUserCreateBookings(user.value?.role || 'user')
-      } catch (e) {}
+      // Note: canUsersBook is now a computed property based on user.value and companySettings.value
+      // No need to set it manually - it will update automatically
 
       // Always try to fetch bookings regardless of auth status
       await fetchBookings()

@@ -113,6 +113,13 @@ export const companySettingService = {
 
   async canUserCreateBookings(userOrRole) {
     try {
+      // If user data is null/undefined, we cannot determine permissions safely
+      // Return true to fail-open and avoid blocking (user will be checked on backend anyway)
+      if (userOrRole === null || userOrRole === undefined) {
+        console.warn('User data not available for booking permission check, failing open')
+        return true
+      }
+
       const role = typeof userOrRole === 'string' ? userOrRole : (userOrRole?.role || 'user')
       // Admin/Staff can always create bookings
       if (role === 'admin' || role === 'staff') return true
@@ -120,6 +127,8 @@ export const companySettingService = {
       return await this.isUserBookingEnabled()
     } catch (e) {
       // Fail-open (allow) if anything goes wrong to avoid blocking unexpectedly
+      // Backend will enforce proper permissions
+      console.warn('Error checking booking permissions, failing open:', e)
       return true
     }
   }

@@ -435,11 +435,37 @@ export default {
     const selectedBookingForView = ref(null)
     const userRole = ref(null)
     const companySettings = ref({})
-    const canUsersBook = ref(true)
 
     // Computed property to check if user is admin or staff
     const isAdminOrStaff = computed(() => {
       return userRole.value === 'admin' || userRole.value === 'staff'
+    })
+
+    // Computed property: Admin/Staff can always book, regular users depend on setting
+    const canUsersBook = computed(() => {
+      let role = userRole.value
+
+      // If userRole.value is not loaded yet, try localStorage as fallback
+      if (!role) {
+        try {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            role = parsedUser?.role
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      }
+
+      // Admin and Staff bypass the user booking restriction
+      if (role === 'admin' || role === 'staff') {
+        return true
+      }
+
+      // Regular users depend on the company setting
+      const userBookingEnabled = companySettings.value?.user_booking_enabled
+      return userBookingEnabled === undefined ? true : (userBookingEnabled === '1' || userBookingEnabled === true || userBookingEnabled === 1)
     })
 
     // Computed property for max date - restrict regular users to current month only
@@ -467,8 +493,7 @@ export default {
       try {
         const settings = await courtService.getCourts ? await import('../services/companySettingService').then(m => m.companySettingService.getSettings()) : {}
         companySettings.value = settings || {}
-        const user = await authService.getCurrentUser()
-        canUsersBook.value = await import('../services/companySettingService').then(m => m.companySettingService.canUserCreateBookings(user?.role || 'user'))
+        // canUsersBook is now a computed property - no need to set it manually
       } catch (e) {
         companySettings.value = {}
       }

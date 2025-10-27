@@ -426,7 +426,34 @@ export default {
 
     // User and permissions
     const user = ref(null)
-    const canUsersBook = ref(true)
+    const companySettings = ref({})
+
+    // Computed property: Admin/Staff can always book, regular users depend on setting
+    const canUsersBook = computed(() => {
+      let role = user.value?.role
+
+      // If user.value is not loaded yet, try localStorage as fallback
+      if (!role) {
+        try {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            role = parsedUser?.role
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      }
+
+      // Admin and Staff bypass the user booking restriction
+      if (role === 'admin' || role === 'staff') {
+        return true
+      }
+
+      // Regular users depend on the company setting
+      const userBookingEnabled = companySettings.value?.user_booking_enabled
+      return userBookingEnabled === undefined ? true : (userBookingEnabled === '1' || userBookingEnabled === true || userBookingEnabled === 1)
+    })
 
     // Booking disabled snackbar
     const bookingDisabledSnackbar = ref(false)
@@ -668,6 +695,9 @@ export default {
     const loadDashboardSettings = async () => {
       try {
         const settings = await companySettingService.getSettings()
+        // Store full settings for computed properties
+        companySettings.value = settings
+
         dashboardSettings.value = {
           welcomeMessage: settings.dashboard_welcome_message || '',
           announcement: settings.dashboard_announcement || '',
@@ -747,12 +777,7 @@ export default {
       // Load data
       await Promise.all([fetchSports(), fetchCourts(), loadDashboardSettings()])
 
-      // Check booking permissions
-      try {
-        canUsersBook.value = await companySettingService.canUserCreateBookings(user.value?.role || 'user')
-      } catch (e) {
-        canUsersBook.value = true // Fail-open on error
-      }
+      // canUsersBook is now a computed property - no need to set it manually
 
       // Listen for dashboard settings updates
       window.addEventListener('dashboard-settings-updated', handleDashboardUpdate)

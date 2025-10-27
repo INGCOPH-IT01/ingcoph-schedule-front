@@ -492,12 +492,39 @@ export default {
     const error = ref(null)
     const dialogOpen = ref(false)
     const selectedCourt = ref(null)
+    const user = ref(null)
     const isAdmin = ref(false)
     const viewMode = ref('grid') // Default to grid view
 
     // Company settings
     const companySettings = ref({})
-    const canUsersBook = ref(true)
+
+    // Computed property: Admin/Staff can always book, regular users depend on setting
+    const canUsersBook = computed(() => {
+      let role = user.value?.role
+
+      // If user.value is not loaded yet, try localStorage as fallback
+      if (!role) {
+        try {
+          const storedUser = localStorage.getItem('user')
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser)
+            role = parsedUser?.role
+          }
+        } catch (e) {
+          // Ignore localStorage errors
+        }
+      }
+
+      // Admin and Staff bypass the user booking restriction
+      if (role === 'admin' || role === 'staff') {
+        return true
+      }
+
+      // Regular users depend on the company setting
+      const userBookingEnabled = companySettings.value?.user_booking_enabled
+      return userBookingEnabled === undefined ? true : (userBookingEnabled === '1' || userBookingEnabled === true || userBookingEnabled === 1)
+    })
 
     // Time slots state
     const courtTimeSlots = ref({})
@@ -611,10 +638,12 @@ export default {
 
     const checkAdminStatus = async () => {
       try {
-        const user = await authService.getCurrentUser()
+        const userData = await authService.getCurrentUser()
+        user.value = userData
         // Allow both admin and staff to manage courts
-        isAdmin.value = user && (user.role === 'admin' || user.role === 'staff')
+        isAdmin.value = userData && (userData.role === 'admin' || userData.role === 'staff')
       } catch (error) {
+        user.value = null
         isAdmin.value = false
       }
     }
@@ -628,8 +657,7 @@ export default {
         const settings = await companySettingService.getSettings()
         // API already returns an object of key -> value
         companySettings.value = settings
-        const user = await authService.getCurrentUser()
-        canUsersBook.value = await companySettingService.canUserCreateBookings(user?.role || 'user')
+        // canUsersBook is now a computed property - no need to set it manually
       } catch (err) {
       }
     }
