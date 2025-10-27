@@ -192,12 +192,25 @@ export function formatDateLocal(date) {
 
 /**
  * Format booking date with weekday, month, day, year
+ * Handles timezone-safe parsing for date-only strings (YYYY-MM-DD)
  * @param {string} date - Date string
  * @returns {string} Formatted date (e.g., "Mon, Jan 15, 2025")
  */
 export function formatBookingDate(date) {
   if (!date) return 'Unknown'
-  const d = new Date(date)
+
+  // If the string is in YYYY-MM-DD format (date-only, no time component),
+  // parse it as local date to avoid timezone shift issues
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+  let d
+  if (dateOnlyPattern.test(date)) {
+    const [year, month, day] = date.split('-').map(Number)
+    // Create date in local timezone (month is 0-indexed)
+    d = new Date(year, month - 1, day)
+  } else {
+    d = new Date(date)
+  }
+
   return d.toLocaleDateString('en-US', {
     weekday: 'short',
     year: 'numeric',
@@ -208,12 +221,25 @@ export function formatBookingDate(date) {
 
 /**
  * Format date in long format
+ * Handles timezone-safe parsing for date-only strings (YYYY-MM-DD)
  * @param {string} date - Date string
  * @returns {string} Formatted date (e.g., "Monday, January 15, 2025")
  */
 export function formatDateLong(date) {
   if (!date) return ''
-  const d = new Date(date)
+
+  // If the string is in YYYY-MM-DD format (date-only, no time component),
+  // parse it as local date to avoid timezone shift issues
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+  let d
+  if (dateOnlyPattern.test(date)) {
+    const [year, month, day] = date.split('-').map(Number)
+    // Create date in local timezone (month is 0-indexed)
+    d = new Date(year, month - 1, day)
+  } else {
+    d = new Date(date)
+  }
+
   return d.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -224,11 +250,24 @@ export function formatDateLong(date) {
 
 /**
  * Format date in short format
+ * Handles timezone-safe parsing for date-only strings (YYYY-MM-DD)
  * @param {string} dateString - Date string
  * @returns {string} Formatted date
  */
 export function formatDate(dateString) {
   if (!dateString) return ''
+
+  // If the string is in YYYY-MM-DD format (date-only, no time component),
+  // parse it as local date to avoid timezone shift issues
+  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+  if (dateOnlyPattern.test(dateString)) {
+    const [year, month, day] = dateString.split('-').map(Number)
+    // Create date in local timezone (month is 0-indexed)
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString()
+  }
+
+  // For datetime strings, use standard parsing
   return new Date(dateString).toLocaleDateString()
 }
 

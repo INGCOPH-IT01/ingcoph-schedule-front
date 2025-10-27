@@ -76,7 +76,7 @@ const recurringScheduleService = {
   // Helper function to format recurrence days for display
   formatRecurrenceDays(days, type) {
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-    
+
     if (type === 'daily') {
       return 'Every day'
     } else if (type === 'weekly') {
@@ -88,7 +88,7 @@ const recurringScheduleService = {
     } else if (type === 'yearly_multiple_times') {
       return 'Yearly (Different Times per Day)'
     }
-    
+
     return 'Custom'
   },
 
@@ -149,16 +149,35 @@ const recurringScheduleService = {
       errors.recurrence_days = 'At least one day must be selected'
     }
 
+    // Helper function to parse date strings safely (avoiding timezone shifts)
+    const parseLocalDate = (dateStr) => {
+      const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+      if (dateOnlyPattern.test(dateStr)) {
+        const [year, month, day] = dateStr.split('-').map(Number)
+        return new Date(year, month - 1, day)
+      }
+      return new Date(dateStr)
+    }
+
     if (!data.start_date) {
       errors.start_date = 'Start date is required'
     }
 
-    if (data.start_date && new Date(data.start_date) < new Date()) {
-      errors.start_date = 'Start date cannot be in the past'
+    if (data.start_date) {
+      const startDate = parseLocalDate(data.start_date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Compare dates only, not time
+      if (startDate < today) {
+        errors.start_date = 'Start date cannot be in the past'
+      }
     }
 
-    if (data.end_date && data.start_date && new Date(data.end_date) <= new Date(data.start_date)) {
-      errors.end_date = 'End date must be after start date'
+    if (data.end_date && data.start_date) {
+      const endDate = parseLocalDate(data.end_date)
+      const startDate = parseLocalDate(data.start_date)
+      if (endDate <= startDate) {
+        errors.end_date = 'End date must be after start date'
+      }
     }
 
     return {
