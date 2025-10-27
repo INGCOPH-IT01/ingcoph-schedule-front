@@ -628,7 +628,8 @@ export default {
         const settings = await companySettingService.getSettings()
         // API already returns an object of key -> value
         companySettings.value = settings
-        canUsersBook.value = await companySettingService.canUserCreateBookings('user')
+        const user = await authService.getCurrentUser()
+        canUsersBook.value = await companySettingService.canUserCreateBookings(user?.role || 'user')
       } catch (err) {
       }
     }

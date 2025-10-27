@@ -134,6 +134,7 @@ import { useRouter } from 'vue-router'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
 import { companySettingService } from '../services/companySettingService'
+import { authService } from '../services/authService'
 import { formatPrice } from '../utils/formatters'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
 
@@ -197,7 +198,8 @@ export default {
       try {
         const settings = await companySettingService.getSettings()
         companySettings.value = settings
-        canUsersBook.value = await companySettingService.canUserCreateBookings('user')
+        const user = await authService.getCurrentUser()
+        canUsersBook.value = await companySettingService.canUserCreateBookings(user?.role || 'user')
       } catch (e) {}
     })
 

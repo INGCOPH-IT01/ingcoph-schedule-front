@@ -467,7 +467,8 @@ export default {
       try {
         const settings = await courtService.getCourts ? await import('../services/companySettingService').then(m => m.companySettingService.getSettings()) : {}
         companySettings.value = settings || {}
-        canUsersBook.value = await import('../services/companySettingService').then(m => m.companySettingService.canUserCreateBookings('user'))
+        const user = await authService.getCurrentUser()
+        canUsersBook.value = await import('../services/companySettingService').then(m => m.companySettingService.canUserCreateBookings(user?.role || 'user'))
       } catch (e) {
         companySettings.value = {}
       }
