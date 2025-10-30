@@ -1695,7 +1695,8 @@ import {
   getPaymentStatusIcon,
   getApprovalStatusColor,
   formatApprovalStatus,
-  formatTimeSlot
+  formatTimeSlot,
+  formatDateLocal
 } from '../utils/formatters'
 
 export default {
@@ -1739,21 +1740,14 @@ export default {
     ]
 
     // Date range filters (AdminDashboard-style)
+    // Initialize date filters with start and end of current month as default
     const today = new Date()
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
     const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
 
-    const formatDateLocalHelper = (date) => {
-      if (!date) return ''
-      const d = date instanceof Date ? date : new Date(date)
-      const year = d.getFullYear()
-      const month = String(d.getMonth() + 1).padStart(2, '0')
-      const day = String(d.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-
-    const dateFromString = formatDateLocalHelper(firstDayOfMonth)
-    const dateToString = formatDateLocalHelper(lastDayOfMonth)
+    // Format dates using local timezone to avoid timezone shift issues (imported from formatters)
+    const dateFromString = formatDateLocal(firstDayOfMonth)
+    const dateToString = formatDateLocal(lastDayOfMonth)
     const dateFromFilter = ref(dateFromString)
     const dateToFilter = ref(dateToString)
 
