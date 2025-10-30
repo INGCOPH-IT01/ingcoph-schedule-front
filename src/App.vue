@@ -7,7 +7,7 @@
       <v-app-bar-nav-icon @click="drawer = !drawer" class="excel-nav-icon"></v-app-bar-nav-icon>
       <v-toolbar-title class="excel-app-title d-flex align-center" @click="router.push({ name: 'Home' })" style="cursor: pointer;">
         <v-avatar v-if="companyLogo" size="40" class="mr-3 company-logo-avatar">
-          <v-img :src="companyLogo" alt="Company Logo" cover></v-img>
+          <v-img :src="companyLogo" alt="Company Logo" cover lazy></v-img>
         </v-avatar>
         {{ companyName }}
       </v-toolbar-title>
@@ -58,7 +58,7 @@
             class="excel-profile-btn"
           >
             <v-avatar size="40">
-              <v-img :src="`https://ui-avatars.com/api/?name=${user?.name}&background=3b82f6&color=fff`"></v-img>
+              <v-img :src="`https://ui-avatars.com/api/?name=${user?.name}&background=3b82f6&color=fff`" lazy></v-img>
             </v-avatar>
           </v-btn>
         </template>
@@ -233,6 +233,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { authService } from './services/authService'
 import { cartService } from './services/cartService'
 import { companySettingService } from './services/companySettingService'
+import { useVisibilityPolling } from './composables/useVisibilityPolling'
 import NewBookingDialog from './components/NewBookingDialog.vue'
 import BookingCart from './components/BookingCart.vue'
 
@@ -395,10 +396,6 @@ export default {
       if (colors.accent) bgAccentColor.value = colors.accent
     }
 
-    // Store interval IDs for cleanup
-    let cartCountInterval = null
-    let userDataRefreshInterval = null
-
     /**
      * Refresh user data to detect role changes
      * This ensures user permissions stay current even if changed by admin
@@ -427,19 +424,17 @@ export default {
       }
     }
 
+    // Smart polling that pauses when tab is hidden (reduces unnecessary API calls)
+    // Cart count: check every 60 seconds (increased from 30s)
+    useVisibilityPolling(updateCartCount, 60000)
+
+    // User data refresh: check every 5 minutes (increased from 2min)
+    useVisibilityPolling(refreshUserData, 300000)
+
     onMounted(() => {
       updateCartCount()
       checkAuth()
       loadCompanySettings()
-
-
-      // Update cart count every 30 seconds (for expiration detection)
-      // This helps notify users when cart items expire
-      cartCountInterval = setInterval(updateCartCount, 30000) // 30 seconds instead of 5
-
-      // Refresh user data every 2 minutes to detect role changes
-      // This ensures permissions stay current if admin changes user roles
-      userDataRefreshInterval = setInterval(refreshUserData, 120000) // 2 minutes
 
       // Listen for custom event from child components
       window.addEventListener('open-booking-dialog', openBookingDialog)
@@ -462,14 +457,9 @@ export default {
       })
     })
 
+    // Note: Smart polling cleanup is handled automatically by the composable
     onUnmounted(() => {
-      // Clean up intervals
-      if (cartCountInterval) {
-        clearInterval(cartCountInterval)
-      }
-      if (userDataRefreshInterval) {
-        clearInterval(userDataRefreshInterval)
-      }
+      // Cleanup is now handled by useVisibilityPolling composable
     })
 
     // Watch for route changes to ensure components re-initialize

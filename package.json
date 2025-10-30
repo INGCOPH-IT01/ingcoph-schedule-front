@@ -31,5 +31,8 @@
     "vuetify": "^3.8.0"
   },
   "buildVersion": 1760956346446,
-  "buildDate": "2025-10-20T10:32:26.446Z"
+  "buildDate": "2025-10-20T10:32:26.446Z",
+  "devDependencies": {
+    "terser": "^5.44.0"
+  }
 }
