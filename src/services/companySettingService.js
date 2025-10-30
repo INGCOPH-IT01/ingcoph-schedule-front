@@ -1,13 +1,34 @@
 import api from './api'
+import { apiCache } from '../utils/apiCache'
 
 export const companySettingService = {
-  async getSettings() {
+  async getSettings(useCache = true) {
+    const cacheKey = 'company_settings'
+
+    // Check cache first
+    if (useCache) {
+      const cached = apiCache.get(cacheKey)
+      if (cached) return cached
+    }
+
     try {
       const response = await api.get('/company-settings')
-      return response.data.data
+      const data = response.data.data
+
+      // Cache for 5 minutes (settings don't change very often)
+      apiCache.set(cacheKey, data, 300000)
+
+      return data
     } catch (error) {
       throw new Error('Failed to fetch company settings')
     }
+  },
+
+  /**
+   * Clear settings cache - call this after updating settings
+   */
+  clearSettingsCache() {
+    apiCache.delete('company_settings')
   },
 
   async getSetting(key) {
@@ -21,6 +42,9 @@ export const companySettingService = {
 
   async updateSettings(settingsData) {
     try {
+      // Clear cache before updating
+      this.clearSettingsCache()
+
       // Check if we have a file to upload
       const hasFile = settingsData.company_logo && (settingsData.company_logo instanceof File || settingsData.company_logo instanceof Blob)
 
@@ -93,6 +117,8 @@ export const companySettingService = {
   async deleteLogo() {
     try {
       const response = await api.delete('/admin/company-settings/logo')
+      // Clear cache after deleting logo
+      this.clearSettingsCache()
       return response.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to delete company logo')

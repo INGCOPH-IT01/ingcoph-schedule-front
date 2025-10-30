@@ -335,6 +335,7 @@
                 <v-card
                   v-for="booking in filteredTransactions"
                   :key="booking.id"
+                  v-memo="[booking.id, booking.approval_status, booking.updated_at, booking.payment_status]"
                   class="booking-card-compact"
                   :class="{
                     'pending-card': booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist',
@@ -1670,7 +1671,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, shallowRef, triggerRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
@@ -1711,8 +1712,9 @@ export default {
   },
   setup() {
     const route = useRoute()
-    const bookings = ref([])
-    const transactions = ref([])
+    // Use shallowRef for large arrays to reduce reactivity overhead
+    const bookings = shallowRef([])
+    const transactions = shallowRef([])
     const expandedTransactions = ref([])
     // Approval status filter (AdminDashboard-style chips)
     const statusFilter = ref(['pending', 'approved'])
@@ -1846,8 +1848,9 @@ export default {
     const previewUploadDialog = ref(false)
     const editLoading = ref(false)
     const editError = ref('')
-    const courts = ref([])
-    const availableSlots = ref([])
+    // Use shallowRef for large arrays to reduce reactivity overhead
+    const courts = shallowRef([])
+    const availableSlots = shallowRef([])
     const selectedCourt = ref(null)
     const totalPrice = ref(0)
 
@@ -2312,6 +2315,7 @@ export default {
 
             // Store transactions directly
             transactions.value = transactionsData
+            triggerRef(transactions) // Manually trigger reactivity for shallowRef
 
             // Also convert transactions to booking format for backward compatibility
             const transactionBookings = transactionsData.map(transaction => {
@@ -2366,6 +2370,7 @@ export default {
 
             // Set bookings to cart transactions
             bookings.value = transactionBookings
+            triggerRef(bookings) // Manually trigger reactivity for shallowRef
 
             // Check for expired bookings (unpaid for more than 1 hour)
             const now = new Date()
@@ -2402,9 +2407,11 @@ export default {
             }
           } else {
             bookings.value = []
+            triggerRef(bookings) // Manually trigger reactivity for shallowRef
           }
         } catch (cartErr) {
           bookings.value = []
+          triggerRef(bookings) // Manually trigger reactivity for shallowRef
         }
         // Also fetch direct bookings (created without cart transactions), so admin-made bookings for a user appear here
         try {
@@ -2427,6 +2434,7 @@ export default {
 
             // Merge with transaction-backed items we already set
             bookings.value = [...(bookings.value || []), ...directBookings]
+            triggerRef(bookings) // Manually trigger reactivity for shallowRef
           } else {
           }
         } catch (bookingsErr) {
@@ -3581,6 +3589,7 @@ export default {
     const loadCourts = async () => {
       try {
         courts.value = await courtService.getCourts()
+        triggerRef(courts) // Manually trigger reactivity for shallowRef
       } catch (error) {
       }
     }
@@ -3613,6 +3622,7 @@ export default {
         }
 
         availableSlots.value = slots
+        triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
         calculatePrice()
       } catch (error) {
         editError.value = 'Failed to load available time slots'
@@ -3623,6 +3633,7 @@ export default {
       selectedCourt.value = courts.value.find(c => c.id === editForm.court_id)
       editForm.start_time = ''
       availableSlots.value = []
+      triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
       totalPrice.value = 0
 
       if (editForm.date) {
@@ -3633,6 +3644,7 @@ export default {
     const onDateChange = async () => {
       editForm.start_time = ''
       availableSlots.value = []
+      triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
       totalPrice.value = 0
 
       if (editForm.court_id) {
@@ -3791,6 +3803,7 @@ export default {
       editForm.proof_of_payment = null
       editError.value = ''
       availableSlots.value = []
+      triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
       selectedCourt.value = null
       totalPrice.value = 0
     }
