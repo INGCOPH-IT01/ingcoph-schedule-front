@@ -332,194 +332,14 @@
               </div>
 
               <div v-else class="bookings-grid">
-                <v-card
+                <BookingCard
                   v-for="booking in filteredTransactions"
                   :key="booking.id"
                   v-memo="[booking.id, booking.approval_status, booking.updated_at, booking.payment_status]"
-                  class="booking-card-compact"
-                  :class="{
-                    'pending-card': booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist',
-                    'approved-card': booking.approval_status === 'approved',
-                    'rejected-card': booking.approval_status === 'rejected'
-                  }"
-                  elevation="2"
-                >
-                  <!-- Status Banner -->
-                  <div v-if="isBookingExpired(booking)" class="status-banner-compact expired-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-clock-remove</v-icon>
-                    EXPIRED
-                  </div>
-                  <div v-else-if="booking.approval_status === 'pending_waitlist'" class="status-banner-compact waitlist-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-clock-check</v-icon>
-                    WAITLIST PENDING
-                  </div>
-                  <div v-else-if="booking.approval_status === 'pending'" class="status-banner-compact pending-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-clock-alert</v-icon>
-                    PENDING
-                  </div>
-                  <div v-else-if="booking.approval_status === 'approved'" class="status-banner-compact approved-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-check-circle</v-icon>
-                    APPROVED
-                  </div>
-                  <div v-else-if="booking.approval_status === 'rejected'" class="status-banner-compact rejected-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-close-circle</v-icon>
-                    REJECTED
-                  </div>
-
-                  <v-card-text class="pa-3">
-                    <!-- Booking Date Header -->
-                    <div class="booking-date-header">
-                      <v-icon color="primary" size="16" class="mr-1">mdi-calendar</v-icon>
-                      <span class="booking-date-text">
-                        {{ formatDate(booking.booking_date) }}
-                      </span>
-                    </div>
-
-                    <!-- Court Info -->
-                    <div class="booking-court-info-compact">
-                      <div>
-                        <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
-                        <v-chip
-                          :color="sportService.getSportColor(booking.sport?.name)"
-                          size="x-small"
-                          variant="flat"
-                          class="text-white mt-1"
-                        >
-                          <v-icon start size="x-small">
-                            {{ sportService.getSportIcon(booking.sport?.name, booking.sport?.icon) }}
-                          </v-icon>
-                          {{ booking.sport?.name || 'Unknown Sport' }}
-                        </v-chip>
-                      </div>
-                    </div>
-
-                    <!-- Booking Details -->
-                      <div class="booking-details-compact">
-                        <!-- Time Slots (Grouped) -->
-                        <div class="detail-row-compact">
-                          <div class="detail-icon-compact time-icon">
-                            <v-icon color="white" size="16">mdi-clock-outline</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">Time Slots</div>
-                            <div class="detail-value-compact">
-                              <div class="time-slots-group">
-                                <div class="time-slot-display">
-                                  {{ getGroupedTimeDisplay(booking.cart_items) }}
-                                </div>
-                                <v-chip size="x-small" color="blue-grey" variant="flat" class="ml-1 text-white">
-                                  {{ booking.cart_items.length }} slot{{ booking.cart_items.length > 1 ? 's' : '' }}
-                                </v-chip>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Price -->
-                        <div class="detail-row-compact">
-                          <div class="detail-icon-compact price-icon">
-                            <v-icon color="white" size="16">mdi-cash</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">Price</div>
-                            <div class="detail-value-compact price-value-compact">
-                              ₱{{ parseFloat(booking.price).toFixed(2) }}
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Booked By / Booked For -->
-                        <div class="detail-row-compact" :class="{ 'admin-booking-highlight': getFirstCartItemBookingForName(booking) }">
-                          <div class="detail-icon-compact user-icon">
-                            <v-icon color="white" size="16">mdi-account</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">
-                              {{ getFirstCartItemBookingForName(booking) ? 'Booked For' : 'User' }}
-                            </div>
-                            <div class="detail-value-compact">
-                              {{ getFirstCartItemBookingForName(booking) || booking.user?.name || 'Unknown' }}
-                              <v-chip
-                                v-if="getFirstCartItemBookingForName(booking)"
-                                size="x-small"
-                                color="info"
-                                variant="outlined"
-                                class="ml-1"
-                              >
-                                By: {{ booking.user?.name || 'Admin' }}
-                              </v-chip>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Payment Status -->
-                        <div class="detail-row-compact">
-                          <div class="detail-icon-compact payment-icon">
-                            <v-icon color="white" size="16">mdi-credit-card-check</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">Payment</div>
-                            <div class="detail-value-compact">
-                              <v-chip
-                                :color="booking.payment_status === 'paid' ? 'success' : 'warning'"
-                                size="x-small"
-                                variant="flat"
-                                class="text-white"
-                              >
-                                {{ booking.payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
-                              </v-chip>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Rejection Reason -->
-                        <div v-if="booking.approval_status === 'rejected' && booking.rejection_reason" class="rejection-notice-compact mt-2">
-                          <v-icon color="error" size="16" class="mr-1">mdi-alert-circle</v-icon>
-                          <div class="rejection-text-compact">{{ booking.rejection_reason }}</div>
-                        </div>
-                      </div>
-
-                      <!-- Actions -->
-                      <div class="booking-actions-compact">
-                        <v-btn
-                          v-if="booking.approval_status === 'approved' && booking.qr_code"
-                          icon="mdi-qrcode"
-                          size="x-small"
-                          variant="tonal"
-                          color="success"
-                          @click="viewBooking(booking)"
-                          title="Show QR Code"
-                        ></v-btn>
-                        <v-btn
-                          v-if="booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist'"
-                          icon="mdi-eye"
-                          size="x-small"
-                          variant="tonal"
-                          color="primary"
-                          @click="viewBooking(booking)"
-                          title="View Details"
-                        ></v-btn>
-                        <v-btn
-                          v-if="booking.approval_status === 'rejected'"
-                          icon="mdi-information"
-                          size="x-small"
-                          variant="tonal"
-                          color="error"
-                          @click="viewBooking(booking)"
-                          title="View Rejection Reason"
-                        ></v-btn>
-                        <v-btn
-                          v-if="((booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist') && booking.payment_status !== 'paid') || isBookingExpired(booking)"
-                          icon="mdi-delete"
-                          size="x-small"
-                          variant="tonal"
-                          color="error"
-                          @click="cancelBooking(booking)"
-                          title="Cancel Booking"
-                        ></v-btn>
-                      </div>
-                    </v-card-text>
-                </v-card>
+                  :booking="booking"
+                  @view="viewBooking"
+                  @cancel="cancelBooking"
+                />
               </div>
             </div>
           </v-card>
@@ -1686,6 +1506,7 @@ import NewBookingDialog from '../components/NewBookingDialog.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
+import BookingCard from '../components/BookingCard.vue'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import Swal from 'sweetalert2'
 import {
@@ -1710,6 +1531,7 @@ export default {
     BookingDetailsDialog,
     QrCodeDisplay,
     QrCodeScanner,
+    BookingCard,
     RecycleScroller
   },
   setup() {
