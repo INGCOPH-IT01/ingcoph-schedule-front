@@ -1,24 +1,31 @@
 import api from './api'
+import { deduplicateRequest } from '../utils/requestDeduplication'
 
 export const bookingService = {
-  // Get all bookings
+  // Get all bookings (with request deduplication)
   async getBookings(params = {}) {
-    try {
-      const response = await api.get('/bookings', { params })
-      return response.data
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch bookings')
-    }
+    const key = `bookings_${JSON.stringify(params)}`
+    return deduplicateRequest(key, async () => {
+      try {
+        const response = await api.get('/bookings', { params })
+        return response.data
+      } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch bookings')
+      }
+    })
   },
 
-  // Get a specific booking
+  // Get a specific booking (with request deduplication)
   async getBooking(id) {
-    try {
-      const response = await api.get(`/bookings/${id}`)
-      return response.data
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to fetch booking')
-    }
+    const key = `booking_${id}`
+    return deduplicateRequest(key, async () => {
+      try {
+        const response = await api.get(`/bookings/${id}`)
+        return response.data
+      } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to fetch booking')
+      }
+    })
   },
 
   // Create a new booking

@@ -1,10 +1,11 @@
 import api from './api'
+import { companySettingService } from './companySettingService'
 
 export const paymentSettingService = {
-  async getPaymentSettings() {
+  async getPaymentSettings(useCache = true) {
     try {
-      const response = await api.get('/company-settings')
-      const settings = response.data.data
+      // Leverage company settings cache
+      const settings = await companySettingService.getSettings(useCache)
       return {
         company_name: settings.company_name || 'Perfect Smash',
         payment_gcash_number: settings.payment_gcash_number || '0917-123-4567',
@@ -20,8 +21,8 @@ export const paymentSettingService = {
 
   async updatePaymentSettings(paymentData) {
     try {
-      // Get current company name from settings
-      const currentSettings = await this.getPaymentSettings()
+      // Get current company name from settings (force fresh data)
+      const currentSettings = await this.getPaymentSettings(false)
       const companyName = currentSettings.company_name || 'Perfect Smash'
 
       const response = await api.put('/admin/company-settings', {
@@ -30,6 +31,10 @@ export const paymentSettingService = {
         payment_gcash_name: paymentData.payment_gcash_name,
         payment_instructions: paymentData.payment_instructions
       })
+
+      // Clear settings cache after update
+      companySettingService.clearSettingsCache()
+
       return response.data.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update payment settings')
@@ -54,6 +59,10 @@ export const paymentSettingService = {
             'Content-Type': 'multipart/form-data'
           }
         })
+
+        // Clear settings cache after update
+        companySettingService.clearSettingsCache()
+
         return response.data.data
       } else {
         // Regular JSON update
@@ -63,6 +72,10 @@ export const paymentSettingService = {
           payment_gcash_name: paymentData.payment_gcash_name,
           payment_instructions: paymentData.payment_instructions
         })
+
+        // Clear settings cache after update
+        companySettingService.clearSettingsCache()
+
         return response.data.data
       }
     } catch (error) {
@@ -73,6 +86,10 @@ export const paymentSettingService = {
   async deletePaymentQrCode() {
     try {
       const response = await api.delete('/admin/company-settings/payment-qr-code')
+
+      // Clear settings cache after delete
+      companySettingService.clearSettingsCache()
+
       return response.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to delete payment QR code')

@@ -1686,6 +1686,7 @@ import NewBookingDialog from '../components/NewBookingDialog.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
 import Swal from 'sweetalert2'
 import {
   formatPrice,
@@ -1708,7 +1709,8 @@ export default {
     NewBookingDialog,
     BookingDetailsDialog,
     QrCodeDisplay,
-    QrCodeScanner
+    QrCodeScanner,
+    RecycleScroller
   },
   setup() {
     const route = useRoute()
@@ -2131,6 +2133,11 @@ export default {
       }
 
       return filtered
+    })
+
+    // Use virtual scrolling for large lists (50+ items)
+    const useVirtualScrolling = computed(() => {
+      return filteredTransactions.value.length >= 50
     })
 
     const filteredBookings = computed(() => {
@@ -4059,6 +4066,7 @@ export default {
       expandedTransactions,
       toggleTransactionDetails,
       filteredTransactions,
+      useVirtualScrolling,
       statusFilter,
       paymentStatusFilter,
       sportFilter,

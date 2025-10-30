@@ -6,7 +6,8 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: () => import('../views/Home.vue')
+    // Prefetch home page for faster initial load
+    component: () => import(/* webpackPrefetch: true */ '../views/Home.vue')
   },
   {
     path: '/login',
@@ -21,7 +22,8 @@ const routes = [
   {
     path: '/sports',
     name: 'Sports',
-    component: () => import('../views/Sports.vue')
+    // Prefetch this critical route for faster navigation
+    component: () => import(/* webpackPrefetch: true */ '../views/Sports.vue')
   },
   {
     path: '/courts',
@@ -63,7 +65,8 @@ const routes = [
   {
     path: '/bookings',
     name: 'Bookings',
-    component: () => import(/* webpackChunkName: "bookings" */ '../views/Bookings.vue'),
+    // Prefetch critical authenticated route
+    component: () => import(/* webpackChunkName: "bookings", webpackPrefetch: true */ '../views/Bookings.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const isAuthenticated = localStorage.getItem('token')
