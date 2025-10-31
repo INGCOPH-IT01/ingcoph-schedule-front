@@ -42,7 +42,11 @@ export default defineConfig({
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router'],
           'vuetify': ['vuetify'],
-          'utilities': ['axios', 'laravel-echo', 'pusher-js']
+          'utilities': ['axios', 'laravel-echo', 'pusher-js'],
+          // Split large libraries into separate chunks for better caching
+          'excel': ['exceljs'],
+          'qr-codes': ['qrcode', 'vue-qr', 'vue-qrcode-reader'],
+          'sweetalert': ['sweetalert2']
         },
         // Ensure unique hashes for each build
         entryFileNames: `assets/[name]-[hash].js`,
@@ -51,8 +55,25 @@ export default defineConfig({
       }
     },
     chunkSizeWarningLimit: 1000,
-    // Generate new hashes on every build
-    assetsInlineLimit: 0
+    // Inline small assets (< 4kb) as base64
+    assetsInlineLimit: 4096,
+    // Split CSS for better caching
+    cssCodeSplit: true,
+    // Disable source maps in production for smaller bundle
+    sourcemap: false,
+    // Minification with console removal
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug']
+      }
+    }
+  },
+  // Remove console logs in production
+  esbuild: {
+    drop: import.meta.env?.MODE === 'production' ? ['console', 'debugger'] : []
   },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.buildVersion ?? null),

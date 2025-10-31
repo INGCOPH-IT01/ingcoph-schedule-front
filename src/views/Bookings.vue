@@ -332,193 +332,14 @@
               </div>
 
               <div v-else class="bookings-grid">
-                <v-card
+                <BookingCard
                   v-for="booking in filteredTransactions"
                   :key="booking.id"
-                  class="booking-card-compact"
-                  :class="{
-                    'pending-card': booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist',
-                    'approved-card': booking.approval_status === 'approved',
-                    'rejected-card': booking.approval_status === 'rejected'
-                  }"
-                  elevation="2"
-                >
-                  <!-- Status Banner -->
-                  <div v-if="isBookingExpired(booking)" class="status-banner-compact expired-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-clock-remove</v-icon>
-                    EXPIRED
-                  </div>
-                  <div v-else-if="booking.approval_status === 'pending_waitlist'" class="status-banner-compact waitlist-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-clock-check</v-icon>
-                    WAITLIST PENDING
-                  </div>
-                  <div v-else-if="booking.approval_status === 'pending'" class="status-banner-compact pending-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-clock-alert</v-icon>
-                    PENDING
-                  </div>
-                  <div v-else-if="booking.approval_status === 'approved'" class="status-banner-compact approved-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-check-circle</v-icon>
-                    APPROVED
-                  </div>
-                  <div v-else-if="booking.approval_status === 'rejected'" class="status-banner-compact rejected-banner">
-                    <v-icon size="x-small" class="mr-1">mdi-close-circle</v-icon>
-                    REJECTED
-                  </div>
-
-                  <v-card-text class="pa-3">
-                    <!-- Booking Date Header -->
-                    <div class="booking-date-header">
-                      <v-icon color="primary" size="16" class="mr-1">mdi-calendar</v-icon>
-                      <span class="booking-date-text">
-                        {{ formatDate(booking.booking_date) }}
-                      </span>
-                    </div>
-
-                    <!-- Court Info -->
-                    <div class="booking-court-info-compact">
-                      <div>
-                        <h4 class="court-name-compact">{{ booking.court?.name || 'Unknown Court' }}</h4>
-                        <v-chip
-                          :color="sportService.getSportColor(booking.sport?.name)"
-                          size="x-small"
-                          variant="flat"
-                          class="text-white mt-1"
-                        >
-                          <v-icon start size="x-small">
-                            {{ sportService.getSportIcon(booking.sport?.name, booking.sport?.icon) }}
-                          </v-icon>
-                          {{ booking.sport?.name || 'Unknown Sport' }}
-                        </v-chip>
-                      </div>
-                    </div>
-
-                    <!-- Booking Details -->
-                      <div class="booking-details-compact">
-                        <!-- Time Slots (Grouped) -->
-                        <div class="detail-row-compact">
-                          <div class="detail-icon-compact time-icon">
-                            <v-icon color="white" size="16">mdi-clock-outline</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">Time Slots</div>
-                            <div class="detail-value-compact">
-                              <div class="time-slots-group">
-                                <div class="time-slot-display">
-                                  {{ getGroupedTimeDisplay(booking.cart_items) }}
-                                </div>
-                                <v-chip size="x-small" color="blue-grey" variant="flat" class="ml-1 text-white">
-                                  {{ booking.cart_items.length }} slot{{ booking.cart_items.length > 1 ? 's' : '' }}
-                                </v-chip>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Price -->
-                        <div class="detail-row-compact">
-                          <div class="detail-icon-compact price-icon">
-                            <v-icon color="white" size="16">mdi-cash</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">Price</div>
-                            <div class="detail-value-compact price-value-compact">
-                              ₱{{ parseFloat(booking.price).toFixed(2) }}
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Booked By / Booked For -->
-                        <div class="detail-row-compact" :class="{ 'admin-booking-highlight': getFirstCartItemBookingForName(booking) }">
-                          <div class="detail-icon-compact user-icon">
-                            <v-icon color="white" size="16">mdi-account</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">
-                              {{ getFirstCartItemBookingForName(booking) ? 'Booked For' : 'User' }}
-                            </div>
-                            <div class="detail-value-compact">
-                              {{ getFirstCartItemBookingForName(booking) || booking.user?.name || 'Unknown' }}
-                              <v-chip
-                                v-if="getFirstCartItemBookingForName(booking)"
-                                size="x-small"
-                                color="info"
-                                variant="outlined"
-                                class="ml-1"
-                              >
-                                By: {{ booking.user?.name || 'Admin' }}
-                              </v-chip>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Payment Status -->
-                        <div class="detail-row-compact">
-                          <div class="detail-icon-compact payment-icon">
-                            <v-icon color="white" size="16">mdi-credit-card-check</v-icon>
-                          </div>
-                          <div class="detail-content-compact">
-                            <div class="detail-label-compact">Payment</div>
-                            <div class="detail-value-compact">
-                              <v-chip
-                                :color="booking.payment_status === 'paid' ? 'success' : 'warning'"
-                                size="x-small"
-                                variant="flat"
-                                class="text-white"
-                              >
-                                {{ booking.payment_status === 'paid' ? 'Paid' : 'Unpaid' }}
-                              </v-chip>
-                            </div>
-                          </div>
-                        </div>
-
-                        <!-- Rejection Reason -->
-                        <div v-if="booking.approval_status === 'rejected' && booking.rejection_reason" class="rejection-notice-compact mt-2">
-                          <v-icon color="error" size="16" class="mr-1">mdi-alert-circle</v-icon>
-                          <div class="rejection-text-compact">{{ booking.rejection_reason }}</div>
-                        </div>
-                      </div>
-
-                      <!-- Actions -->
-                      <div class="booking-actions-compact">
-                        <v-btn
-                          v-if="booking.approval_status === 'approved' && booking.qr_code"
-                          icon="mdi-qrcode"
-                          size="x-small"
-                          variant="tonal"
-                          color="success"
-                          @click="viewBooking(booking)"
-                          title="Show QR Code"
-                        ></v-btn>
-                        <v-btn
-                          v-if="booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist'"
-                          icon="mdi-eye"
-                          size="x-small"
-                          variant="tonal"
-                          color="primary"
-                          @click="viewBooking(booking)"
-                          title="View Details"
-                        ></v-btn>
-                        <v-btn
-                          v-if="booking.approval_status === 'rejected'"
-                          icon="mdi-information"
-                          size="x-small"
-                          variant="tonal"
-                          color="error"
-                          @click="viewBooking(booking)"
-                          title="View Rejection Reason"
-                        ></v-btn>
-                        <v-btn
-                          v-if="((booking.approval_status === 'pending' || booking.approval_status === 'pending_waitlist') && booking.payment_status !== 'paid') || isBookingExpired(booking)"
-                          icon="mdi-delete"
-                          size="x-small"
-                          variant="tonal"
-                          color="error"
-                          @click="cancelBooking(booking)"
-                          title="Cancel Booking"
-                        ></v-btn>
-                      </div>
-                    </v-card-text>
-                </v-card>
+                  v-memo="[booking.id, booking.approval_status, booking.updated_at, booking.payment_status]"
+                  :booking="booking"
+                  @view="viewBooking"
+                  @cancel="cancelBooking"
+                />
               </div>
             </div>
           </v-card>
@@ -1670,7 +1491,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, shallowRef, triggerRef } from 'vue'
 import { useRoute } from 'vue-router'
 import { authService } from '../services/authService'
 import { courtService } from '../services/courtService'
@@ -1679,15 +1500,19 @@ import { bookingService } from '../services/bookingService'
 import { companySettingService } from '../services/companySettingService'
 import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
+import { debounce } from '../utils/debounce'
 import RecurringScheduleViewDialog from '../components/RecurringScheduleViewDialog.vue'
 import NewBookingDialog from '../components/NewBookingDialog.vue'
 import BookingDetailsDialog from '../components/BookingDetailsDialog.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
+import BookingCard from '../components/BookingCard.vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
 import Swal from 'sweetalert2'
 import {
   formatPrice,
   formatNumber,
+  formatDate,
   getFrequencyColor,
   getPaymentStatus,
   getPaymentStatusColor,
@@ -1706,12 +1531,15 @@ export default {
     NewBookingDialog,
     BookingDetailsDialog,
     QrCodeDisplay,
-    QrCodeScanner
+    QrCodeScanner,
+    BookingCard,
+    RecycleScroller
   },
   setup() {
     const route = useRoute()
-    const bookings = ref([])
-    const transactions = ref([])
+    // Use shallowRef for large arrays to reduce reactivity overhead
+    const bookings = shallowRef([])
+    const transactions = shallowRef([])
     const expandedTransactions = ref([])
     // Approval status filter (AdminDashboard-style chips)
     const statusFilter = ref(['pending', 'approved'])
@@ -1845,8 +1673,9 @@ export default {
     const previewUploadDialog = ref(false)
     const editLoading = ref(false)
     const editError = ref('')
-    const courts = ref([])
-    const availableSlots = ref([])
+    // Use shallowRef for large arrays to reduce reactivity overhead
+    const courts = shallowRef([])
+    const availableSlots = shallowRef([])
     const selectedCourt = ref(null)
     const totalPrice = ref(0)
 
@@ -2129,6 +1958,11 @@ export default {
       return filtered
     })
 
+    // Use virtual scrolling for large lists (50+ items)
+    const useVirtualScrolling = computed(() => {
+      return filteredTransactions.value.length >= 50
+    })
+
     const filteredBookings = computed(() => {
       let filtered = bookings.value
 
@@ -2307,10 +2141,14 @@ export default {
           })
 
           if (cartResponse.ok) {
-            const transactionsData = await cartResponse.json()
+            const responseData = await cartResponse.json()
+
+            // API Resources wrap data in a 'data' property
+            const transactionsData = responseData.data || responseData
 
             // Store transactions directly
             transactions.value = transactionsData
+            triggerRef(transactions) // Manually trigger reactivity for shallowRef
 
             // Also convert transactions to booking format for backward compatibility
             const transactionBookings = transactionsData.map(transaction => {
@@ -2365,6 +2203,7 @@ export default {
 
             // Set bookings to cart transactions
             bookings.value = transactionBookings
+            triggerRef(bookings) // Manually trigger reactivity for shallowRef
 
             // Check for expired bookings (unpaid for more than 1 hour)
             const now = new Date()
@@ -2401,9 +2240,11 @@ export default {
             }
           } else {
             bookings.value = []
+            triggerRef(bookings) // Manually trigger reactivity for shallowRef
           }
         } catch (cartErr) {
           bookings.value = []
+          triggerRef(bookings) // Manually trigger reactivity for shallowRef
         }
         // Also fetch direct bookings (created without cart transactions), so admin-made bookings for a user appear here
         try {
@@ -2426,6 +2267,7 @@ export default {
 
             // Merge with transaction-backed items we already set
             bookings.value = [...(bookings.value || []), ...directBookings]
+            triggerRef(bookings) // Manually trigger reactivity for shallowRef
           } else {
           }
         } catch (bookingsErr) {
@@ -2498,22 +2340,7 @@ export default {
       return expiresAt
     }
 
-    const formatDate = (dateTime) => {
-      if (!dateTime) return ''
-
-      // If the string is in YYYY-MM-DD format (date-only, no time component),
-      // parse it as local date to avoid timezone shift issues
-      const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
-      if (dateOnlyPattern.test(dateTime)) {
-        const [year, month, day] = dateTime.split('-').map(Number)
-        // Create date in local timezone (month is 0-indexed)
-        const date = new Date(year, month - 1, day)
-        return date.toLocaleDateString()
-      }
-
-      // For datetime strings, use standard parsing
-      return new Date(dateTime).toLocaleDateString()
-    }
+    // formatDate is now imported from formatters (removed local override)
 
     const formatTime = (dateTime) => {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -3580,6 +3407,7 @@ export default {
     const loadCourts = async () => {
       try {
         courts.value = await courtService.getCourts()
+        triggerRef(courts) // Manually trigger reactivity for shallowRef
       } catch (error) {
       }
     }
@@ -3612,6 +3440,7 @@ export default {
         }
 
         availableSlots.value = slots
+        triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
         calculatePrice()
       } catch (error) {
         editError.value = 'Failed to load available time slots'
@@ -3622,6 +3451,7 @@ export default {
       selectedCourt.value = courts.value.find(c => c.id === editForm.court_id)
       editForm.start_time = ''
       availableSlots.value = []
+      triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
       totalPrice.value = 0
 
       if (editForm.date) {
@@ -3632,6 +3462,7 @@ export default {
     const onDateChange = async () => {
       editForm.start_time = ''
       availableSlots.value = []
+      triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
       totalPrice.value = 0
 
       if (editForm.court_id) {
@@ -3790,6 +3621,7 @@ export default {
       editForm.proof_of_payment = null
       editError.value = ''
       availableSlots.value = []
+      triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
       selectedCourt.value = null
       totalPrice.value = 0
     }
@@ -4045,6 +3877,7 @@ export default {
       expandedTransactions,
       toggleTransactionDetails,
       filteredTransactions,
+      useVirtualScrolling,
       statusFilter,
       paymentStatusFilter,
       sportFilter,

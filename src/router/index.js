@@ -1,46 +1,34 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import Home from '../views/Home.vue'
-import Login from '../views/Login.vue'
-import Register from '../views/Register.vue'
-import Sports from '../views/Sports.vue'
-import Courts from '../views/Courts.vue'
-import Bookings from '../views/Bookings.vue'
-import CourtDetails from '../views/CourtDetails.vue'
-import AdminDashboard from '../views/AdminDashboard.vue'
-import StaffDashboard from '../views/StaffDashboard.vue'
-import UserManagement from '../views/UserManagement.vue'
-import UserProfile from '../views/UserProfile.vue'
-import SportsManagement from '../views/SportsManagement.vue'
-import CompanySettings from '../views/CompanySettings.vue'
-import PaymentSettings from '../views/PaymentSettings.vue'
-import HolidayManagement from '../views/HolidayManagement.vue'
 import { authService } from '../services/authService'
 
+// Lazy load all route components for better initial bundle size
 const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    // Prefetch home page for faster initial load
+    component: () => import(/* webpackPrefetch: true */ '../views/Home.vue')
   },
   {
     path: '/login',
     name: 'Login',
-    component: Login
+    component: () => import('../views/Login.vue')
   },
   {
     path: '/register',
     name: 'Register',
-    component: Register
+    component: () => import('../views/Register.vue')
   },
   {
     path: '/sports',
     name: 'Sports',
-    component: Sports
+    // Prefetch this critical route for faster navigation
+    component: () => import(/* webpackPrefetch: true */ '../views/Sports.vue')
   },
   {
     path: '/courts',
     name: 'Courts',
-    component: Courts,
+    component: () => import('../views/Courts.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const user = await authService.getCurrentUser()
@@ -58,7 +46,7 @@ const routes = [
   {
     path: '/courts/:id',
     name: 'CourtDetails',
-    component: CourtDetails,
+    component: () => import('../views/CourtDetails.vue'),
     props: true,
     beforeEnter: async (to, from, next) => {
       try {
@@ -77,7 +65,8 @@ const routes = [
   {
     path: '/bookings',
     name: 'Bookings',
-    component: Bookings,
+    // Prefetch critical authenticated route
+    component: () => import(/* webpackChunkName: "bookings", webpackPrefetch: true */ '../views/Bookings.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const isAuthenticated = localStorage.getItem('token')
@@ -94,7 +83,7 @@ const routes = [
   {
     path: '/profile',
     name: 'UserProfile',
-    component: UserProfile,
+    component: () => import('../views/UserProfile.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const isAuthenticated = localStorage.getItem('token')
@@ -111,7 +100,7 @@ const routes = [
   {
     path: '/admin',
     name: 'AdminDashboard',
-    component: AdminDashboard,
+    component: () => import(/* webpackChunkName: "admin" */ '../views/AdminDashboard.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const user = await authService.getCurrentUser()
@@ -129,7 +118,7 @@ const routes = [
   {
     path: '/staff',
     name: 'StaffDashboard',
-    component: StaffDashboard,
+    component: () => import(/* webpackChunkName: "staff" */ '../views/StaffDashboard.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const user = await authService.getCurrentUser()
@@ -146,7 +135,7 @@ const routes = [
   {
     path: '/admin/users',
     name: 'UserManagement',
-    component: UserManagement,
+    component: () => import(/* webpackChunkName: "admin" */ '../views/UserManagement.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const isAdmin = await authService.isAdmin()
@@ -163,7 +152,7 @@ const routes = [
   {
     path: '/admin/sports',
     name: 'SportsManagement',
-    component: SportsManagement,
+    component: () => import(/* webpackChunkName: "admin" */ '../views/SportsManagement.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const user = await authService.getCurrentUser()
@@ -181,7 +170,7 @@ const routes = [
   {
     path: '/admin/company-settings',
     name: 'CompanySettings',
-    component: CompanySettings,
+    component: () => import(/* webpackChunkName: "admin" */ '../views/CompanySettings.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const isAdmin = await authService.isAdmin()
@@ -198,7 +187,7 @@ const routes = [
   {
     path: '/admin/payment-settings',
     name: 'PaymentSettings',
-    component: PaymentSettings,
+    component: () => import(/* webpackChunkName: "admin" */ '../views/PaymentSettings.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const isAdmin = await authService.isAdmin()
@@ -215,7 +204,7 @@ const routes = [
   {
     path: '/admin/holidays',
     name: 'HolidayManagement',
-    component: HolidayManagement,
+    component: () => import(/* webpackChunkName: "admin" */ '../views/HolidayManagement.vue'),
     beforeEnter: async (to, from, next) => {
       try {
         const user = await authService.getCurrentUser()

@@ -3,49 +3,55 @@
     <div v-if="images && images.length > 0" class="image-gallery">
       <!-- Single image display -->
       <div v-if="images.length === 1" class="single-image">
-        <img 
+        <img
           :src="images[0].image_url"
           :alt="courtName"
           class="court-image-single"
+          loading="lazy"
+          decoding="async"
           @error="handleImageError"
         />
       </div>
-      
+
       <!-- Multiple images display -->
       <div v-else class="multiple-images">
         <!-- Main image -->
         <div class="main-image-container">
-          <img 
+          <img
             :src="selectedImage || images[0].image_url"
             :alt="courtName"
             class="court-image-main"
+            loading="lazy"
+            decoding="async"
             @error="handleImageError"
           />
           <div v-if="images.length > 1" class="image-counter">
             {{ currentImageIndex + 1 }} / {{ images.length }}
           </div>
         </div>
-        
+
         <!-- Thumbnail navigation -->
         <div v-if="images.length > 1" class="thumbnail-container">
-          <div 
-            v-for="(image, index) in images" 
+          <div
+            v-for="(image, index) in images"
             :key="image.id"
             class="thumbnail-item"
             :class="{ active: index === currentImageIndex }"
             @click="selectImage(index)"
           >
-            <img 
+            <img
               :src="image.image_url"
               :alt="`${courtName} - Image ${index + 1}`"
               class="thumbnail-image"
+              loading="lazy"
+              decoding="async"
               @error="handleImageError"
             />
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Fallback icon when no images -->
     <div v-else class="no-images">
       <v-icon size="40" color="grey-lighten-1">🏟️</v-icon>
@@ -246,7 +252,7 @@ export default {
   .thumbnail-container {
     max-width: 100%;
   }
-  
+
   .thumbnail-image {
     width: 25px;
     height: 25px;

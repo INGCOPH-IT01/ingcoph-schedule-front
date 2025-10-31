@@ -1,13 +1,34 @@
 import api from './api'
+import { apiCache } from '../utils/apiCache'
 
 export const courtService = {
-  async getSports() {
+  async getSports(useCache = true) {
+    const cacheKey = 'sports_list'
+
+    // Check cache first
+    if (useCache) {
+      const cached = apiCache.get(cacheKey)
+      if (cached) return cached
+    }
+
     try {
       const response = await api.get('/sports')
-      return response.data.data
+      const data = response.data.data
+
+      // Cache for 10 minutes (sports don't change often)
+      apiCache.set(cacheKey, data, 600000)
+
+      return data
     } catch (error) {
       throw new Error('Failed to fetch sports')
     }
+  },
+
+  /**
+   * Clear sports cache - call this after creating/updating/deleting a sport
+   */
+  clearSportsCache() {
+    apiCache.delete('sports_list')
   },
 
   async getSport(id) {
@@ -22,6 +43,8 @@ export const courtService = {
   async createSport(sportData) {
     try {
       const response = await api.post('/sports', sportData)
+      // Clear cache after creating
+      this.clearSportsCache()
       return response.data.data
     } catch (error) {
       throw error
@@ -31,6 +54,8 @@ export const courtService = {
   async updateSport(id, sportData) {
     try {
       const response = await api.put(`/sports/${id}`, sportData)
+      // Clear cache after updating
+      this.clearSportsCache()
       return response.data.data
     } catch (error) {
       throw error
@@ -40,20 +65,48 @@ export const courtService = {
   async deleteSport(id) {
     try {
       const response = await api.delete(`/sports/${id}`)
+      // Clear cache after deleting
+      this.clearSportsCache()
       return response.data
     } catch (error) {
       throw error
     }
   },
 
-  async getCourts(sportId = null) {
+  async getCourts(sportId = null, useCache = true) {
+    const cacheKey = sportId ? `courts_sport_${sportId}` : 'courts_all'
+
+    // Check cache first
+    if (useCache) {
+      const cached = apiCache.get(cacheKey)
+      if (cached) return cached
+    }
+
     try {
       const params = sportId ? { sport_id: sportId } : {}
       const response = await api.get('/courts', { params })
-      return response.data.data
+      const data = response.data.data
+
+      // Cache for 5 minutes (courts don't change very often)
+      apiCache.set(cacheKey, data, 300000)
+
+      return data
     } catch (error) {
       throw new Error('Failed to fetch courts')
     }
+  },
+
+  /**
+   * Clear courts cache - call this after creating/updating/deleting a court
+   */
+  clearCourtsCache() {
+    // Clear all court-related cache entries
+    const keys = apiCache.keys()
+    keys.forEach(key => {
+      if (key.startsWith('courts_')) {
+        apiCache.delete(key)
+      }
+    })
   },
 
   async getCourt(id) {
@@ -123,6 +176,8 @@ export const courtService = {
   async createCourt(courtData) {
     try {
       const response = await api.post('/courts', courtData)
+      // Clear cache after creating
+      this.clearCourtsCache()
       return response.data.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to create court')
@@ -132,6 +187,8 @@ export const courtService = {
   async updateCourt(id, courtData) {
     try {
       const response = await api.put(`/courts/${id}`, courtData)
+      // Clear cache after updating
+      this.clearCourtsCache()
       return response.data.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update court')
@@ -141,6 +198,8 @@ export const courtService = {
   async deleteCourt(id) {
     try {
       await api.delete(`/courts/${id}`)
+      // Clear cache after deleting
+      this.clearCourtsCache()
     } catch (error) {
       throw new Error('Failed to delete court')
     }

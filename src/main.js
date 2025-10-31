@@ -5,6 +5,7 @@ import vuetify from './plugins/vuetify'
 import './style.css'
 import { initializeEcho } from './services/echo'
 import { startVersionCheck } from './utils/versionCheck'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 
 const app = createApp(App)
 

@@ -1,5 +1,10 @@
 import api from './api'
 
+// In-memory cache for user data to reduce API calls
+let userCache = null
+let userCacheTimestamp = null
+const USER_CACHE_TTL = 60000 // 1 minute cache
+
 export const authService = {
   async login(credentials) {
     try {
@@ -47,36 +52,76 @@ export const authService = {
       await api.post('/logout')
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      // Clear user cache on logout
+      userCache = null
+      userCacheTimestamp = null
     } catch (error) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
+      // Clear user cache even on error
+      userCache = null
+      userCacheTimestamp = null
     }
   },
 
-  async getUser() {
+  /**
+   * Clear the user data cache
+   * Use this when you need to force a refresh of user data
+   */
+  clearUserCache() {
+    userCache = null
+    userCacheTimestamp = null
+  },
+
+  async getUser(forceRefresh = false) {
     try {
+      // Return cached user if available and not expired
+      if (!forceRefresh && userCache && Date.now() - userCacheTimestamp < USER_CACHE_TTL) {
+        return userCache
+      }
+
       const response = await api.get('/user')
       const user = response.data.user
+
+      // Update cache
+      userCache = user
+      userCacheTimestamp = Date.now()
+
       // Store/update user data in localStorage for WebSocket
       if (user) {
         localStorage.setItem('user', JSON.stringify(user))
       }
       return user
     } catch (error) {
+      // Clear cache on error
+      userCache = null
+      userCacheTimestamp = null
       throw new Error('Failed to get user data')
     }
   },
 
-  async getCurrentUser() {
+  async getCurrentUser(forceRefresh = false) {
     try {
       // First check if we have a token
       if (!this.isAuthenticated()) {
+        userCache = null
+        userCacheTimestamp = null
         return null
       }
 
-      // Try to get user data from API (this also updates localStorage)
+      // Return cached user if available and not expired
+      if (!forceRefresh && userCache && Date.now() - userCacheTimestamp < USER_CACHE_TTL) {
+        return userCache
+      }
+
+      // Try to get user data from API (this also updates localStorage and cache)
       const response = await api.get('/user')
       const user = response.data.user
+
+      // Update cache
+      userCache = user
+      userCacheTimestamp = Date.now()
+
       // Always update localStorage to ensure it's fresh
       if (user) {
         localStorage.setItem('user', JSON.stringify(user))
@@ -85,7 +130,9 @@ export const authService = {
     } catch (error) {
       // For role-based permissions, we should NOT rely on potentially stale data
       // Return null to indicate the user data couldn't be fetched
-      // Let the calling code handle this appropriately
+      // Clear cache on error
+      userCache = null
+      userCacheTimestamp = null
       console.warn('Failed to fetch current user, returning null:', error.message)
       return null
     }
@@ -121,12 +168,22 @@ export const authService = {
   async refreshUserData() {
     try {
       if (!this.isAuthenticated()) {
+        userCache = null
+        userCacheTimestamp = null
         return null
       }
+
+      // Clear cache and fetch fresh data
+      userCache = null
+      userCacheTimestamp = null
 
       // Fetch fresh user data from API
       const response = await api.get('/user')
       const user = response.data.user
+
+      // Update cache
+      userCache = user
+      userCacheTimestamp = Date.now()
 
       // Update localStorage with fresh data
       if (user) {
@@ -136,6 +193,8 @@ export const authService = {
       return user
     } catch (error) {
       console.error('Failed to refresh user data:', error)
+      userCache = null
+      userCacheTimestamp = null
       throw error
     }
   },
