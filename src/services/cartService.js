@@ -72,7 +72,8 @@ export const cartService = {
     if (filters.sort_order) params.sort_order = filters.sort_order
 
     const response = await api.get('/admin/cart-transactions', { params })
-    return response.data
+    // API Resources wrap data in a 'data' property
+    return response.data.data || response.data
   },
 
   /**

@@ -299,7 +299,9 @@ export default {
         })
 
         if (response.ok) {
-          transactions.value = await response.json()
+          const responseData = await response.json()
+          // API Resources wrap data in a 'data' property
+          transactions.value = responseData.data || responseData
         }
       } catch (error) {
       } finally {
