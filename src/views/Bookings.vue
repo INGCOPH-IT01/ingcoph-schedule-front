@@ -1512,6 +1512,7 @@ import Swal from 'sweetalert2'
 import {
   formatPrice,
   formatNumber,
+  formatDate,
   getFrequencyColor,
   getPaymentStatus,
   getPaymentStatusColor,
@@ -2140,7 +2141,10 @@ export default {
           })
 
           if (cartResponse.ok) {
-            const transactionsData = await cartResponse.json()
+            const responseData = await cartResponse.json()
+
+            // API Resources wrap data in a 'data' property
+            const transactionsData = responseData.data || responseData
 
             // Store transactions directly
             transactions.value = transactionsData
@@ -2336,22 +2340,7 @@ export default {
       return expiresAt
     }
 
-    const formatDate = (dateTime) => {
-      if (!dateTime) return ''
-
-      // If the string is in YYYY-MM-DD format (date-only, no time component),
-      // parse it as local date to avoid timezone shift issues
-      const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
-      if (dateOnlyPattern.test(dateTime)) {
-        const [year, month, day] = dateTime.split('-').map(Number)
-        // Create date in local timezone (month is 0-indexed)
-        const date = new Date(year, month - 1, day)
-        return date.toLocaleDateString()
-      }
-
-      // For datetime strings, use standard parsing
-      return new Date(dateTime).toLocaleDateString()
-    }
+    // formatDate is now imported from formatters (removed local override)
 
     const formatTime = (dateTime) => {
       return new Date(dateTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })

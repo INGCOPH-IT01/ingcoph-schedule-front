@@ -193,82 +193,205 @@ export function formatDateLocal(date) {
 /**
  * Format booking date with weekday, month, day, year
  * Handles timezone-safe parsing for date-only strings (YYYY-MM-DD)
+ * Uses MANUAL formatting to completely avoid timezone issues
+ * SPECIAL HANDLING: For UTC timestamps that represent midnight in local time,
+ * we parse them in local timezone to get the correct date
  * @param {string} date - Date string
  * @returns {string} Formatted date (e.g., "Mon, Jan 15, 2025")
  */
 export function formatBookingDate(date) {
   if (!date) return 'Unknown'
 
-  // If the string is in YYYY-MM-DD format (date-only, no time component),
-  // parse it as local date to avoid timezone shift issues
-  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
-  let d
-  if (dateOnlyPattern.test(date)) {
-    const [year, month, day] = date.split('-').map(Number)
-    // Create date in local timezone (month is 0-indexed)
-    d = new Date(year, month - 1, day)
-  } else {
-    d = new Date(date)
-  }
+  try {
+    let datePart = date
 
-  return d.toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
+    // Special handling for UTC datetime strings (YYYY-MM-DDTHH:MM:SSZ format)
+    // If it's a UTC timestamp, parse it in LOCAL timezone to avoid the date shift
+    if (typeof date === 'string' && date.includes('T') && (date.endsWith('Z') || date.includes('+') || date.includes('.'))) {
+      // Create Date object from UTC string, then get local date components
+      const dateObj = new Date(date)
+      if (!isNaN(dateObj.getTime())) {
+        // Get date components in LOCAL timezone (not UTC)
+        const year = dateObj.getFullYear()
+        const month = dateObj.getMonth() + 1
+        const day = dateObj.getDate()
+
+        // Validate date components
+        if (year >= 1900 && year <= 2100 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+          const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+          // Calculate day of week using Zeller's congruence
+          let m = month
+          let y = year
+          if (m < 3) {
+            m += 12
+            y -= 1
+          }
+          const k = y % 100
+          const j = Math.floor(y / 100)
+          const h = (day + Math.floor((13 * (m + 1)) / 5) + k + Math.floor(k / 4) + Math.floor(j / 4) - (2 * j)) % 7
+          const dayOfWeek = (h + 6) % 7
+
+          return `${weekdayNames[dayOfWeek]}, ${monthNames[month - 1]} ${day}, ${year}`
+        }
+      }
+    }
+
+    // Extract date part from datetime strings (for non-UTC formats)
+    if (typeof date === 'string') {
+      if (date.includes('T')) {
+        datePart = date.split('T')[0]
+      } else if (date.includes(' ')) {
+        datePart = date.split(' ')[0]
+      }
+    }
+
+    // Parse as YYYY-MM-DD without timezone conversion
+    const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+    if (dateOnlyPattern.test(datePart)) {
+      const [year, month, day] = datePart.split('-').map(Number)
+
+      // Validate date components
+      if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
+        return 'Unknown'
+      }
+
+      // Manual formatting without Date objects to avoid timezone issues
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+      const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+      // Calculate day of week using Zeller's congruence (works for Gregorian calendar)
+      let m = month
+      let y = year
+      if (m < 3) {
+        m += 12
+        y -= 1
+      }
+      const k = y % 100
+      const j = Math.floor(y / 100)
+      const h = (day + Math.floor((13 * (m + 1)) / 5) + k + Math.floor(k / 4) + Math.floor(j / 4) - (2 * j)) % 7
+      const dayOfWeek = (h + 6) % 7 // Adjust to make Sunday = 0
+
+      return `${weekdayNames[dayOfWeek]}, ${monthNames[month - 1]} ${day}, ${year}`
+    }
+
+    return 'Unknown'
+  } catch (error) {
+    return 'Unknown'
+  }
 }
 
 /**
  * Format date in long format
  * Handles timezone-safe parsing for date-only strings (YYYY-MM-DD)
+ * Uses MANUAL formatting to completely avoid timezone issues
  * @param {string} date - Date string
  * @returns {string} Formatted date (e.g., "Monday, January 15, 2025")
  */
 export function formatDateLong(date) {
   if (!date) return ''
 
-  // If the string is in YYYY-MM-DD format (date-only, no time component),
-  // parse it as local date to avoid timezone shift issues
-  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
-  let d
-  if (dateOnlyPattern.test(date)) {
-    const [year, month, day] = date.split('-').map(Number)
-    // Create date in local timezone (month is 0-indexed)
-    d = new Date(year, month - 1, day)
-  } else {
-    d = new Date(date)
-  }
+  try {
+    let datePart = date
 
-  return d.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+    // Extract date part from datetime strings
+    if (typeof date === 'string') {
+      if (date.includes('T')) {
+        datePart = date.split('T')[0]
+      } else if (date.includes(' ')) {
+        datePart = date.split(' ')[0]
+      }
+    }
+
+    // Parse as YYYY-MM-DD without timezone conversion
+    const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+    if (dateOnlyPattern.test(datePart)) {
+      const [year, month, day] = datePart.split('-').map(Number)
+
+      // Validate date components
+      if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
+        return ''
+      }
+
+      // Manual formatting without Date objects to avoid timezone issues
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December']
+      const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+      // Calculate day of week using Zeller's congruence (works for Gregorian calendar)
+      let m = month
+      let y = year
+      if (m < 3) {
+        m += 12
+        y -= 1
+      }
+      const k = y % 100
+      const j = Math.floor(y / 100)
+      const h = (day + Math.floor((13 * (m + 1)) / 5) + k + Math.floor(k / 4) + Math.floor(j / 4) - (2 * j)) % 7
+      const dayOfWeek = (h + 6) % 7 // Adjust to make Sunday = 0
+
+      return `${weekdayNames[dayOfWeek]}, ${monthNames[month - 1]} ${day}, ${year}`
+    }
+
+    return ''
+  } catch (error) {
+    return ''
+  }
 }
 
 /**
  * Format date in short format
  * Handles timezone-safe parsing for date-only strings (YYYY-MM-DD)
+ * Returns date in M/D/YYYY format without timezone conversion
  * @param {string} dateString - Date string
  * @returns {string} Formatted date
  */
 export function formatDate(dateString) {
   if (!dateString) return ''
 
-  // If the string is in YYYY-MM-DD format (date-only, no time component),
-  // parse it as local date to avoid timezone shift issues
-  const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
-  if (dateOnlyPattern.test(dateString)) {
-    const [year, month, day] = dateString.split('-').map(Number)
-    // Create date in local timezone (month is 0-indexed)
-    const date = new Date(year, month - 1, day)
-    return date.toLocaleDateString()
-  }
+  try {
+    let datePart = dateString
 
-  // For datetime strings, use standard parsing
-  return new Date(dateString).toLocaleDateString()
+    // For datetime strings with 'T' separator or space separator, extract the date part
+    if (typeof dateString === 'string') {
+      if (dateString.includes('T')) {
+        datePart = dateString.split('T')[0]
+      } else if (dateString.includes(' ')) {
+        datePart = dateString.split(' ')[0]
+      }
+    }
+
+    // Now datePart should be in YYYY-MM-DD format
+    const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
+    if (dateOnlyPattern.test(datePart)) {
+      const [year, month, day] = datePart.split('-').map(Number)
+
+      // Validate date components
+      if (year < 1900 || year > 2100 || month < 1 || month > 12 || day < 1 || day > 31) {
+        return ''
+      }
+
+      // Format manually without using Date object to avoid ANY timezone conversion
+      // Return in M/D/YYYY format (common US format)
+      return `${month}/${day}/${year}`
+    }
+
+    // Fallback: try to parse as Date object and extract components
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      return ''
+    }
+
+    // Use UTC methods to avoid timezone conversion
+    const year = date.getUTCFullYear()
+    const month = date.getUTCMonth() + 1
+    const day = date.getUTCDate()
+
+    return `${month}/${day}/${year}`
+  } catch (error) {
+    return ''
+  }
 }
 
 /**
