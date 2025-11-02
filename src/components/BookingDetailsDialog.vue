@@ -210,7 +210,7 @@
           </v-card>
         </div>
 
-        <!-- Cart Items in Transaction (Admin detailed view) - Grouped by Court -->
+        <!-- Cart Items in Transaction (Staff/Admin detailed view) - Grouped by Court -->
         <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && booking.cart_items && booking.cart_items.length > 0">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
@@ -259,7 +259,7 @@
                 variant="outlined"
                 class="pa-3 mb-3"
               >
-              <!-- Admin Edit Mode for Court -->
+              <!-- Staff/Admin Edit Mode for Court -->
               <div v-if="isStaffOrAdmin && editingCourtItemIndex === item.id" class="mb-3">
                 <v-select
                   v-model="selectedCourtId"
@@ -339,7 +339,7 @@
                 </div>
               </div>
 
-              <!-- Admin Edit Mode for Date/Time -->
+              <!-- Staff/Admin Edit Mode for Date/Time -->
               <div v-else-if="isStaffOrAdmin && editingDateTimeItemIndex === item.id" class="mb-3">
                 <v-text-field
                   v-model="selectedBookingDate"
@@ -682,6 +682,16 @@
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="warning">mdi-shield-account</v-icon>
             Admin Notes (Internal)
+            <v-spacer></v-spacer>
+            <v-btn
+              v-if="!editingAdminNotes"
+              icon="mdi-pencil"
+              size="small"
+              variant="text"
+              color="warning"
+              @click="startEditingAdminNotes"
+              title="Edit Admin Notes"
+            ></v-btn>
           </h4>
           <v-card variant="outlined" class="pa-4" color="warning" style="background-color: rgba(255, 160, 0, 0.05);">
             <div class="d-flex align-center mb-2">
@@ -690,30 +700,120 @@
                 Internal Use Only
               </v-chip>
             </div>
-            <div v-if="booking.admin_notes" class="mb-0 text-body-1">
-              {{ booking.admin_notes }}
+
+            <!-- Edit Mode -->
+            <div v-if="editingAdminNotes">
+              <v-textarea
+                v-model="editedAdminNotes"
+                label="Admin Notes"
+                placeholder="Enter internal notes (visible only to staff and admin)..."
+                variant="outlined"
+                rows="4"
+                auto-grow
+                counter
+                class="mb-3"
+              ></v-textarea>
+              <div class="d-flex gap-2">
+                <v-btn
+                  color="success"
+                  variant="tonal"
+                  size="small"
+                  prepend-icon="mdi-content-save"
+                  @click="saveAdminNotes"
+                  :loading="savingAdminNotes"
+                >
+                  Save
+                </v-btn>
+                <v-btn
+                  color="grey"
+                  variant="text"
+                  size="small"
+                  @click="cancelEditingAdminNotes"
+                  :disabled="savingAdminNotes"
+                >
+                  Cancel
+                </v-btn>
+              </div>
             </div>
-            <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].admin_notes" class="mb-0 text-body-1">
-              {{ booking.cart_items[0].admin_notes }}
-            </div>
-            <div v-else class="mb-0 text-body-2 text-grey">
-              <em>No admin notes for this booking</em>
+
+            <!-- Display Mode -->
+            <div v-else>
+              <div v-if="booking.admin_notes" class="mb-0 text-body-1">
+                {{ booking.admin_notes }}
+              </div>
+              <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].admin_notes" class="mb-0 text-body-1">
+                {{ booking.cart_items[0].admin_notes }}
+              </div>
+              <div v-else class="mb-0 text-body-2 text-grey">
+                <em>No admin notes for this booking</em>
+              </div>
             </div>
           </v-card>
         </div>
 
         <!-- Client Notes / Special Requests -->
-        <div class="detail-section mb-4" v-if="booking.notes || (booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes)">
+        <div class="detail-section mb-4" v-if="showAdminFeatures || booking.notes || (booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes) || editingNotes">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
             Client Notes / Special Requests
+            <v-spacer></v-spacer>
+            <v-btn
+              v-if="showAdminFeatures && !editingNotes"
+              icon="mdi-pencil"
+              size="small"
+              variant="text"
+              color="primary"
+              @click="startEditingNotes"
+              title="Edit Client Notes"
+            ></v-btn>
           </h4>
           <v-card variant="outlined" class="pa-4">
-            <div v-if="booking.notes" class="mb-0 text-body-1">
-              {{ booking.notes }}
+            <!-- Edit Mode -->
+            <div v-if="editingNotes">
+              <v-textarea
+                v-model="editedNotes"
+                label="Client Notes"
+                placeholder="Enter client notes or special requests..."
+                variant="outlined"
+                rows="4"
+                auto-grow
+                counter
+                class="mb-3"
+              ></v-textarea>
+              <div class="d-flex gap-2">
+                <v-btn
+                  color="success"
+                  variant="tonal"
+                  size="small"
+                  prepend-icon="mdi-content-save"
+                  @click="saveNotes"
+                  :loading="savingNotes"
+                >
+                  Save
+                </v-btn>
+                <v-btn
+                  color="grey"
+                  variant="text"
+                  size="small"
+                  @click="cancelEditingNotes"
+                  :disabled="savingNotes"
+                >
+                  Cancel
+                </v-btn>
+              </div>
             </div>
-            <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes" class="mb-0 text-body-1">
-              {{ booking.cart_items[0].notes }}
+
+            <!-- Display Mode -->
+            <div v-else>
+              <div v-if="booking.notes" class="mb-0 text-body-1">
+                {{ booking.notes }}
+              </div>
+              <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes" class="mb-0 text-body-1">
+                {{ booking.cart_items[0].notes }}
+              </div>
+              <div v-else class="mb-0 text-body-2 text-grey">
+                <em>No client notes for this booking</em>
+              </div>
             </div>
           </v-card>
         </div>
@@ -1517,6 +1617,14 @@ export default {
     const waitlistEntries = ref([])
     const loadingWaitlist = ref(false)
 
+    // Notes editing state
+    const editingNotes = ref(false)
+    const editingAdminNotes = ref(false)
+    const editedNotes = ref('')
+    const editedAdminNotes = ref('')
+    const savingNotes = ref(false)
+    const savingAdminNotes = ref(false)
+
     // Load payment settings
     const loadPaymentSettings = async () => {
       try {
@@ -1579,6 +1687,11 @@ export default {
       selectedCourtId.value = null
       originalCourtId.value = null
       availableCourtsForItem.value = [] // Clear cached availability
+      // Reset notes editing state
+      editingNotes.value = false
+      editingAdminNotes.value = false
+      editedNotes.value = ''
+      editedAdminNotes.value = ''
       emit('update:isOpen', false)
       emit('close')
     }
@@ -2518,6 +2631,141 @@ export default {
       }
     }
 
+    // Notes editing methods
+    const startEditingNotes = () => {
+      // Check if user has staff or admin role
+      if (!isStaffOrAdmin.value) {
+        showSnackbar('Only staff and admin users can edit notes', 'error')
+        return
+      }
+
+      // Get the current notes value
+      if (props.booking?.notes) {
+        editedNotes.value = props.booking.notes
+      } else if (props.booking?.cart_items && props.booking.cart_items.length > 0 && props.booking.cart_items[0].notes) {
+        editedNotes.value = props.booking.cart_items[0].notes
+      } else {
+        editedNotes.value = ''
+      }
+      editingNotes.value = true
+    }
+
+    const cancelEditingNotes = () => {
+      editingNotes.value = false
+      editedNotes.value = ''
+    }
+
+    const saveNotes = async () => {
+      if (!props.booking?.id) return
+
+      // Check if user has staff or admin role
+      if (!isStaffOrAdmin.value) {
+        showSnackbar('Only staff and admin users can update notes', 'error')
+        return
+      }
+
+      try {
+        savingNotes.value = true
+
+        // Determine if this is a transaction or regular booking
+        if (isTransaction.value) {
+          // For transactions, update the first cart item's notes
+          if (props.booking.cart_items && props.booking.cart_items.length > 0) {
+            const firstItem = props.booking.cart_items[0]
+            await cartService.updateCartItem(firstItem.id, { notes: editedNotes.value })
+
+            // Update local data
+            firstItem.notes = editedNotes.value
+          }
+        } else {
+          // For regular bookings, update the booking notes
+          await bookingService.updateBooking(props.booking.id, { notes: editedNotes.value })
+
+          // Update local data
+          props.booking.notes = editedNotes.value
+        }
+
+        showSnackbar('Notes updated successfully', 'success')
+        editingNotes.value = false
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'notes_updated' })
+      } catch (error) {
+        const errorMessage = error.message || 'Failed to update notes'
+        showSnackbar(errorMessage, 'error')
+      } finally {
+        savingNotes.value = false
+      }
+    }
+
+    const startEditingAdminNotes = () => {
+      // Check if user has staff or admin role
+      if (!isStaffOrAdmin.value) {
+        showSnackbar('Only staff and admin users can edit admin notes', 'error')
+        return
+      }
+
+      // Get the current admin_notes value
+      if (props.booking?.admin_notes) {
+        editedAdminNotes.value = props.booking.admin_notes
+      } else if (props.booking?.cart_items && props.booking.cart_items.length > 0 && props.booking.cart_items[0].admin_notes) {
+        editedAdminNotes.value = props.booking.cart_items[0].admin_notes
+      } else {
+        editedAdminNotes.value = ''
+      }
+      editingAdminNotes.value = true
+    }
+
+    const cancelEditingAdminNotes = () => {
+      editingAdminNotes.value = false
+      editedAdminNotes.value = ''
+    }
+
+    const saveAdminNotes = async () => {
+      if (!props.booking?.id) return
+
+      // Check if user has staff or admin role
+      if (!isStaffOrAdmin.value) {
+        showSnackbar('Only staff and admin users can update admin notes', 'error')
+        return
+      }
+
+      try {
+        savingAdminNotes.value = true
+
+        // Determine if this is a transaction or regular booking
+        if (isTransaction.value) {
+          // For transactions, update the first cart item's admin_notes
+          if (props.booking.cart_items && props.booking.cart_items.length > 0) {
+            const firstItem = props.booking.cart_items[0]
+            await cartService.updateCartItem(firstItem.id, { admin_notes: editedAdminNotes.value })
+
+            // Update local data
+            firstItem.admin_notes = editedAdminNotes.value
+          }
+        } else {
+          // For regular bookings, update the booking admin_notes
+          await bookingService.updateBooking(props.booking.id, { admin_notes: editedAdminNotes.value })
+
+          // Update local data
+          props.booking.admin_notes = editedAdminNotes.value
+        }
+
+        showSnackbar('Admin notes updated successfully', 'success')
+        editingAdminNotes.value = false
+
+        // Dispatch event to refresh other components
+        window.dispatchEvent(new CustomEvent('booking-updated'))
+        emit('attendance-updated', { bookingId: props.booking.id, status: 'admin_notes_updated' })
+      } catch (error) {
+        const errorMessage = error.message || 'Failed to update admin notes'
+        showSnackbar(errorMessage, 'error')
+      } finally {
+        savingAdminNotes.value = false
+      }
+    }
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -2879,6 +3127,13 @@ export default {
       timeSlotToDelete,
       timeSlotToDeleteIndex,
       deletingTimeSlot,
+      // Notes editing state
+      editingNotes,
+      editingAdminNotes,
+      editedNotes,
+      editedAdminNotes,
+      savingNotes,
+      savingAdminNotes,
       // Methods
       closeDialog,
       formatTimeSlot,
@@ -2925,6 +3180,13 @@ export default {
       deleteTimeSlot,
       // Resend confirmation email method
       resendConfirmationEmail,
+      // Notes editing methods
+      startEditingNotes,
+      cancelEditingNotes,
+      saveNotes,
+      startEditingAdminNotes,
+      cancelEditingAdminNotes,
+      saveAdminNotes,
       // Payment status helpers
       getPaymentStatusColor,
       getPaymentStatusText,
@@ -3010,6 +3272,7 @@ export default {
   margin-bottom: 12px;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .booking-view-dialog .detail-row {
