@@ -118,10 +118,10 @@ const imageRules = [
     if (!value || (Array.isArray(value) && value.length === 0)) {
       return true // Image is optional
     }
-    
+
     // 2. Extract File object
     const file = Array.isArray(value) ? value[0] : value
-    
+
     // 3. Type check
     if (!(file instanceof File)) {
       return true // Not a file, skip validation
@@ -186,13 +186,13 @@ const imageRules = [
 **Solution**: Check browser console for JavaScript errors
 
 #### Problem: Valid file rejected
-**Solution**: 
+**Solution**:
 1. Check file size (must be < 2MB)
 2. Check file extension and MIME type
 3. Check browser console logs
 
 #### Problem: Large file takes too long
-**Solution**: 
+**Solution**:
 - Validation catches this BEFORE upload
 - Error shown immediately
 - No API call is made
@@ -203,5 +203,3 @@ const imageRules = [
 - Validation is case-insensitive for file extensions
 - File size is shown in human-readable format (KB/MB)
 - Validation errors are user-friendly, not technical
-
-

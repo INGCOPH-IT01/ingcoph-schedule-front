@@ -148,19 +148,237 @@
           <!-- Checkout Section -->
           <v-card class="mt-4">
             <v-card-text>
-              <v-select
-                v-model="bookingId"
-                :items="recentBookings"
-                item-title="display_text"
-                item-value="id"
-                label="Link to Booking (Optional)"
-                prepend-inner-icon="mdi-calendar"
-                variant="outlined"
-                density="compact"
-                clearable
-                hide-details
-                class="mb-3"
-              ></v-select>
+              <!-- Link to Booking Section -->
+              <v-expansion-panels class="mb-3">
+                <v-expansion-panel>
+                  <v-expansion-panel-title>
+                    <v-icon class="mr-2" color="primary">mdi-link-variant</v-icon>
+                    Link to Booking (Optional)
+                    <v-chip v-if="bookingId" color="success" size="x-small" class="ml-2">
+                      Linked
+                    </v-chip>
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <!-- Booking Search Filters -->
+                    <v-text-field
+                      v-model="bookingSearch.date"
+                      label="Booking Date"
+                      type="date"
+                      prepend-inner-icon="mdi-calendar"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      :disabled="!!customerName"
+                      class="mb-2"
+                    ></v-text-field>
+
+                    <v-text-field
+                      v-model="bookingSearch.userName"
+                      label="User Name"
+                      prepend-inner-icon="mdi-account-search"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      :disabled="!!customerName"
+                      class="mb-2"
+                      @input="searchBookings"
+                    ></v-text-field>
+
+                    <v-btn
+                      color="primary"
+                      variant="outlined"
+                      size="small"
+                      block
+                      :disabled="!!customerName"
+                      :loading="searchingBookings"
+                      @click="searchBookings"
+                      class="mb-3"
+                    >
+                      <v-icon start>mdi-magnify</v-icon>
+                      Search Bookings
+                    </v-btn>
+
+                    <!-- Search Results -->
+                    <div v-if="searchedBookings.length > 0" class="mb-2">
+                      <div class="text-caption mb-2 px-2" style="color: #475569;">
+                        {{ searchedBookings.length }} booking{{ searchedBookings.length !== 1 ? 's' : '' }} found
+                      </div>
+                      <v-list density="compact" class="booking-results">
+                        <v-list-item
+                          v-for="booking in searchedBookings"
+                          :key="booking.id"
+                          @click="selectBooking(booking)"
+                          :active="bookingId === booking.id"
+                          :disabled="!!customerName"
+                          class="booking-result-item"
+                        >
+                          <template v-slot:prepend>
+                            <v-avatar size="36" color="primary" class="mr-3">
+                              <span class="text-white text-caption font-weight-bold">
+                                {{ getDisplayUserName(booking).charAt(0).toUpperCase() }}
+                              </span>
+                            </v-avatar>
+                          </template>
+
+                          <v-list-item-title class="d-flex align-center flex-wrap mb-1">
+                            <span class="font-weight-bold mr-2">#{{ booking.id }}</span>
+                            <span class="mr-2">{{ getDisplayUserName(booking) }}</span>
+                            <v-chip
+                              v-if="isAdminBooking(booking)"
+                              size="x-small"
+                              color="purple"
+                              variant="tonal"
+                              class="mr-2"
+                            >
+                              <v-icon size="x-small" class="mr-1">mdi-shield-crown</v-icon>
+                              Admin Booking
+                            </v-chip>
+                          </v-list-item-title>
+
+                          <v-list-item-subtitle class="booking-details">
+                            <div class="d-flex flex-wrap gap-2 mt-1">
+                              <!-- Date & Time -->
+                              <div class="detail-chip">
+                                <v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>
+                                {{ formatDate(booking.cart_items?.[0]?.booking_date) }}
+                              </div>
+                              <div v-if="booking.cart_items?.[0]?.start_time" class="detail-chip">
+                                <v-icon size="x-small" class="mr-1">mdi-clock-outline</v-icon>
+                                {{ booking.cart_items[0].start_time }}
+                              </div>
+
+                              <!-- Sports -->
+                              <div v-if="getUniqueSports(booking).length > 0" class="detail-chip">
+                                <v-icon size="x-small" class="mr-1">mdi-basketball</v-icon>
+                                {{ getUniqueSports(booking).map(s => s.name).join(', ') }}
+                              </div>
+
+                              <!-- Total Price -->
+                              <div class="detail-chip price-chip">
+                                <v-icon size="x-small" class="mr-1">mdi-cash</v-icon>
+                                {{ formatPrice(booking.total_price) }}
+                              </div>
+
+                              <!-- Payment Status -->
+                              <v-chip
+                                :color="getPaymentStatusColor(booking)"
+                                size="x-small"
+                                variant="tonal"
+                              >
+                                {{ getPaymentStatusText(booking) }}
+                              </v-chip>
+
+                              <!-- Approval Status -->
+                              <v-chip
+                                :color="getApprovalStatusColor(booking.approval_status)"
+                                size="x-small"
+                                variant="tonal"
+                              >
+                                {{ getApprovalStatusText(booking.approval_status) }}
+                              </v-chip>
+                            </div>
+
+                            <!-- Notes Preview -->
+                            <div v-if="booking.cart_items?.[0]?.admin_notes || booking.cart_items?.[0]?.notes" class="mt-2">
+                              <div v-if="booking.cart_items[0].admin_notes" class="notes-preview admin-notes">
+                                <v-icon size="x-small" class="mr-1" color="info">mdi-shield-account</v-icon>
+                                <strong>Admin:</strong> {{ booking.cart_items[0].admin_notes }}
+                              </div>
+                              <div v-if="booking.cart_items[0].notes" class="notes-preview client-notes">
+                                <v-icon size="x-small" class="mr-1" color="warning">mdi-message-text</v-icon>
+                                <strong>Client:</strong> {{ booking.cart_items[0].notes }}
+                              </div>
+                            </div>
+                          </v-list-item-subtitle>
+
+                          <template v-slot:append>
+                            <v-icon v-if="bookingId === booking.id" color="success">
+                              mdi-check-circle
+                            </v-icon>
+                            <v-icon v-else color="grey-lighten-1">
+                              mdi-chevron-right
+                            </v-icon>
+                          </template>
+                        </v-list-item>
+                      </v-list>
+                    </div>
+
+                    <div v-else-if="hasSearched && searchedBookings.length === 0" class="text-center text-grey py-2">
+                      <v-icon>mdi-alert-circle-outline</v-icon>
+                      No bookings found
+                    </div>
+
+                    <!-- Selected Booking Display -->
+                    <v-alert
+                      v-if="selectedBookingDetails"
+                      type="success"
+                      density="compact"
+                      variant="tonal"
+                      class="mt-2"
+                    >
+                      <div class="selected-booking-summary">
+                        <div class="d-flex align-center mb-2">
+                          <v-avatar size="32" color="primary" class="mr-2">
+                            <span class="text-white text-caption font-weight-bold">
+                              {{ getDisplayUserName(selectedBookingDetails).charAt(0).toUpperCase() }}
+                            </span>
+                          </v-avatar>
+                          <div>
+                            <div class="font-weight-bold">
+                              #{{ selectedBookingDetails.id }} - {{ getDisplayUserName(selectedBookingDetails) }}
+                            </div>
+                            <div class="text-caption">
+                              {{ formatDate(selectedBookingDetails.cart_items?.[0]?.booking_date) }}
+                              <span v-if="selectedBookingDetails.cart_items?.[0]?.start_time">
+                                at {{ selectedBookingDetails.cart_items[0].start_time }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-1 mb-2">
+                          <v-chip
+                            v-if="getUniqueSports(selectedBookingDetails).length > 0"
+                            size="x-small"
+                            variant="tonal"
+                            color="primary"
+                          >
+                            <v-icon size="x-small" class="mr-1">mdi-basketball</v-icon>
+                            {{ getUniqueSports(selectedBookingDetails).map(s => s.name).join(', ') }}
+                          </v-chip>
+                          <v-chip size="x-small" variant="tonal" color="success">
+                            {{ formatPrice(selectedBookingDetails.total_price) }}
+                          </v-chip>
+                          <v-chip
+                            :color="getApprovalStatusColor(selectedBookingDetails.approval_status)"
+                            size="x-small"
+                            variant="tonal"
+                          >
+                            {{ getApprovalStatusText(selectedBookingDetails.approval_status) }}
+                          </v-chip>
+                        </div>
+
+                        <div v-if="selectedBookingDetails.cart_items?.[0]?.admin_notes" class="text-caption mb-1">
+                          <v-icon size="x-small" color="info" class="mr-1">mdi-shield-account</v-icon>
+                          <strong>Admin Notes:</strong> {{ selectedBookingDetails.cart_items[0].admin_notes }}
+                        </div>
+                        <div v-if="selectedBookingDetails.cart_items?.[0]?.notes" class="text-caption">
+                          <v-icon size="x-small" color="warning" class="mr-1">mdi-message-text</v-icon>
+                          <strong>Client Notes:</strong> {{ selectedBookingDetails.cart_items[0].notes }}
+                        </div>
+                      </div>
+                      <template v-slot:append>
+                        <v-btn
+                          icon="mdi-close"
+                          size="x-small"
+                          variant="text"
+                          @click="clearBookingSelection"
+                        ></v-btn>
+                      </template>
+                    </v-alert>
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
 
               <v-text-field
                 v-model="customerName"
@@ -169,8 +387,20 @@
                 variant="outlined"
                 density="compact"
                 hide-details
+                :disabled="!!bookingId"
                 class="mb-3"
-              ></v-text-field>
+              >
+                <template v-slot:append-inner>
+                  <v-tooltip v-if="bookingId" location="top">
+                    <template v-slot:activator="{ props }">
+                      <v-icon v-bind="props" size="small" color="warning">
+                        mdi-lock
+                      </v-icon>
+                    </template>
+                    Clear booking selection to enable
+                  </v-tooltip>
+                </template>
+              </v-text-field>
 
               <v-select
                 v-model="paymentMethod"
@@ -245,7 +475,14 @@ import { ref, computed, onMounted } from 'vue'
 import { productService } from '../services/productService'
 import { posService } from '../services/posService'
 import { cartService } from '../services/cartService'
-import { formatPrice } from '../utils/formatters'
+import {
+  formatPrice,
+  formatDate,
+  getPaymentStatusColor,
+  getPaymentStatusText,
+  getApprovalStatusColor,
+  formatApprovalStatus
+} from '../utils/formatters'
 import PosCart from '../components/PosCart.vue'
 import PosSaleDialog from '../components/PosSaleDialog.vue'
 
@@ -273,6 +510,16 @@ export default {
     const recentBookings = ref([])
     const saleDialog = ref(false)
     const completedSale = ref(null)
+
+    // Booking search
+    const bookingSearch = ref({
+      date: '',
+      userName: ''
+    })
+    const searchedBookings = ref([])
+    const searchingBookings = ref(false)
+    const hasSearched = ref(false)
+    const selectedBookingDetails = ref(null)
 
     const snackbar = ref({
       show: false,
@@ -338,22 +585,66 @@ export default {
       }
     }
 
-    const loadRecentBookings = async () => {
+    const searchBookings = async () => {
       try {
-        // Get approved bookings from the last 7 days
+        searchingBookings.value = true
+        hasSearched.value = true
+
+        // Build filters
         const filters = {
-          status: 'approved',
-          date_from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          date_to: new Date().toISOString().split('T')[0]
+          status: 'approved'
         }
+
+        // Add date filter if provided
+        if (bookingSearch.value.date) {
+          filters.date_from = bookingSearch.value.date
+          filters.date_to = bookingSearch.value.date
+        } else {
+          // Default to last 30 days if no date specified
+          filters.date_from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          filters.date_to = new Date().toISOString().split('T')[0]
+        }
+
+        // Add user name filter if provided
+        if (bookingSearch.value.userName) {
+          filters.user_name = bookingSearch.value.userName
+        }
+
         const transactions = await cartService.getAllTransactions(filters)
-        recentBookings.value = transactions.map(t => ({
-          id: t.id,
-          display_text: `#${t.id} - ${t.user?.name || 'N/A'} - ${t.cart_items?.[0]?.booking_date || 'N/A'}`
-        }))
+
+        // Filter by user name on client side if needed (more flexible search)
+        let results = transactions
+        if (bookingSearch.value.userName) {
+          const searchTerm = bookingSearch.value.userName.toLowerCase()
+          results = transactions.filter(t =>
+            t.user?.name?.toLowerCase().includes(searchTerm) ||
+            t.admin_notes?.toLowerCase().includes(searchTerm) ||
+            t.client_notes?.toLowerCase().includes(searchTerm)
+          )
+        }
+
+        searchedBookings.value = results
       } catch (error) {
-        console.error('Failed to load bookings:', error)
+        console.error('Failed to search bookings:', error)
+        showSnackbar('Failed to search bookings', 'error')
+      } finally {
+        searchingBookings.value = false
       }
+    }
+
+    const selectBooking = (booking) => {
+      bookingId.value = booking.id
+      selectedBookingDetails.value = booking
+      showSnackbar(`Linked to booking #${booking.id}`, 'success')
+    }
+
+    const clearBookingSelection = () => {
+      bookingId.value = null
+      selectedBookingDetails.value = null
+      searchedBookings.value = []
+      hasSearched.value = false
+      bookingSearch.value.date = ''
+      bookingSearch.value.userName = ''
     }
 
     const getStockColor = (product) => {
@@ -397,6 +688,11 @@ export default {
         discount.value = 0
         tax.value = 0
         bookingId.value = null
+        selectedBookingDetails.value = null
+        searchedBookings.value = []
+        hasSearched.value = false
+        bookingSearch.value.date = ''
+        bookingSearch.value.userName = ''
         customerName.value = ''
         paymentReference.value = ''
         notes.value = ''
@@ -434,8 +730,20 @@ export default {
         completedSale.value = sale
         showSnackbar('Sale completed successfully!', 'success')
 
-        // Clear form
-        clearCart()
+        // Automatically clear all transaction information without confirmation
+        cartItems.value = []
+        discount.value = 0
+        tax.value = 0
+        bookingId.value = null
+        selectedBookingDetails.value = null
+        searchedBookings.value = []
+        hasSearched.value = false
+        bookingSearch.value.date = ''
+        bookingSearch.value.userName = ''
+        customerName.value = ''
+        paymentMethod.value = 'cash'
+        paymentReference.value = ''
+        notes.value = ''
 
         // Reload products to update stock
         await loadProducts()
@@ -465,10 +773,51 @@ export default {
       return productService.getProductImageUrl(imagePath)
     }
 
+    // Helper functions for booking display (matching AdminDashboard)
+    const getUniqueSports = (booking) => {
+      if (!booking.cart_items || booking.cart_items.length === 0) {
+        return []
+      }
+
+      // Extract all sports from cart items
+      const sportsMap = new Map()
+      booking.cart_items.forEach(item => {
+        const sport = item.sport
+        if (sport && sport.name) {
+          if (!sportsMap.has(sport.name)) {
+            sportsMap.set(sport.name, {
+              name: sport.name,
+              icon: sport.icon
+            })
+          }
+        }
+      })
+
+      return Array.from(sportsMap.values())
+    }
+
+    const isAdminBooking = (booking) => {
+      const firstCartItem = booking.cart_items?.[0]
+      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
+    }
+
+    const getDisplayUserName = (booking) => {
+      const firstCartItem = booking.cart_items?.[0]
+
+      // If this is an admin booking, return the "booking for" user
+      if (firstCartItem?.booking_for_user_name) {
+        return firstCartItem.booking_for_user_name
+      }
+
+      // Otherwise, return the transaction creator
+      return booking.user?.name || 'N/A'
+    }
+
+    const getApprovalStatusText = formatApprovalStatus
+
     onMounted(() => {
       loadProducts()
       loadCategories()
-      loadRecentBookings()
     })
 
     return {
@@ -494,12 +843,28 @@ export default {
       categoryOptions,
       filteredProducts,
       total,
+      bookingSearch,
+      searchedBookings,
+      searchingBookings,
+      hasSearched,
+      selectedBookingDetails,
       getStockColor,
       addToCart,
       clearCart,
       processSale,
+      searchBookings,
+      selectBooking,
+      clearBookingSelection,
       getProductImageUrl,
-      formatPrice
+      formatPrice,
+      formatDate,
+      getUniqueSports,
+      isAdminBooking,
+      getDisplayUserName,
+      getPaymentStatusColor,
+      getPaymentStatusText,
+      getApprovalStatusColor,
+      getApprovalStatusText
     }
   }
 }
@@ -606,5 +971,86 @@ export default {
     top: 0;
   }
 }
-</style>
 
+.booking-results {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+
+.booking-result-item {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 8px !important;
+  min-height: auto !important;
+}
+
+.booking-result-item:last-child {
+  border-bottom: none;
+}
+
+.booking-result-item:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.booking-result-item.v-list-item--active {
+  background-color: rgba(16, 185, 129, 0.1);
+  border-left: 3px solid rgb(16, 185, 129);
+}
+
+.booking-details {
+  opacity: 1 !important;
+}
+
+.detail-chip {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.price-chip {
+  background: rgba(16, 185, 129, 0.1);
+  color: rgb(16, 185, 129);
+  font-weight: 600;
+}
+
+.notes-preview {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.admin-notes {
+  color: #3b82f6;
+}
+
+.client-notes {
+  color: #f59e0b;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-1 {
+  gap: 4px;
+}
+
+.selected-booking-summary {
+  font-size: 0.875rem;
+}
+
+.selected-booking-summary .text-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+</style>

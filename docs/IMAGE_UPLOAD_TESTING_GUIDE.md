@@ -277,4 +277,3 @@ console.log('File test:', new File(['test'], 'test.txt') instanceof File)
 7. ✅ Should work!
 
 If you see the product with its image in the list → **SUCCESS!** 🎉
-
