@@ -114,7 +114,39 @@
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ formatPrice(stats.total_revenue ?? 0) }}</div>
-            <div class="stat-label">Total Revenue</div>
+            <div class="stat-label">Booking Revenue</div>
+            <div class="stat-trend">
+              <v-icon color="success" size="16" class="mr-1">mdi-trending-up</v-icon>
+              <span class="text-success">All Time</span>
+            </div>
+          </div>
+          <div class="stat-glow"></div>
+        </div>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <div class="stat-card stat-card-7">
+          <div class="stat-icon">
+            <v-icon color="purple" size="48">mdi-cash-register</v-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-number">{{ posStats.today_sales ?? 0 }}</div>
+            <div class="stat-label">POS Sales Today</div>
+            <div class="stat-trend">
+              <v-icon color="purple" size="16" class="mr-1">mdi-cart</v-icon>
+              <span style="color: #9c27b0;">{{ formatPrice(posStats.today_revenue ?? 0) }}</span>
+            </div>
+          </div>
+          <div class="stat-glow"></div>
+        </div>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <div class="stat-card stat-card-8">
+          <div class="stat-icon">
+            <v-icon color="success" size="48">mdi-receipt-text</v-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-number">{{ formatPrice(posStats.total_revenue ?? 0) }}</div>
+            <div class="stat-label">Total POS Revenue</div>
             <div class="stat-trend">
               <v-icon color="success" size="16" class="mr-1">mdi-trending-up</v-icon>
               <span class="text-success">All Time</span>
@@ -649,6 +681,7 @@ import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
+import { posService } from '../services/posService'
 import {
   formatPrice,
   formatDate,
@@ -678,6 +711,7 @@ export default {
   setup() {
     const router = useRouter()
     const stats = ref({})
+    const posStats = ref({})
     const pendingBookings = ref([])
     const loading = ref(false)
     const rejecting = ref(false)
@@ -742,6 +776,15 @@ export default {
         stats.value = response.data
       } catch (error) {
         showSnackbar('Failed to load statistics', 'error')
+      }
+    }
+
+    const loadPosStats = async () => {
+      try {
+        posStats.value = await posService.getStatistics()
+      } catch (error) {
+        console.error('Failed to load POS statistics:', error)
+        // Don't show error to user as POS might not be set up yet
       }
     }
 
@@ -1369,6 +1412,7 @@ export default {
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
       loadStats()
+      loadPosStats()
       loadPendingBookings()
     }
 
@@ -1465,6 +1509,7 @@ export default {
       }
 
       loadStats()
+      loadPosStats()
       loadSports()
       loadPendingBookings()
 
@@ -1494,6 +1539,7 @@ export default {
 
     return {
       stats,
+      posStats,
       pendingBookings,
       loading,
       rejecting,
@@ -1698,6 +1744,14 @@ export default {
 
 .stat-card-6:hover {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
+}
+
+.stat-card-7:hover {
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.05) 0%, rgba(156, 39, 176, 0.02) 100%);
+}
+
+.stat-card-8:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
 }
 
 .stat-icon {

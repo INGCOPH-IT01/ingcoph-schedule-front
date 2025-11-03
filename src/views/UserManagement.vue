@@ -28,7 +28,7 @@
 
     <!-- Stats Cards -->
     <v-row class="stats-row">
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" md="3" lg="2">
         <v-card class="stat-card" elevation="2">
           <v-card-text>
             <div class="stat-icon-wrapper users">
@@ -41,7 +41,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" md="3" lg="2">
         <v-card class="stat-card" elevation="2">
           <v-card-text>
             <div class="stat-icon-wrapper staff">
@@ -54,7 +54,20 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" md="3" lg="2">
+        <v-card class="stat-card" elevation="2">
+          <v-card-text>
+            <div class="stat-icon-wrapper cashiers">
+              <v-icon size="32" color="white">mdi-cash-register</v-icon>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ stats.cashiers }}</div>
+              <div class="stat-label">Cashiers</div>
+            </div>
+          </v-card-text>
+        </v-card>
+      </v-col>
+      <v-col cols="12" sm="6" md="3" lg="2">
         <v-card class="stat-card" elevation="2">
           <v-card-text>
             <div class="stat-icon-wrapper admins">
@@ -67,7 +80,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" md="3" lg="2">
         <v-card class="stat-card" elevation="2">
           <v-card-text>
             <div class="stat-icon-wrapper total">
@@ -277,6 +290,7 @@ export default {
       total: 0,
       users: 0,
       staff: 0,
+      cashiers: 0,
       admins: 0
     })
     const loading = ref(false)
@@ -312,6 +326,7 @@ export default {
     const userTypeOptions = [
       { title: 'User', value: 'user' },
       { title: 'Staff', value: 'staff' },
+      { title: 'Cashier', value: 'cashier' },
       { title: 'Admin', value: 'admin' }
     ]
 
@@ -469,6 +484,7 @@ export default {
       const colors = {
         user: 'primary',
         staff: 'success',
+        cashier: 'warning',
         admin: 'error'
       }
       return colors[type] || 'grey'
@@ -478,6 +494,7 @@ export default {
       const icons = {
         user: 'mdi-account',
         staff: 'mdi-account-tie',
+        cashier: 'mdi-cash-register',
         admin: 'mdi-shield-account'
       }
       return icons[type] || 'mdi-account'
@@ -638,6 +655,10 @@ export default {
 
 .stat-icon-wrapper.staff {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.stat-icon-wrapper.cashiers {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 .stat-icon-wrapper.admins {

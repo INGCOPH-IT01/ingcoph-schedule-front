@@ -13,7 +13,7 @@
       </v-toolbar-title>
       <v-spacer></v-spacer>
       <v-btn
-        v-if="isAuthenticated && canUsersBook"
+        v-if="isAuthenticated && canUsersBook && !isCashier"
         icon
         class="excel-cart-btn mr-2"
         @click="cartDialogOpen = true"
@@ -105,7 +105,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Courts - Only show for admin/staff users -->
+          <!-- Courts - Only show for admin/staff users (not cashiers) -->
           <v-list-item
             v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-stadium"
@@ -115,7 +115,9 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- My Bookings - Hide for cashiers -->
           <v-list-item
+            v-if="!isCashier"
             prepend-icon="mdi-calendar"
             title="My Bookings"
             value="bookings"
@@ -123,7 +125,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Admin Panel - For admin and staff users -->
+          <!-- Admin Panel - For admin and staff users only (not cashiers) -->
           <v-list-item
             v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-shield-account"
@@ -143,7 +145,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Sports Management - For admin and staff users -->
+          <!-- Sports Management - For admin and staff users only (not cashiers) -->
           <v-list-item
             v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-tennis-ball"
@@ -173,7 +175,7 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Holiday Management - For admin and staff users -->
+          <!-- Holiday Management - For admin and staff users only (not cashiers) -->
           <v-list-item
             v-if="isAuthenticated && (isAdmin || isStaff)"
             prepend-icon="mdi-calendar-star"
@@ -183,7 +185,42 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Staff Scanner - Only for staff/admin users -->
+          <!-- POS System Section - For admin, staff, and cashier users -->
+          <v-divider v-if="isAuthenticated && (isAdmin || isStaff || isCashier)" class="my-2"></v-divider>
+
+          <!-- POS System - For admin, staff, and cashier users -->
+          <v-list-item
+            v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
+            prepend-icon="mdi-cash-register"
+            title="POS System"
+            value="pos-system"
+            :to="{ name: 'PosSystem' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <!-- Product Management - For admin, staff, and cashier users -->
+          <v-list-item
+            v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
+            prepend-icon="mdi-package-variant"
+            title="Product Management"
+            value="product-management"
+            :to="{ name: 'ProductManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <!-- POS Reports - For admin, staff, and cashier users -->
+          <v-list-item
+            v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
+            prepend-icon="mdi-chart-bar"
+            title="POS Reports"
+            value="pos-reports"
+            :to="{ name: 'PosReports' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <v-divider v-if="isAuthenticated && (isAdmin || isStaff)" class="my-2"></v-divider>
+
+          <!-- Staff Scanner - Only for staff/admin users (not cashiers) -->
           <v-list-item
             v-if="isAuthenticated && (isStaff || isAdmin)"
             prepend-icon="mdi-qrcode-scan"
@@ -216,7 +253,7 @@
 
     <!-- Floating Action Button for Quick Booking -->
     <v-fab
-      v-if="isAuthenticated & canUsersBook"
+      v-if="isAuthenticated & canUsersBook && !isCashier"
       icon="mdi-calendar-plus"
       color="primary"
       size="large"
@@ -258,6 +295,7 @@ export default {
     const isAuthenticated = computed(() => !!user.value)
     const isAdmin = computed(() => user.value?.role === 'admin')
     const isStaff = computed(() => user.value?.role === 'staff')
+    const isCashier = computed(() => user.value?.role === 'cashier')
 
     // Background colors
     const bgPrimaryColor = ref('#FFFFFF')
@@ -477,6 +515,7 @@ export default {
       isAuthenticated,
       isAdmin,
       isStaff,
+      isCashier,
         canUsersBook,
       bookingDialogOpen,
       cartDialogOpen,
