@@ -17,7 +17,7 @@
 
     <!-- Stats Cards -->
     <v-row class="mb-6">
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -30,7 +30,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -43,7 +43,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4" v-if="isAdmin">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -56,7 +56,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -141,7 +141,18 @@
               </template>
 
               <template v-slot:[`item.customer`]="{ item }">
-                {{ item.customer?.name || item.customer_name || 'Walk-in' }}
+                <div class="d-flex align-center">
+                  <v-avatar v-if="item.booking" size="24" color="primary" class="mr-2">
+                    <span class="text-white text-caption">{{ getDisplayCustomerName(item).charAt(0).toUpperCase() }}</span>
+                  </v-avatar>
+                  <div>
+                    <div>{{ getDisplayCustomerName(item) }}</div>
+                    <div v-if="isBookingLinked(item) && isAdminCreatedBooking(item)" class="text-caption text-grey">
+                      <v-icon size="x-small" class="mr-1">mdi-account-tie</v-icon>
+                      Booked by: {{ item.user?.name || 'Admin' }}
+                    </div>
+                  </div>
+                </div>
               </template>
 
               <template v-slot:[`item.total_amount`]="{ item }">
@@ -214,9 +225,9 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { posService } from '../services/posService'
-import { formatPrice, formatDate } from '../utils/formatters'
+import { formatPrice, formatDate, formatDateToLocal } from '../utils/formatters'
 import PosSaleDialog from '../components/PosSaleDialog.vue'
 import ExcelJS from 'exceljs'
 
@@ -235,31 +246,55 @@ export default {
     const saleDialog = ref(false)
     const selectedSale = ref(null)
 
-    // Date filters
+    // Get user info for role-based permissions
+    const user = ref(null)
+    const isAdmin = ref(false)
+
+    // Date filters - default to start and end of current month
+    // Use local date formatting to avoid timezone offset issues
     const today = new Date()
     const firstDay = new Date(today.getFullYear(), today.getMonth(), 1)
-    const dateFrom = ref(firstDay.toISOString().split('T')[0])
-    const dateTo = ref(today.toISOString().split('T')[0])
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+
+    const dateFrom = ref(formatDateToLocal(firstDay))
+    const dateTo = ref(formatDateToLocal(lastDay))
 
     const snackbar = ref({ show: false, message: '', color: 'success' })
 
-    const salesHeaders = [
-      { title: 'Sale Number', key: 'sale_number' },
-      { title: 'Date', key: 'sale_date' },
-      { title: 'Customer', key: 'customer' },
-      { title: 'Staff', key: 'user.name' },
-      { title: 'Amount', key: 'total_amount' },
-      { title: 'Profit', key: 'profit' },
-      { title: 'Status', key: 'status' }
-    ]
+    // Dynamic headers based on user role
+    const salesHeaders = computed(() => {
+      const headers = [
+        { title: 'Sale Number', key: 'sale_number' },
+        { title: 'Date', key: 'sale_date' },
+        { title: 'Customer', key: 'customer' },
+        { title: 'Staff', key: 'user.name' },
+        { title: 'Amount', key: 'total_amount' }
+      ]
 
-    const productHeaders = [
-      { title: 'Product', key: 'name' },
-      { title: 'SKU', key: 'sku' },
-      { title: 'Quantity Sold', key: 'total_quantity' },
-      { title: 'Revenue', key: 'total_revenue' },
-      { title: 'Profit', key: 'total_profit' }
-    ]
+      // Only admins can see profit
+      if (isAdmin.value) {
+        headers.push({ title: 'Profit', key: 'profit' })
+      }
+
+      headers.push({ title: 'Status', key: 'status' })
+      return headers
+    })
+
+    const productHeaders = computed(() => {
+      const headers = [
+        { title: 'Product', key: 'name' },
+        { title: 'SKU', key: 'sku' },
+        { title: 'Quantity Sold', key: 'total_quantity' },
+        { title: 'Revenue', key: 'total_revenue' }
+      ]
+
+      // Only admins can see profit
+      if (isAdmin.value) {
+        headers.push({ title: 'Profit', key: 'total_profit' })
+      }
+
+      return headers
+    })
 
     const loadReports = async () => {
       await Promise.all([
@@ -280,7 +315,26 @@ export default {
     const loadSales = async () => {
       try {
         loading.value = true
-        sales.value = await posService.getSalesReport(dateFrom.value, dateTo.value)
+        const salesData = await posService.getSalesReport(dateFrom.value, dateTo.value)
+
+        // For sales with booking_id, fetch booking details to get proper customer display
+        const salesWithBookings = await Promise.all(
+          salesData.map(async (sale) => {
+            if (sale.booking_id) {
+              try {
+                // Fetch full sale details which includes booking info
+                const fullSale = await posService.getSale(sale.id)
+                return fullSale
+              } catch (error) {
+                console.error(`Failed to load booking for sale ${sale.id}:`, error)
+                return sale
+              }
+            }
+            return sale
+          })
+        )
+
+        sales.value = salesWithBookings
       } catch (error) {
         showSnackbar('Failed to load sales', 'error')
       } finally {
@@ -314,15 +368,22 @@ export default {
         const workbook = new ExcelJS.Workbook()
         const sheet = workbook.addWorksheet('Sales Report')
 
-        sheet.columns = [
+        const columns = [
           { header: 'Sale Number', key: 'sale_number', width: 20 },
           { header: 'Date', key: 'date', width: 15 },
           { header: 'Customer', key: 'customer', width: 25 },
           { header: 'Staff', key: 'staff', width: 25 },
-          { header: 'Amount', key: 'amount', width: 15 },
-          { header: 'Profit', key: 'profit', width: 15 },
-          { header: 'Status', key: 'status', width: 15 }
+          { header: 'Amount', key: 'amount', width: 15 }
         ]
+
+        // Only admins can see profit
+        if (isAdmin.value) {
+          columns.push({ header: 'Profit', key: 'profit', width: 15 })
+        }
+
+        columns.push({ header: 'Status', key: 'status', width: 15 })
+
+        sheet.columns = columns
 
         // Style header
         sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
@@ -333,18 +394,26 @@ export default {
         }
 
         sales.value.forEach(sale => {
-          const row = sheet.addRow({
+          const rowData = {
             sale_number: sale.sale_number,
             date: formatDate(sale.sale_date),
-            customer: sale.customer?.name || sale.customer_name || 'Walk-in',
+            customer: getDisplayCustomerName(sale),
             staff: sale.user?.name || 'N/A',
             amount: parseFloat(sale.total_amount),
-            profit: parseFloat(sale.profit || 0),
             status: getSaleStatusText(sale.status)
-          })
+          }
+
+          // Only admins can see profit
+          if (isAdmin.value) {
+            rowData.profit = parseFloat(sale.profit || 0)
+          }
+
+          const row = sheet.addRow(rowData)
 
           row.getCell('amount').numFmt = '₱#,##0.00'
-          row.getCell('profit').numFmt = '₱#,##0.00'
+          if (isAdmin.value) {
+            row.getCell('profit').numFmt = '₱#,##0.00'
+          }
         })
 
         const buffer = await workbook.xlsx.writeBuffer()
@@ -373,13 +442,19 @@ export default {
         const workbook = new ExcelJS.Workbook()
         const sheet = workbook.addWorksheet('Product Sales')
 
-        sheet.columns = [
+        const columns = [
           { header: 'Product', key: 'name', width: 30 },
           { header: 'SKU', key: 'sku', width: 15 },
           { header: 'Quantity Sold', key: 'quantity', width: 15 },
-          { header: 'Revenue', key: 'revenue', width: 15 },
-          { header: 'Profit', key: 'profit', width: 15 }
+          { header: 'Revenue', key: 'revenue', width: 15 }
         ]
+
+        // Only admins can see profit
+        if (isAdmin.value) {
+          columns.push({ header: 'Profit', key: 'profit', width: 15 })
+        }
+
+        sheet.columns = columns
 
         // Style header
         sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
@@ -390,16 +465,24 @@ export default {
         }
 
         productSales.value.forEach(product => {
-          const row = sheet.addRow({
+          const rowData = {
             name: product.name,
             sku: product.sku,
             quantity: product.total_quantity,
-            revenue: parseFloat(product.total_revenue),
-            profit: parseFloat(product.total_profit)
-          })
+            revenue: parseFloat(product.total_revenue)
+          }
+
+          // Only admins can see profit
+          if (isAdmin.value) {
+            rowData.profit = parseFloat(product.total_profit)
+          }
+
+          const row = sheet.addRow(rowData)
 
           row.getCell('revenue').numFmt = '₱#,##0.00'
-          row.getCell('profit').numFmt = '₱#,##0.00'
+          if (isAdmin.value) {
+            row.getCell('profit').numFmt = '₱#,##0.00'
+          }
         })
 
         const buffer = await workbook.xlsx.writeBuffer()
@@ -434,8 +517,75 @@ export default {
       snackbar.value = { show: true, message, color }
     }
 
+    // Helper functions for customer display (matching AdminDashboard logic)
+    const isBookingLinked = (sale) => {
+      return sale.booking_id && sale.booking
+    }
+
+    const isAdminCreatedBooking = (sale) => {
+      // Check if the booking has cart items with booking_for_user_id or booking_for_user_name
+      if (!sale.booking || !sale.booking.cart_items || sale.booking.cart_items.length === 0) {
+        return false
+      }
+      const firstCartItem = sale.booking.cart_items[0]
+      return firstCartItem && (firstCartItem.booking_for_user_id || firstCartItem.booking_for_user_name)
+    }
+
+    const getDisplayCustomerName = (sale) => {
+      // If sale is linked to a booking, use AdminDashboard logic
+      if (isBookingLinked(sale)) {
+        const firstCartItem = sale.booking.cart_items?.[0]
+
+        // If this is an admin booking, return the "booking for" user
+        if (firstCartItem?.booking_for_user_name) {
+          return firstCartItem.booking_for_user_name
+        }
+
+        // Otherwise, return the booking creator
+        return sale.booking.user?.name || 'N/A'
+      }
+
+      // If not linked to booking, use customer_name or customer object
+      if (sale.customer_name) {
+        return sale.customer_name
+      }
+
+      if (sale.customer?.name) {
+        return sale.customer.name
+      }
+
+      return 'Walk-in'
+    }
+
+    // Check user role
+    const checkUserRole = () => {
+      try {
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          user.value = JSON.parse(storedUser)
+          isAdmin.value = user.value?.role === 'admin'
+        }
+      } catch (error) {
+        console.error('Failed to get user info:', error)
+      }
+    }
+
+    // Listen for auth changes
+    const handleAuthChange = (event) => {
+      if (event.detail?.user) {
+        user.value = event.detail.user
+        isAdmin.value = user.value?.role === 'admin'
+      }
+    }
+
     onMounted(() => {
+      checkUserRole()
       loadReports()
+      window.addEventListener('auth-changed', handleAuthChange)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('auth-changed', handleAuthChange)
     })
 
     return {
@@ -452,6 +602,7 @@ export default {
       snackbar,
       salesHeaders,
       productHeaders,
+      isAdmin,
       loadReports,
       viewSale,
       exportSalesReport,
@@ -459,7 +610,10 @@ export default {
       getSaleStatusColor,
       getSaleStatusText,
       formatPrice,
-      formatDate
+      formatDate,
+      getDisplayCustomerName,
+      isBookingLinked,
+      isAdminCreatedBooking
     }
   }
 }
@@ -514,4 +668,3 @@ export default {
   line-height: 1.6;
 }
 </style>
-
