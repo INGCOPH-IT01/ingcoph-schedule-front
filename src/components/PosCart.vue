@@ -28,8 +28,8 @@
           <template v-slot:prepend>
             <v-avatar color="grey-lighten-3" rounded>
               <v-img
-                v-if="item.product.image"
-                :src="getProductImageUrl(item.product.image)"
+                v-if="item.product.image_url || item.product.image"
+                :src="item.product.image_url || getProductImageUrl(item.product.image)"
               >
                 <template v-slot:error>
                   <v-icon>mdi-package-variant</v-icon>

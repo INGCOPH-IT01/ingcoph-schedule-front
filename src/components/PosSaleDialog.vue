@@ -81,8 +81,8 @@
             <tr v-for="item in sale.sale_items" :key="item.id">
               <td>
                 <div class="d-flex align-center">
-                  <v-avatar v-if="item.product?.image" size="32" class="mr-2" rounded>
-                    <v-img :src="getProductImageUrl(item.product.image)">
+                  <v-avatar v-if="item.product?.image_url || item.product?.image" size="32" class="mr-2" rounded>
+                    <v-img :src="item.product.image_url || getProductImageUrl(item.product.image)">
                       <template v-slot:error>
                         <v-icon size="small">mdi-package-variant</v-icon>
                       </template>

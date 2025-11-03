@@ -59,16 +59,29 @@ export const productService = {
 
     // Append all fields to FormData
     Object.keys(productData).forEach(key => {
-      if (productData[key] !== null && productData[key] !== undefined) {
-        formData.append(key, productData[key])
+      const value = productData[key]
+
+      // Skip null, undefined, and empty strings for non-required fields
+      if (value === null || value === undefined || value === '') {
+        return
+      }
+
+      // Handle File objects
+      if (value instanceof File) {
+        formData.append(key, value)
+      }
+      // Convert boolean values to 1 or 0 for Laravel validation
+      else if (typeof value === 'boolean') {
+        formData.append(key, value ? '1' : '0')
+      }
+      // Handle all other values
+      else {
+        formData.append(key, value)
       }
     })
 
-    const response = await api.post('/pos/products', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    // Don't set Content-Type header - let browser set it automatically with boundary
+    const response = await api.post('/pos/products', formData)
     return response.data
   },
 
@@ -80,15 +93,29 @@ export const productService = {
 
     // Append all fields to FormData
     Object.keys(productData).forEach(key => {
-      if (productData[key] !== null && productData[key] !== undefined) {
-        formData.append(key, productData[key])
+      const value = productData[key]
+
+      // Skip null, undefined, and empty strings for non-required fields
+      if (value === null || value === undefined || value === '') {
+        return
+      }
+
+      // Handle File objects
+      if (value instanceof File) {
+        formData.append(key, value)
+      }
+      // Convert boolean values to 1 or 0 for Laravel validation
+      else if (typeof value === 'boolean') {
+        formData.append(key, value ? '1' : '0')
+      }
+      // Handle all other values
+      else {
+        formData.append(key, value)
       }
     })
 
+    // Don't set Content-Type header - let browser set it automatically with boundary
     const response = await api.post(`/pos/products/${id}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      },
       params: {
         _method: 'PUT'
       }

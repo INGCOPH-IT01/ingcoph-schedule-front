@@ -452,9 +452,56 @@
                 </v-card-text>
               </v-card>
 
-              <!-- Total Price Section (moved outside the booking summary card) -->
+              <!-- POS Products Section (Optional) -->
+              <v-expansion-panels class="mt-4">
+                <v-expansion-panel>
+                  <v-expansion-panel-title>
+                    <div class="d-flex align-center">
+                      <v-icon class="mr-2" color="primary">mdi-shopping</v-icon>
+                      <span class="font-weight-bold">Add Products (Optional)</span>
+                      <v-chip
+                        v-if="selectedProducts.length > 0"
+                        color="primary"
+                        size="small"
+                        class="ml-3"
+                      >
+                        {{ selectedProducts.length }} product{{ selectedProducts.length !== 1 ? 's' : '' }} - ₱{{ calculatePosAmount().toFixed(2) }}
+                      </v-chip>
+                    </div>
+                  </v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <ProductSelector v-model="selectedProducts" />
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
+
+              <!-- Total Price Section with Breakdown -->
               <v-card variant="elevated" color="success" class="mt-4">
                 <v-card-text class="pa-4">
+                  <!-- Breakdown when both booking and POS items exist -->
+                  <div v-if="calculateBookingAmount() > 0 && calculatePosAmount() > 0">
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <div class="text-body-2 text-white">
+                        <v-icon size="small" color="white" class="mr-1">mdi-calendar-clock</v-icon>
+                        Court Booking
+                      </div>
+                      <div class="text-body-1 text-white">
+                        ₱{{ calculateBookingAmount().toFixed(2) }}
+                      </div>
+                    </div>
+                    <div class="d-flex justify-space-between align-center mb-2">
+                      <div class="text-body-2 text-white">
+                        <v-icon size="small" color="white" class="mr-1">mdi-shopping</v-icon>
+                        Products
+                      </div>
+                      <div class="text-body-1 text-white">
+                        ₱{{ calculatePosAmount().toFixed(2) }}
+                      </div>
+                    </div>
+                    <v-divider class="my-2" color="white" opacity="0.3"></v-divider>
+                  </div>
+
+                  <!-- Total -->
                   <div class="d-flex justify-space-between align-center">
                     <div>
                       <div class="text-caption text-white">Total Price</div>
@@ -813,18 +860,21 @@ import { sportService } from '../services/sportService'
 import { paymentSettingService } from '../services/paymentSettingService'
 import { companySettingService } from '../services/companySettingService'
 import { authService } from '../services/authService'
-import { formatTime, formatDateLong } from '../utils/formatters'
+import { productService } from '../services/productService'
+import { formatTime, formatDateLong, formatPrice } from '../utils/formatters'
 import api from '../services/api'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 import ProofOfPaymentUpload from './ProofOfPaymentUpload.vue'
 import BookingDisabledSnackbar from './BookingDisabledSnackbar.vue'
+import ProductSelector from './ProductSelector.vue'
 
 export default {
   name: 'NewBookingDialog',
   components: {
     ProofOfPaymentUpload,
-    BookingDisabledSnackbar
+    BookingDisabledSnackbar,
+    ProductSelector
   },
   props: {
     canUsersBook: {
@@ -887,6 +937,9 @@ export default {
     const courtTimeSlots = ref({}) // Store time slots per court: { courtId: { date: '', slots: [] } }
     const numberOfPlayers = ref(1) // Number of players for the booking
     const bookingNotes = ref('') // Customer notes/special requests
+
+    // POS Products
+    const selectedProducts = ref([])
 
     // Admin booking fields
     const bookingForUser = ref(null)
@@ -1428,7 +1481,8 @@ export default {
       return Array.from(breakdown.values()).sort((a, b) => b.pricePerHour - a.pricePerHour)
     }
 
-    const calculateTotalPrice = () => {
+    // Calculate booking amount (court slots only)
+    const calculateBookingAmount = () => {
       let total = 0
       Object.entries(courtTimeSlots.value).forEach(([courtId, courtData]) => {
         const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
@@ -1444,7 +1498,21 @@ export default {
           })
         }
       })
-      return total.toFixed(2)
+      return total
+    }
+
+    // Calculate POS amount (products only)
+    const calculatePosAmount = () => {
+      return selectedProducts.value.reduce((sum, item) => {
+        return sum + (item.product.price * item.quantity)
+      }, 0)
+    }
+
+    // Calculate total price (booking + POS)
+    const calculateTotalPrice = () => {
+      const bookingTotal = calculateBookingAmount()
+      const posTotal = calculatePosAmount()
+      return (bookingTotal + posTotal).toFixed(2)
     }
 
     // Validation function for file sizes
@@ -1862,11 +1930,22 @@ export default {
         const cartResponse = await cartService.getCartTransaction()
         const cartItemIds = cartResponse.cart_items.map(item => item.id)
 
-        // Checkout with GCash payment (send array of base64 images)
+        // Prepare POS items if any products selected
+        const posItems = selectedProducts.value.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.product.price,
+          discount: item.discount || 0
+        }))
+
+        // Checkout with GCash payment (send array of base64 images) and POS items
         await cartService.checkout({
           payment_method: 'gcash',
           proof_of_payment: proofBase64Array,
-          selected_items: cartItemIds
+          selected_items: cartItemIds,
+          pos_items: posItems,
+          pos_amount: calculatePosAmount(),
+          booking_amount: calculateBookingAmount()
         })
 
         // Dispatch cart updated event
@@ -2132,11 +2211,22 @@ export default {
         const cartResponse = await cartService.getCartTransaction()
         const cartItemIds = cartResponse.cart_items.map(item => item.id)
 
-        // Checkout without payment
+        // Prepare POS items if any products selected
+        const posItems = selectedProducts.value.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.product.price,
+          discount: item.discount || 0
+        }))
+
+        // Checkout without payment, including POS items
         await cartService.checkout({
           payment_method: 'pending',
           skip_payment: true,
-          selected_items: cartItemIds
+          selected_items: cartItemIds,
+          pos_items: posItems,
+          pos_amount: calculatePosAmount(),
+          booking_amount: calculateBookingAmount()
         })
 
         // Dispatch cart updated event
@@ -2265,6 +2355,7 @@ export default {
       paymentMethod.value = 'gcash'
       proofOfPayment.value = []
       skipPayment.value = false
+      selectedProducts.value = [] // Reset POS products
       // Reset admin fields
       bookingForUser.value = null
       adminNotes.value = ''
@@ -2506,8 +2597,11 @@ export default {
       loadTimeSlotsForAllCourts,
       formatTime,
       formatDate,
+      formatPrice,
       getPricingBreakdown,
       calculateTotalPrice,
+      calculateBookingAmount,
+      calculatePosAmount,
       validateFileSize,
       generateGCashQR,
       handleImageError,
@@ -2518,6 +2612,8 @@ export default {
       submitBooking,
       hasWaitlistSlots,
       allSlotsAreWaitlist,
+      // POS Products
+      selectedProducts,
       // Admin fields
       isAdmin,
       isAdminOrStaff,

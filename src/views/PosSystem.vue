@@ -91,8 +91,8 @@
                 >
                   <div class="product-image">
                     <v-img
-                      v-if="product.image"
-                      :src="getProductImageUrl(product.image)"
+                      v-if="product.image_url || product.image"
+                      :src="product.image_url || getProductImageUrl(product.image)"
                       height="120"
                       cover
                     >

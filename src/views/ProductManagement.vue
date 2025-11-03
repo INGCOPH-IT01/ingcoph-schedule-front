@@ -111,8 +111,14 @@
         class="elevation-0"
       >
         <template v-slot:[`item.image`]="{ item }">
-          <v-avatar size="48" rounded class="my-2">
-            <v-img v-if="item.image" :src="getProductImageUrl(item.image)">
+          <v-avatar
+            size="48"
+            rounded
+            class="my-2 cursor-pointer"
+            @click="openImageViewer(item)"
+            :style="(item.image_url || item.image) ? 'cursor: pointer;' : ''"
+          >
+            <v-img v-if="item.image_url || item.image" :src="item.image_url || getProductImageUrl(item.image)">
               <template v-slot:error>
                 <v-icon>mdi-package-variant</v-icon>
               </template>
@@ -163,14 +169,14 @@
     </v-card>
 
     <!-- Product Dialog -->
-    <v-dialog v-model="productDialog" max-width="800">
+    <v-dialog v-model="productDialog" max-width="800" persistent>
       <v-card>
         <v-card-title>
           {{ editingProduct ? 'Edit Product' : 'Add New Product' }}
         </v-card-title>
         <v-divider></v-divider>
         <v-card-text>
-          <v-form ref="productForm">
+          <v-form ref="productFormRef">
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
@@ -208,7 +214,7 @@
               </v-col>
               <v-col cols="12" md="4">
                 <v-text-field
-                  v-model.number="productForm.price"
+                  v-model="productForm.price"
                   label="Price *"
                   type="number"
                   prefix="₱"
@@ -218,7 +224,7 @@
               </v-col>
               <v-col cols="12" md="4">
                 <v-text-field
-                  v-model.number="productForm.cost"
+                  v-model="productForm.cost"
                   label="Cost"
                   type="number"
                   prefix="₱"
@@ -243,7 +249,7 @@
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model.number="productForm.stock_quantity"
+                  v-model="productForm.stock_quantity"
                   label="Stock Quantity"
                   type="number"
                   variant="outlined"
@@ -251,7 +257,7 @@
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model.number="productForm.low_stock_threshold"
+                  v-model="productForm.low_stock_threshold"
                   label="Low Stock Alert"
                   type="number"
                   variant="outlined"
@@ -261,10 +267,14 @@
                 <v-file-input
                   v-model="productImage"
                   label="Product Image"
-                  accept="image/*"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                   variant="outlined"
                   prepend-icon=""
                   prepend-inner-icon="mdi-camera"
+                  :rules="imageRules"
+                  show-size
+                  hint="Max 2MB. Supported: JPEG, PNG, GIF, WebP"
+                  persistent-hint
                 ></v-file-input>
               </v-col>
               <v-col cols="12" md="3">
@@ -304,7 +314,7 @@
             <div class="text-h4">{{ editingProduct.stock_quantity }} {{ editingProduct.unit }}</div>
           </div>
           <v-text-field
-            v-model.number="stockForm.quantity"
+            v-model="stockForm.quantity"
             label="New Stock Quantity"
             type="number"
             variant="outlined"
@@ -359,6 +369,40 @@
       </v-card>
     </v-dialog>
 
+    <!-- Image Viewer Dialog -->
+    <v-dialog v-model="imageViewerDialog" max-width="800">
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>{{ imageViewerProduct?.name }}</span>
+          <v-btn icon="mdi-close" variant="text" @click="imageViewerDialog = false"></v-btn>
+        </v-card-title>
+        <v-divider></v-divider>
+        <v-card-text class="pa-4">
+          <v-img
+            v-if="imageViewerUrl"
+            :src="imageViewerUrl"
+            max-height="600"
+            contain
+          >
+            <template v-slot:error>
+              <div class="d-flex align-center justify-center" style="height: 300px;">
+                <div class="text-center">
+                  <v-icon size="64" color="grey">mdi-image-broken</v-icon>
+                  <div class="text-grey mt-2">Failed to load image</div>
+                </div>
+              </div>
+            </template>
+          </v-img>
+          <div v-else class="d-flex align-center justify-center" style="height: 300px;">
+            <div class="text-center">
+              <v-icon size="64" color="grey">mdi-package-variant</v-icon>
+              <div class="text-grey mt-2">No image available</div>
+            </div>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.message }}
@@ -367,7 +411,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { productService } from '../services/productService'
 import { formatPrice } from '../utils/formatters'
 
@@ -384,13 +428,59 @@ export default {
     const productDialog = ref(false)
     const stockDialog = ref(false)
     const categoryDialog = ref(false)
+    const imageViewerDialog = ref(false)
+    const imageViewerProduct = ref(null)
+    const imageViewerUrl = ref('')
     const editingProduct = ref(null)
-    const productForm = ref({})
+    const productFormRef = ref(null)  // Form component ref
+    const productForm = ref({  // Form data
+      name: '',
+      sku: '',
+      category_id: null,
+      barcode: '',
+      price: 0,
+      cost: 0,
+      unit: 'pcs',
+      description: '',
+      stock_quantity: 0,
+      low_stock_threshold: 10,
+      track_inventory: true,
+      is_active: true
+    })
     const productImage = ref(null)
     const stockForm = ref({ quantity: 0, notes: '' })
     const newCategory = ref({ name: '' })
 
     const snackbar = ref({ show: false, message: '', color: 'success' })
+
+    // Image validation rules
+    const imageRules = [
+      (value) => {
+        if (!value || (Array.isArray(value) && value.length === 0)) {
+          return true // Image is optional
+        }
+
+        const file = Array.isArray(value) ? value[0] : value
+
+        if (!(file instanceof File)) {
+          return true // Not a file, skip validation
+        }
+
+        // Check file size (2MB = 2 * 1024 * 1024 bytes)
+        const maxSize = 2 * 1024 * 1024
+        if (file.size > maxSize) {
+          return `Image size must be less than 2MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`
+        }
+
+        // Check file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+        if (!allowedTypes.includes(file.type)) {
+          return `Invalid file type. Allowed types: JPEG, PNG, GIF, WebP. Got: ${file.type}`
+        }
+
+        return true
+      }
+    ]
 
     const headers = [
       { title: 'Image', key: 'image', sortable: false },
@@ -480,33 +570,94 @@ export default {
     const openProductDialog = (product = null) => {
       editingProduct.value = product
       if (product) {
-        productForm.value = { ...product }
+        // Update properties individually to maintain reactivity
+        productForm.value.name = product.name || ''
+        productForm.value.sku = product.sku || ''
+        productForm.value.category_id = product.category_id || null
+        productForm.value.barcode = product.barcode || ''
+        productForm.value.price = product.price || 0
+        productForm.value.cost = product.cost || 0
+        productForm.value.unit = product.unit || 'pcs'
+        productForm.value.description = product.description || ''
+        productForm.value.stock_quantity = product.stock_quantity || 0
+        productForm.value.low_stock_threshold = product.low_stock_threshold || 10
+        productForm.value.track_inventory = product.track_inventory !== undefined ? product.track_inventory : true
+        productForm.value.is_active = product.is_active !== undefined ? product.is_active : true
       } else {
-        productForm.value = {
-          name: '',
-          sku: '',
-          category_id: null,
-          price: 0,
-          cost: 0,
-          stock_quantity: 0,
-          low_stock_threshold: 10,
-          unit: 'pcs',
-          barcode: '',
-          description: '',
-          track_inventory: true,
-          is_active: true
-        }
+        // Reset properties individually to maintain reactivity
+        productForm.value.name = ''
+        productForm.value.sku = ''
+        productForm.value.category_id = null
+        productForm.value.barcode = ''
+        productForm.value.price = 0
+        productForm.value.cost = 0
+        productForm.value.unit = 'pcs'
+        productForm.value.description = ''
+        productForm.value.stock_quantity = 0
+        productForm.value.low_stock_threshold = 10
+        productForm.value.track_inventory = true
+        productForm.value.is_active = true
       }
       productImage.value = null
       productDialog.value = true
     }
 
     const saveProduct = async () => {
+      // Validate form
+      const { valid } = await productFormRef.value.validate()
+      if (!valid) {
+        showSnackbar('Please fix validation errors', 'error')
+        return
+      }
+
       try {
         saving.value = true
         const data = { ...productForm.value }
-        if (productImage.value && productImage.value.length > 0) {
-          data.image = productImage.value[0]
+
+        // Convert string values to numbers
+        if (data.price !== null && data.price !== undefined && data.price !== '') {
+          data.price = parseFloat(data.price) || 0
+        }
+        if (data.cost !== null && data.cost !== undefined && data.cost !== '') {
+          data.cost = parseFloat(data.cost) || 0
+        }
+        if (data.stock_quantity !== null && data.stock_quantity !== undefined && data.stock_quantity !== '') {
+          data.stock_quantity = parseInt(data.stock_quantity) || 0
+        }
+        if (data.low_stock_threshold !== null && data.low_stock_threshold !== undefined && data.low_stock_threshold !== '') {
+          data.low_stock_threshold = parseInt(data.low_stock_threshold) || 0
+        }
+
+        // Convert boolean values explicitly
+        data.track_inventory = Boolean(data.track_inventory)
+        data.is_active = Boolean(data.is_active)
+
+        // Handle image file
+        if (productImage.value) {
+          // v-file-input can return either a File object or an array depending on multiple prop
+          if (Array.isArray(productImage.value) && productImage.value.length > 0) {
+            data.image = productImage.value[0]
+          } else if (productImage.value instanceof File) {
+            data.image = productImage.value
+          }
+
+          if (data.image) {
+            // Additional validation before upload
+            const maxSize = 2 * 1024 * 1024 // 2MB
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+
+            if (data.image.size > maxSize) {
+              showSnackbar(`Image size must be less than 2MB. Current: ${(data.image.size / 1024 / 1024).toFixed(2)}MB`, 'error')
+              saving.value = false
+              return
+            }
+
+            if (!allowedTypes.includes(data.image.type)) {
+              showSnackbar(`Invalid file type: ${data.image.type}. Allowed: JPEG, PNG, GIF, WebP`, 'error')
+              saving.value = false
+              return
+            }
+          }
         }
 
         if (editingProduct.value) {
@@ -550,7 +701,9 @@ export default {
     const adjustStock = async () => {
       try {
         saving.value = true
-        await productService.adjustStock(editingProduct.value.id, stockForm.value.quantity, stockForm.value.notes)
+        // Convert quantity to number
+        const quantity = parseInt(stockForm.value.quantity) || 0
+        await productService.adjustStock(editingProduct.value.id, quantity, stockForm.value.notes)
         showSnackbar('Stock adjusted successfully', 'success')
         stockDialog.value = false
         await loadProducts()
@@ -601,6 +754,14 @@ export default {
       return productService.getProductImageUrl(imagePath)
     }
 
+    const openImageViewer = (product) => {
+      if (!product.image_url && !product.image) return
+
+      imageViewerProduct.value = product
+      imageViewerUrl.value = product.image_url || getProductImageUrl(product.image)
+      imageViewerDialog.value = true
+    }
+
     onMounted(() => {
       loadProducts()
       loadCategories()
@@ -617,7 +778,11 @@ export default {
       productDialog,
       stockDialog,
       categoryDialog,
+      imageViewerDialog,
+      imageViewerProduct,
+      imageViewerUrl,
       editingProduct,
+      productFormRef,
       productForm,
       productImage,
       stockForm,
@@ -629,6 +794,7 @@ export default {
       filteredProducts,
       lowStockCount,
       outOfStockCount,
+      imageRules,
       getStockColor,
       openProductDialog,
       saveProduct,
@@ -639,6 +805,7 @@ export default {
       addCategory,
       deleteCategory,
       getProductImageUrl,
+      openImageViewer,
       formatPrice
     }
   }
@@ -694,4 +861,3 @@ export default {
   line-height: 1.6;
 }
 </style>
-
