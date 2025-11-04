@@ -357,6 +357,7 @@
                       type="time"
                       variant="outlined"
                       density="compact"
+                      step="60"
                     ></v-text-field>
                   </v-col>
                   <v-col cols="6">
@@ -366,6 +367,7 @@
                       type="time"
                       variant="outlined"
                       density="compact"
+                      step="60"
                     ></v-text-field>
                   </v-col>
                 </v-row>
@@ -2495,11 +2497,18 @@ export default {
       try {
         savingDateTime.value = true
 
+        // Ensure time format is HH:mm (remove seconds if present)
+        const formatTime = (timeStr) => {
+          if (!timeStr) return ''
+          // If time has seconds, remove them
+          return timeStr.substring(0, 5)
+        }
+
         // Prepare the update data
         const updateData = {
           booking_date: selectedBookingDate.value,
-          start_time: selectedStartTime.value,
-          end_time: selectedEndTime.value
+          start_time: formatTime(selectedStartTime.value),
+          end_time: formatTime(selectedEndTime.value)
         }
 
         // Update the cart item via the cartService
