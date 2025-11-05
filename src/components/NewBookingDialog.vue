@@ -753,7 +753,7 @@
             class="mr-2"
           >
             <v-icon start>mdi-cart-plus</v-icon>
-            Add to Booking
+            Add to Cart
           </v-btn>
           <v-alert v-else type="info" variant="tonal" density="compact" class="mr-2">
             Booking creation is disabled for user accounts.
