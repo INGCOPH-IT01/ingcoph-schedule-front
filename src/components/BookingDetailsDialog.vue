@@ -643,7 +643,7 @@
                 <div class="d-flex align-center mb-2">
                   <v-icon size="small" class="mr-2">mdi-clock-outline</v-icon>
                   <span class="text-body-2">
-                    {{ formatTimeSlot(entry.start_time) }} - {{ formatTimeSlot(entry.end_time) }}
+                    {{ formatWaitlistTime(entry.start_time) }} - {{ formatWaitlistTime(entry.end_time) }}
                   </span>
                 </div>
 
@@ -1504,6 +1504,7 @@ import {
   getWaitlistStatusColor,
   formatWaitlistStatus,
   formatWaitlistDate,
+  formatWaitlistTime,
   getBookingTimeRange,
   getTotalPrice,
   getPaymentStatus,
@@ -3236,6 +3237,7 @@ export default {
       getWaitlistStatusColor,
       formatWaitlistStatus,
       formatWaitlistDate,
+      formatWaitlistTime,
       getWaitlistDisplayName,
       // Services
       sportService,
