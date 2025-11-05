@@ -2197,6 +2197,7 @@ export default {
                 rejection_reason: transaction.rejection_reason,
                 qr_code: transaction.qr_code,
                 cart_transaction: transaction,
+                cart_items: transaction.cart_items, // Include cart_items for display
                 created_at: transaction.created_at
               }
             })
