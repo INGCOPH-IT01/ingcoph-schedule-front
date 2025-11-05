@@ -775,7 +775,33 @@ export default {
 
         // Fetch all cart transactions with date filters and sorting
         const transactions = await cartService.getAllTransactions(filters)
-        pendingBookings.value = transactions.map(transaction => ({
+
+        // Filter out incomplete transactions (cart items that haven't been checked out yet)
+        // Only show transactions that have completed checkout with proof of payment
+        const completedTransactions = transactions.filter(transaction => {
+          // Check if this is a completed transaction (has gone through checkout)
+          // A transaction is considered complete if:
+          // 1. It has a payment_method set AND proof_of_payment (regular user checkout)
+          // 2. OR it's an admin/staff booking that may have skipped payment (has payment_method as 'pending')
+          // 3. OR it's a waitlist booking (waitlist transactions are created without immediate payment)
+
+          const hasPaymentMethod = transaction.payment_method && transaction.payment_method.trim() !== ''
+          const hasProofOfPayment = transaction.proof_of_payment && transaction.proof_of_payment.trim() !== ''
+          const isAdminBooking = transaction.user?.role === 'admin' || transaction.user?.role === 'staff'
+          const isPendingPayment = transaction.payment_method === 'pending'
+
+          // Show transaction if:
+          // - Has both payment method and proof (regular checkout completed)
+          // - OR is admin/staff booking with pending payment (admin skip payment)
+          // - OR is waitlist booking (approval_status indicates waitlist)
+          return (hasPaymentMethod && hasProofOfPayment) ||
+                 (isAdminBooking && isPendingPayment) ||
+                 (hasPaymentMethod && (transaction.approval_status === 'pending_waitlist' ||
+                                       transaction.approval_status === 'approved' ||
+                                       transaction.approval_status === 'rejected'))
+        })
+
+        pendingBookings.value = completedTransactions.map(transaction => ({
           ...transaction,
           approving: false,
           user_name: transaction.user?.name || 'N/A',
