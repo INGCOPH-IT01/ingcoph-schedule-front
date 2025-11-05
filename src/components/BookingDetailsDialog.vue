@@ -643,7 +643,7 @@
                 <div class="d-flex align-center mb-2">
                   <v-icon size="small" class="mr-2">mdi-clock-outline</v-icon>
                   <span class="text-body-2">
-                    {{ formatWaitlistTime(entry.start_time) }} - {{ formatWaitlistTime(entry.end_time) }}
+                    {{ formatTimeSlot(entry.start_time) }} - {{ formatTimeSlot(entry.end_time) }}
                   </span>
                 </div>
 
@@ -1501,7 +1501,6 @@ import {
   formatPriceValue,
   formatBookingDate,
   formatDateTime,
-  formatWaitlistTime,
   getWaitlistStatusColor,
   formatWaitlistStatus,
   formatWaitlistDate,
@@ -3146,7 +3145,6 @@ export default {
       // Methods
       closeDialog,
       formatTimeSlot,
-      formatWaitlistTime,
       formatPrice,
       formatBookingDate,
       handleAttendanceUpdate,
