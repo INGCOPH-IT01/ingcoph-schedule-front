@@ -59,17 +59,17 @@
 
       <!-- Booking Details -->
       <div class="booking-details-compact">
-        <!-- Time Slots (Grouped) -->
-        <div class="detail-row-compact">
+        <!-- Overall Time Range -->
+        <div class="detail-row-compact overall-time-highlight">
           <div class="detail-icon-compact time-icon">
             <v-icon color="white" size="16">mdi-clock-outline</v-icon>
           </div>
           <div class="detail-content-compact">
-            <div class="detail-label-compact">Time Slots</div>
+            <div class="detail-label-compact">Overall Time</div>
             <div class="detail-value-compact">
               <div class="time-slots-group">
-                <div class="time-slot-display">
-                  {{ groupedTimeDisplay }}
+                <div class="time-slot-display overall-time">
+                  {{ overallTimeRange }}
                 </div>
                 <v-chip size="x-small" color="blue-grey" variant="flat" class="ml-1 text-white">
                   {{ booking.cart_items.length }} slot{{ booking.cart_items.length > 1 ? 's' : '' }}
@@ -79,15 +79,28 @@
           </div>
         </div>
 
-        <!-- Price -->
-        <div class="detail-row-compact">
-          <div class="detail-icon-compact price-icon">
-            <v-icon color="white" size="16">mdi-cash</v-icon>
+        <!-- Grouped Time Slots (if multiple non-consecutive slots) -->
+        <div v-if="groupedTimeDisplay !== overallTimeRange" class="detail-row-compact time-detail-row">
+          <div class="detail-icon-compact time-detail-icon">
+            <v-icon color="white" size="14">mdi-calendar-clock</v-icon>
           </div>
           <div class="detail-content-compact">
-            <div class="detail-label-compact">Price</div>
+            <div class="detail-label-compact">Time Details</div>
+            <div class="detail-value-compact time-detail-text">
+              {{ groupedTimeDisplay }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Price (calculated from all cart items) -->
+        <div class="detail-row-compact price-highlight">
+          <div class="detail-icon-compact price-icon">
+            <v-icon color="white" size="16">mdi-cash-multiple</v-icon>
+          </div>
+          <div class="detail-content-compact">
+            <div class="detail-label-compact">Total Amount</div>
             <div class="detail-value-compact price-value-compact">
-              ₱{{ parseFloat(booking.price).toFixed(2) }}
+              ₱{{ totalPrice }}
             </div>
           </div>
         </div>
@@ -189,7 +202,7 @@
 <script>
 import { computed } from 'vue'
 import { sportService } from '../services/sportService'
-import { formatDate } from '../utils/formatters'
+import { formatDate, getTotalPrice } from '../utils/formatters'
 
 export default {
   name: 'BookingCard',
@@ -331,6 +344,57 @@ export default {
       )
     })
 
+    // Get overall time range (earliest start to latest end)
+    const overallTimeRange = computed(() => {
+      if (!props.booking.cart_items || props.booking.cart_items.length === 0) {
+        return 'No time slots'
+      }
+
+      // Helper function to normalize time format (remove seconds if present)
+      const normalizeTime = (time) => {
+        if (!time) return ''
+        if (time.length > 5 && time.split(':').length === 3) {
+          return time.substring(0, 5)
+        }
+        return time
+      }
+
+      // Helper function to format time to 12-hour format
+      const formatTime12Hour = (time) => {
+        if (!time) return ''
+        const normalized = normalizeTime(time)
+        const [hours, minutes] = normalized.split(':')
+        const hour = parseInt(hours)
+        const ampm = hour >= 12 ? 'PM' : 'AM'
+        const displayHour = hour % 12 || 12
+        return `${displayHour}:${minutes} ${ampm}`
+      }
+
+      // Sort items by start time to get earliest and latest
+      const sortedItems = [...props.booking.cart_items].sort((a, b) => {
+        return (a.start_time || '').localeCompare(b.start_time || '')
+      })
+
+      const earliestStart = normalizeTime(sortedItems[0].start_time)
+      const latestEnd = normalizeTime(sortedItems[sortedItems.length - 1].end_time)
+
+      return `${formatTime12Hour(earliestStart)} - ${formatTime12Hour(latestEnd)}`
+    })
+
+    // Calculate total price from all cart items
+    const totalPrice = computed(() => {
+      // Use getTotalPrice utility function to sum all cart items
+      const calculatedTotal = getTotalPrice(props.booking)
+
+      // If we have a valid calculated total, use it
+      if (calculatedTotal && calculatedTotal !== '0.00') {
+        return parseFloat(calculatedTotal).toFixed(2)
+      }
+
+      // Fallback to booking.price if cart_items calculation fails
+      return parseFloat(props.booking.price || 0).toFixed(2)
+    })
+
     return {
       isExpired,
       formattedDate,
@@ -338,7 +402,9 @@ export default {
       sportIcon,
       groupedTimeDisplay,
       bookedForName,
-      showCancelButton
+      showCancelButton,
+      overallTimeRange,
+      totalPrice
     }
   }
 }
@@ -460,6 +526,42 @@ export default {
 .time-slot-display {
   font-weight: 600;
   color: #B71C1C;
+}
+
+.overall-time {
+  font-size: 14px;
+  font-weight: 700;
+  color: #B71C1C;
+}
+
+.overall-time-highlight {
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFEBEE 100%) !important;
+  border-left: 4px solid #B71C1C !important;
+  box-shadow: 0 2px 8px rgba(183, 28, 28, 0.15);
+}
+
+.price-highlight {
+  background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%) !important;
+  border-left: 4px solid #10b981 !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+}
+
+.time-detail-row {
+  background: linear-gradient(135deg, #FAFAFA 0%, #F5F5F5 100%) !important;
+  border-left: 2px solid #9E9E9E !important;
+}
+
+.time-detail-icon {
+  background: linear-gradient(135deg, #757575 0%, #616161 100%);
+  box-shadow: 0 2px 6px rgba(117, 117, 117, 0.3);
+  width: 24px;
+  height: 24px;
+}
+
+.time-detail-text {
+  font-size: 11px;
+  color: #616161;
+  font-weight: 500;
 }
 
 .booking-details-compact {
