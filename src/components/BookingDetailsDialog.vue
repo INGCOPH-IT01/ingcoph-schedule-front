@@ -1504,6 +1504,7 @@ import {
   getWaitlistStatusColor,
   formatWaitlistStatus,
   formatWaitlistDate,
+  formatWaitlistTime,
   getBookingTimeRange,
   getTotalPrice,
   getPaymentStatus,
@@ -3236,6 +3237,7 @@ export default {
       getWaitlistStatusColor,
       formatWaitlistStatus,
       formatWaitlistDate,
+      formatWaitlistTime,
       getWaitlistDisplayName,
       // Services
       sportService,

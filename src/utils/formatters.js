@@ -132,34 +132,39 @@ export function formatDateTime(dateTime) {
 }
 
 /**
- * Format time only from datetime string (extracts time, no timezone conversion)
+ * Format time only from datetime string WITH timezone conversion
+ * Converts UTC datetime to local timezone, then formats to 12-hour format
  * Handles both ISO format (2025-10-28T18:00:00.000000Z) and space-separated format
- * @param {string} dateTime - DateTime string
- * @returns {string} Formatted time in 12-hour format
+ * @param {string} dateTime - DateTime string (typically in UTC)
+ * @returns {string} Formatted time in 12-hour format (converted to local timezone)
  */
 export function formatWaitlistTime(dateTime) {
   if (!dateTime) return ''
-  const dateTimeStr = dateTime.toString()
 
-  // Try to extract time from ISO format (with 'T' separator)
-  let timePart = ''
-  if (dateTimeStr.includes('T')) {
-    // ISO format: 2025-10-28T18:00:00.000000Z
-    const parts = dateTimeStr.split('T')
-    if (parts[1]) {
-      timePart = parts[1].split('.')[0] // Get time before milliseconds
+  try {
+    // Parse the datetime string as a Date object (automatically converts to local timezone)
+    const date = new Date(dateTime)
+
+    // Check if valid date
+    if (isNaN(date.getTime())) {
+      return ''
     }
-  } else if (dateTimeStr.includes(' ')) {
-    // Space-separated format: 2025-10-28 18:00:00
-    const parts = dateTimeStr.split(' ')
-    if (parts[1]) {
-      timePart = parts[1]
-    }
+
+    // Extract local time components
+    const hours = date.getHours()
+    const minutes = date.getMinutes()
+
+    // Format minutes with leading zero if needed
+    const minutesStr = minutes.toString().padStart(2, '0')
+
+    // Convert to 12-hour format
+    const ampm = hours >= 12 ? 'PM' : 'AM'
+    const displayHour = hours % 12 || 12
+
+    return `${displayHour}:${minutesStr} ${ampm}`
+  } catch (error) {
+    return ''
   }
-
-  // Get HH:MM from the time string
-  const timeHHMM = timePart.substring(0, 5)
-  return formatTimeSlot(timeHHMM)
 }
 
 /**
