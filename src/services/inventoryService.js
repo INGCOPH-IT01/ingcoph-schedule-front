@@ -35,10 +35,7 @@ const inventoryService = {
   },
 
   exportReceivingReports(params = {}) {
-    return api.get('/inventory/receiving-reports-export', {
-      params,
-      responseType: 'blob',
-    });
+    return api.get('/inventory/receiving-reports-export', { params });
   },
 
   getStatistics() {

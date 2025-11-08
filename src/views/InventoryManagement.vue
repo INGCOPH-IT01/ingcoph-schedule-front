@@ -367,9 +367,152 @@ export default {
         };
 
         const response = await inventoryService.exportReceivingReports(params);
+        const { reports, exported_at } = response.data;
 
-        // Create a blob from the response
-        const blob = new Blob([response.data], {
+        // Dynamically import ExcelJS
+        const ExcelJS = (await import('exceljs')).default;
+
+        // Create a new workbook
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Inventory Management System';
+        workbook.created = new Date();
+
+        // Create Summary Sheet
+        const summarySheet = workbook.addWorksheet('Summary');
+
+        // Add title
+        summarySheet.mergeCells('A1:G1');
+        summarySheet.getCell('A1').value = 'Receiving Reports Summary';
+        summarySheet.getCell('A1').font = { size: 16, bold: true };
+        summarySheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+        // Add export info
+        summarySheet.getCell('A2').value = `Exported: ${exported_at}`;
+        summarySheet.getCell('A2').font = { italic: true };
+
+        // Add headers
+        summarySheet.addRow([]);
+        const headerRow = summarySheet.addRow([
+          'Report Number',
+          'Date',
+          'Receiving Date',
+          'Created By',
+          'Status',
+          'Total Items',
+          'Notes'
+        ]);
+
+        // Style headers
+        headerRow.font = { bold: true };
+        headerRow.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4CAF50' }
+          };
+          cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+
+        // Add data
+        reports.forEach(report => {
+          summarySheet.addRow([
+            report.report_number,
+            this.formatDateTime(report.created_at),
+            report.confirmed_at ? this.formatDateTime(report.confirmed_at) : '-',
+            report.user?.name || 'N/A',
+            report.status.toUpperCase(),
+            report.items?.length || 0,
+            report.notes || '-'
+          ]);
+        });
+
+        // Auto-fit columns
+        summarySheet.columns.forEach((column, index) => {
+          let maxLength = 10;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const cellValue = cell.value ? cell.value.toString() : '';
+            maxLength = Math.max(maxLength, cellValue.length);
+          });
+          column.width = Math.min(maxLength + 2, 50);
+        });
+
+        // Create Detailed Sheet
+        const detailSheet = workbook.addWorksheet('Detailed');
+
+        // Add title
+        detailSheet.mergeCells('A1:G1');
+        detailSheet.getCell('A1').value = 'Receiving Reports - Detailed View';
+        detailSheet.getCell('A1').font = { size: 16, bold: true };
+        detailSheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+
+        detailSheet.addRow([]);
+
+        // Add detailed data for each report
+        reports.forEach((report, index) => {
+          if (index > 0) {
+            detailSheet.addRow([]); // Add spacing between reports
+          }
+
+          // Report header
+          const reportHeaderRow = detailSheet.addRow([
+            `Report: ${report.report_number}`,
+            '',
+            `Status: ${report.status.toUpperCase()}`,
+            '',
+            `Created: ${this.formatDateTime(report.created_at)}`,
+          ]);
+          reportHeaderRow.font = { bold: true };
+          reportHeaderRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE3F2FD' }
+          };
+
+          // Item headers
+          const itemHeaderRow = detailSheet.addRow([
+            'Product SKU',
+            'Product Name',
+            'Quantity',
+            'Notes'
+          ]);
+          itemHeaderRow.font = { bold: true };
+          itemHeaderRow.eachCell((cell) => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFBBDEFB' }
+            };
+          });
+
+          // Add items
+          if (report.items && report.items.length > 0) {
+            report.items.forEach(item => {
+              detailSheet.addRow([
+                item.product?.sku || 'N/A',
+                item.product?.name || 'N/A',
+                item.quantity,
+                item.notes || '-'
+              ]);
+            });
+          } else {
+            detailSheet.addRow(['No items', '', '', '']);
+          }
+        });
+
+        // Auto-fit columns for detail sheet
+        detailSheet.columns.forEach((column) => {
+          let maxLength = 10;
+          column.eachCell({ includeEmpty: true }, (cell) => {
+            const cellValue = cell.value ? cell.value.toString() : '';
+            maxLength = Math.max(maxLength, cellValue.length);
+          });
+          column.width = Math.min(maxLength + 2, 50);
+        });
+
+        // Generate Excel file
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
 
