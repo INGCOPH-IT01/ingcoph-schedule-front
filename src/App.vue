@@ -218,6 +218,16 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Inventory Management - For admin, staff, and cashier users -->
+          <v-list-item
+            v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
+            prepend-icon="mdi-warehouse"
+            title="Inventory Management"
+            value="inventory-management"
+            :to="{ name: 'InventoryManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
           <v-divider v-if="isAuthenticated && (isAdmin || isStaff)" class="my-2"></v-divider>
 
           <!-- Staff Scanner - Only for staff/admin users (not cashiers) -->

@@ -274,6 +274,24 @@ const routes = [
     }
   },
   {
+    path: '/admin/inventory',
+    name: 'InventoryManagement',
+    component: () => import(/* webpackChunkName: "inventory" */ '../views/InventoryManagement.vue'),
+    beforeEnter: async (to, from, next) => {
+      try {
+        const user = await authService.getCurrentUser()
+        // Allow admin, staff, and cashier to access inventory management
+        if (user && (user.role === 'admin' || user.role === 'staff' || user.role === 'cashier')) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     redirect: '/'
