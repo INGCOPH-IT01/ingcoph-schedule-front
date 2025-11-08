@@ -449,6 +449,44 @@
                       </v-card>
                     </div>
                   </div>
+
+                  <!-- POS Products Section (if any selected) -->
+                  <div v-if="selectedProducts.length > 0" class="pos-products-breakdown mb-4">
+                    <h5 class="text-subtitle-1 font-weight-bold mb-3">
+                      <v-icon class="mr-2" color="success">mdi-shopping</v-icon>
+                      POS Products
+                    </h5>
+
+                    <v-card variant="outlined" class="pa-3">
+                      <div
+                        v-for="(item, index) in selectedProducts"
+                        :key="index"
+                        class="d-flex align-center justify-space-between mb-2"
+                      >
+                        <div class="d-flex align-center flex-grow-1">
+                          <v-icon size="16" class="mr-2" color="success">mdi-package-variant</v-icon>
+                          <span class="text-body-2">{{ item.product.name }}</span>
+                          <span class="text-caption text-grey ml-2">
+                            ({{ item.quantity }} × ₱{{ parseFloat(item.product.price).toFixed(2) }})
+                          </span>
+                        </div>
+                        <span class="text-body-2 font-weight-medium">
+                          ₱{{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
+                        </span>
+                      </div>
+
+                      <v-divider class="my-2"></v-divider>
+
+                      <div class="d-flex justify-space-between align-center">
+                        <span class="text-caption text-grey">
+                          {{ selectedProducts.length }} product{{ selectedProducts.length !== 1 ? 's' : '' }}
+                        </span>
+                        <span class="text-body-2 font-weight-bold">
+                          Subtotal: ₱{{ calculatePosAmount().toFixed(2) }}
+                        </span>
+                      </div>
+                    </v-card>
+                  </div>
                 </v-card-text>
               </v-card>
 
@@ -1478,7 +1516,22 @@ export default {
       })
 
       // Convert Map to array and sort by price (highest first)
-      return Array.from(breakdown.values()).sort((a, b) => b.pricePerHour - a.pricePerHour)
+      const result = Array.from(breakdown.values()).sort((a, b) => b.pricePerHour - a.pricePerHour)
+
+      // Sort slots within each rate group by court name, then by start time
+      result.forEach(rateGroup => {
+        rateGroup.slots.sort((a, b) => {
+          // First, compare by court name
+          const courtComparison = a.courtName.localeCompare(b.courtName)
+          if (courtComparison !== 0) {
+            return courtComparison
+          }
+          // If court names are the same, compare by start time
+          return a.start.localeCompare(b.start)
+        })
+      })
+
+      return result
     }
 
     // Calculate booking amount (court slots only)
@@ -1504,7 +1557,7 @@ export default {
     // Calculate POS amount (products only)
     const calculatePosAmount = () => {
       return selectedProducts.value.reduce((sum, item) => {
-        return sum + (item.product.price * item.quantity)
+        return sum + (parseFloat(item.product.price) * item.quantity)
       }, 0)
     }
 
@@ -1934,18 +1987,23 @@ export default {
         const posItems = selectedProducts.value.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          unit_price: item.product.price,
+          unit_price: parseFloat(item.product.price),
           discount: item.discount || 0
         }))
 
         // Checkout with GCash payment (send array of base64 images) and POS items
+        const bookingAmount = calculateBookingAmount()
+        const posAmount = calculatePosAmount()
+        const totalAmount = bookingAmount + posAmount
+
         await cartService.checkout({
           payment_method: 'gcash',
           proof_of_payment: proofBase64Array,
           selected_items: cartItemIds,
           pos_items: posItems,
-          pos_amount: calculatePosAmount(),
-          booking_amount: calculateBookingAmount()
+          pos_amount: posAmount,
+          booking_amount: bookingAmount,
+          total_amount: totalAmount
         })
 
         // Dispatch cart updated event
@@ -2215,18 +2273,23 @@ export default {
         const posItems = selectedProducts.value.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          unit_price: item.product.price,
+          unit_price: parseFloat(item.product.price),
           discount: item.discount || 0
         }))
 
         // Checkout without payment, including POS items
+        const bookingAmount = calculateBookingAmount()
+        const posAmount = calculatePosAmount()
+        const totalAmount = bookingAmount + posAmount
+
         await cartService.checkout({
           payment_method: 'pending',
           skip_payment: true,
           selected_items: cartItemIds,
           pos_items: posItems,
-          pos_amount: calculatePosAmount(),
-          booking_amount: calculateBookingAmount()
+          pos_amount: posAmount,
+          booking_amount: bookingAmount,
+          total_amount: totalAmount
         })
 
         // Dispatch cart updated event
@@ -3114,6 +3177,20 @@ export default {
 /* Pricing Breakdown */
 .pricing-breakdown {
   margin-bottom: 16px;
+}
+
+/* POS Products Breakdown */
+.pos-products-breakdown {
+  margin-bottom: 16px;
+}
+
+.pos-products-breakdown .v-card {
+  border-left: 4px solid #4caf50;
+  transition: all 0.3s ease;
+}
+
+.pos-products-breakdown .v-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .rate-group-section {

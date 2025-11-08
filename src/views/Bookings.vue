@@ -2960,7 +2960,29 @@ export default {
     }
 
     const viewBooking = async (booking) => {
-      selectedBooking.value = booking
+      // Fetch fresh booking data with all relationships to ensure POS sales are included
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${booking.id}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const bookingData = await response.json()
+          // API may return { success: true, data: booking } or just the booking
+          selectedBooking.value = bookingData.data || bookingData
+        } else {
+          // Fallback to cached data if fetch fails
+          selectedBooking.value = booking
+        }
+      } catch (error) {
+        console.error('Error fetching booking details:', error)
+        // Fallback to cached data
+        selectedBooking.value = booking
+      }
+
       viewDialog.value = true
     }
 

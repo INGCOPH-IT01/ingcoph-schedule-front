@@ -211,10 +211,10 @@
         </div>
 
         <!-- Cart Items in Transaction (Staff/Admin detailed view) - Grouped by Court -->
-        <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && booking.cart_items && booking.cart_items.length > 0">
+        <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
-            Booked Courts & Time Slots ({{ booking.cart_items.length }} items)
+            Booked Courts & Time Slots ({{ (booking.cart_items || booking.cart_transaction?.cart_items || []).length }} items)
           </h4>
 
           <!-- Grouped by Court -->
@@ -452,7 +452,7 @@
         </div>
 
         <!-- Time Slots Details (Simple view for non-admin) - Grouped by Court -->
-        <div class="detail-section mb-4" v-if="(!showAdminFeatures || !isTransaction) && booking.cart_items && booking.cart_items.length > 0">
+        <div class="detail-section mb-4" v-if="(!showAdminFeatures || !isTransaction) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
             Booked Courts & Time Slots
@@ -743,8 +743,8 @@
               <div v-if="booking.admin_notes" class="mb-0 text-body-1">
                 {{ booking.admin_notes }}
               </div>
-              <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].admin_notes" class="mb-0 text-body-1">
-                {{ booking.cart_items[0].admin_notes }}
+              <div v-else-if="(booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.[0]?.admin_notes || booking.cart_transaction?.cart_items?.[0]?.admin_notes)" class="mb-0 text-body-1">
+                {{ booking.cart_items?.[0]?.admin_notes || booking.cart_transaction?.cart_items?.[0]?.admin_notes }}
               </div>
               <div v-else class="mb-0 text-body-2 text-grey">
                 <em>No admin notes for this booking</em>
@@ -754,7 +754,7 @@
         </div>
 
         <!-- Client Notes / Special Requests -->
-        <div class="detail-section mb-4" v-if="showAdminFeatures || booking.notes || (booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes) || editingNotes">
+        <div class="detail-section mb-4" v-if="showAdminFeatures || booking.notes || ((booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.[0]?.notes || booking.cart_transaction?.cart_items?.[0]?.notes)) || editingNotes">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-note-text</v-icon>
             Client Notes / Special Requests
@@ -810,12 +810,69 @@
               <div v-if="booking.notes" class="mb-0 text-body-1">
                 {{ booking.notes }}
               </div>
-              <div v-else-if="booking.cart_items && booking.cart_items.length > 0 && booking.cart_items[0].notes" class="mb-0 text-body-1">
-                {{ booking.cart_items[0].notes }}
+              <div v-else-if="(booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.[0]?.notes || booking.cart_transaction?.cart_items?.[0]?.notes)" class="mb-0 text-body-1">
+                {{ booking.cart_items?.[0]?.notes || booking.cart_transaction?.cart_items?.[0]?.notes }}
               </div>
               <div v-else class="mb-0 text-body-2 text-grey">
                 <em>No client notes for this booking</em>
               </div>
+            </div>
+          </v-card>
+        </div>
+
+        <!-- POS Products Section -->
+        <div class="detail-section mb-4" v-if="hasPosProducts">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="success">mdi-shopping</v-icon>
+            POS Products ({{ posProductsCount }} item{{ posProductsCount !== 1 ? 's' : '' }})
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+              <div class="text-caption">
+                <strong>Products purchased with this booking</strong>
+              </div>
+            </v-alert>
+
+            <div v-for="(sale, saleIndex) in (booking.cart_transaction?.pos_sales || booking.pos_sales)" :key="sale.id" class="mb-3">
+              <v-card variant="tonal" color="success" class="pa-3">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="d-flex align-center">
+                    <v-icon size="small" class="mr-2">mdi-receipt-text</v-icon>
+                    <span class="text-body-2 font-weight-bold">Sale #{{ sale.sale_number }}</span>
+                  </div>
+                  <v-chip size="small" :color="sale.status === 'completed' ? 'success' : 'warning'" variant="flat">
+                    {{ sale.status }}
+                  </v-chip>
+                </div>
+
+                <v-divider class="my-2"></v-divider>
+
+                <!-- Sale Items -->
+                <div v-for="(item, itemIndex) in sale.sale_items" :key="item.id" class="mb-2">
+                  <div class="d-flex align-center justify-space-between">
+                    <div class="d-flex align-center flex-grow-1">
+                      <v-icon size="16" class="mr-2" color="success">mdi-package-variant</v-icon>
+                      <span class="text-body-2">{{ item.product?.name || 'Product' }}</span>
+                      <span class="text-caption text-grey ml-2">
+                        ({{ item.quantity }} × ₱{{ parseFloat(item.unit_price).toFixed(2) }})
+                      </span>
+                    </div>
+                    <span class="text-body-2 font-weight-medium">
+                      ₱{{ parseFloat(item.subtotal).toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+
+                <v-divider class="my-2"></v-divider>
+
+                <!-- Sale Total -->
+                <div class="d-flex justify-space-between align-center">
+                  <span class="text-body-2 font-weight-bold">Sale Total:</span>
+                  <span class="text-h6 font-weight-bold text-success">
+                    ₱{{ parseFloat(sale.total_amount).toFixed(2) }}
+                  </span>
+                </div>
+              </v-card>
             </div>
           </v-card>
         </div>
@@ -1505,6 +1562,7 @@ import {
   formatWaitlistStatus,
   formatWaitlistDate,
   formatWaitlistTime,
+  getBookingDate,
   getBookingTimeRange,
   getTotalPrice,
   getPaymentStatus,
@@ -1710,7 +1768,35 @@ export default {
 
     // Check if this is a transaction (cart-based) booking
     const isTransaction = computed(() => {
-      return props.booking?.isTransaction || (props.booking?.cart_items && props.booking.cart_items.length > 0)
+      const cartItems = props.booking?.cart_items || props.booking?.cart_transaction?.cart_items
+      return props.booking?.isTransaction || (cartItems && cartItems.length > 0)
+    })
+
+    // Check if booking has POS products
+    const hasPosProducts = computed(() => {
+      // If booking has cart_transaction property, it's a booking object
+      if (props.booking?.cart_transaction?.pos_sales) {
+        return props.booking.cart_transaction.pos_sales.length > 0 &&
+               props.booking.cart_transaction.pos_sales.some(sale => sale.sale_items && sale.sale_items.length > 0)
+      }
+      // If booking has pos_sales directly, it's a transaction object
+      if (props.booking?.pos_sales) {
+        return props.booking.pos_sales.length > 0 &&
+               props.booking.pos_sales.some(sale => sale.sale_items && sale.sale_items.length > 0)
+      }
+      return false
+    })
+
+    // Count total POS product items
+    const posProductsCount = computed(() => {
+      if (!hasPosProducts.value) return 0
+
+      // Get pos_sales from either cart_transaction or directly from booking/transaction
+      const posSales = props.booking?.cart_transaction?.pos_sales || props.booking?.pos_sales || []
+
+      return posSales.reduce((total, sale) => {
+        return total + (sale.sale_items?.length || 0)
+      }, 0)
     })
 
     // Use formatPriceValue alias for the local formatPrice usage
@@ -2840,11 +2926,13 @@ export default {
 
     // Adjacent time sensitive time ranges
     const adjacentTimeRanges = computed(() => {
-      if (!props.booking || !props.booking.cart_items || props.booking.cart_items.length === 0) {
+      const cartItems = props.booking?.cart_items || props.booking?.cart_transaction?.cart_items
+
+      if (!props.booking || !cartItems || cartItems.length === 0) {
         return []
       }
 
-      const items = props.booking.cart_items
+      const items = cartItems
 
       // Remove duplicates and sort by start time
       const uniqueSlots = []
@@ -2905,12 +2993,15 @@ export default {
 
     // Group cart items by court, then merge adjacent time slots within each date
     const groupedCartItems = computed(() => {
-      if (!props.booking || !props.booking.cart_items || props.booking.cart_items.length === 0) {
+      // Get cart items from either booking.cart_items or booking.cart_transaction.cart_items
+      const cartItems = props.booking?.cart_items || props.booking?.cart_transaction?.cart_items
+
+      if (!props.booking || !cartItems || cartItems.length === 0) {
         return []
       }
 
       // Sort items by court, date, and start time
-      const itemsCopy = [...props.booking.cart_items].sort((a, b) => {
+      const itemsCopy = [...cartItems].sort((a, b) => {
         if (!a.court || !b.court) return 0
         if (a.court.id !== b.court.id) return a.court.id - b.court.id
         const dateA = a.booking_date || a.date
@@ -3088,6 +3179,8 @@ export default {
       playersAttended,
       showPlayersAttendedInput,
       isTransaction,
+      hasPosProducts,
+      posProductsCount,
       isStaffOrAdmin,
       isAdmin,
       // Waitlist state
