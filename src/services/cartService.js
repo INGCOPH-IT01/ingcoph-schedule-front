@@ -26,6 +26,15 @@ export const cartService = {
   },
 
   /**
+   * Validate cart items availability
+   * Checks if items are still available and removes unavailable ones
+   */
+  async validateCartItems() {
+    const response = await api.post('/cart/validate')
+    return response.data
+  },
+
+  /**
    * Add items to cart
    * @param {Array} items - Array of cart items
    */
