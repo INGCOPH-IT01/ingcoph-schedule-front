@@ -144,7 +144,8 @@
                     {{ formatPrice(sale.total_amount) }}
                   </span>
                 </div>
-                <div v-if="sale.profit !== undefined" class="d-flex justify-space-between mt-2 pt-2" style="border-top: 1px dashed rgba(0,0,0,0.2)">
+                <!-- Only admins can see profit data -->
+                <div v-if="isAdmin && sale.profit !== undefined" class="d-flex justify-space-between mt-2 pt-2" style="border-top: 1px dashed rgba(0,0,0,0.2)">
                   <span class="text-caption">Estimated Profit:</span>
                   <span class="text-caption font-weight-bold text-success">
                     {{ formatPrice(sale.profit) }}
@@ -209,7 +210,7 @@
 </template>
 
 <script>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { productService } from '../services/productService'
 import { posService } from '../services/posService'
 import { formatPrice, formatDate } from '../utils/formatters'
@@ -234,6 +235,20 @@ export default {
   setup(props, { emit }) {
     const newStatus = ref(null)
     const updating = ref(false)
+
+    // Check if user is admin
+    const isAdmin = computed(() => {
+      try {
+        const storedUser = localStorage.getItem('user')
+        if (storedUser) {
+          const user = JSON.parse(storedUser)
+          return user?.role === 'admin'
+        }
+      } catch (error) {
+        console.error('Failed to get user info:', error)
+      }
+      return false
+    })
 
     const statusOptions = [
       { title: 'Completed', value: 'completed' },
@@ -292,6 +307,7 @@ export default {
       newStatus,
       updating,
       statusOptions,
+      isAdmin,
       getSaleStatusColor,
       getSaleStatusText,
       getSaleStatusIcon,
