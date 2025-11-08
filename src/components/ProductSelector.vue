@@ -241,6 +241,7 @@ export default {
         filtered = filtered.filter(p =>
           p.name.toLowerCase().includes(searchLower) ||
           (p.sku && p.sku.toLowerCase().includes(searchLower)) ||
+          (p.barcode && p.barcode.toLowerCase().includes(searchLower)) ||
           (p.description && p.description.toLowerCase().includes(searchLower))
         )
       }
