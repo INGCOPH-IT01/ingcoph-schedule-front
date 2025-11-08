@@ -819,8 +819,8 @@ export default {
   bottom: 24px !important;
   right: 24px !important;
   z-index: 1000;
-  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important;
-  box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important;
+  /* background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%) !important; */
+  /* box-shadow: 0 8px 25px rgba(183, 28, 28, 0.4) !important; */
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
