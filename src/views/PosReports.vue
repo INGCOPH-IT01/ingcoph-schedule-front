@@ -366,7 +366,9 @@ export default {
       try {
         exporting.value = true
         const workbook = new ExcelJS.Workbook()
-        const sheet = workbook.addWorksheet('Sales Report')
+
+        // ===== Sales Summary Sheet =====
+        const sheet = workbook.addWorksheet('Sales Summary')
 
         const columns = [
           { header: 'Sale Number', key: 'sale_number', width: 20 },
@@ -413,6 +415,70 @@ export default {
           row.getCell('amount').numFmt = '₱#,##0.00'
           if (isAdmin.value) {
             row.getCell('profit').numFmt = '₱#,##0.00'
+          }
+        })
+
+        // ===== Detailed Items Sheet =====
+        const detailedSheet = workbook.addWorksheet('Detailed')
+
+        const detailedColumns = [
+          { header: 'Sale Number', key: 'sale_number', width: 20 },
+          { header: 'Date', key: 'date', width: 15 },
+          { header: 'Customer', key: 'customer', width: 25 },
+          { header: 'Product Name', key: 'product_name', width: 30 },
+          { header: 'SKU', key: 'sku', width: 15 },
+          { header: 'Quantity', key: 'quantity', width: 12 },
+          { header: 'Unit Price', key: 'unit_price', width: 15 },
+          { header: 'Discount', key: 'discount', width: 15 },
+          { header: 'Subtotal', key: 'subtotal', width: 15 }
+        ]
+
+        // Only admins can see item profit
+        if (isAdmin.value) {
+          detailedColumns.push({ header: 'Item Profit', key: 'item_profit', width: 15 })
+        }
+
+        detailedSheet.columns = detailedColumns
+
+        // Style detailed header
+        detailedSheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+        detailedSheet.getRow(1).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FF10B981' }
+        }
+
+        // Add detailed rows for each sale item
+        sales.value.forEach(sale => {
+          if (sale.sale_items && sale.sale_items.length > 0) {
+            sale.sale_items.forEach(item => {
+              const detailedRowData = {
+                sale_number: sale.sale_number,
+                date: formatDate(sale.sale_date),
+                customer: getDisplayCustomerName(sale),
+                product_name: item.product?.name || 'N/A',
+                sku: item.product?.sku || 'N/A',
+                quantity: item.quantity,
+                unit_price: parseFloat(item.unit_price),
+                discount: parseFloat(item.discount || 0),
+                subtotal: parseFloat(item.subtotal)
+              }
+
+              // Only admins can see item profit
+              if (isAdmin.value) {
+                detailedRowData.item_profit = parseFloat(item.item_profit || 0)
+              }
+
+              const detailedRow = detailedSheet.addRow(detailedRowData)
+
+              // Format currency columns
+              detailedRow.getCell('unit_price').numFmt = '₱#,##0.00'
+              detailedRow.getCell('discount').numFmt = '₱#,##0.00'
+              detailedRow.getCell('subtotal').numFmt = '₱#,##0.00'
+              if (isAdmin.value) {
+                detailedRow.getCell('item_profit').numFmt = '₱#,##0.00'
+              }
+            })
           }
         })
 
