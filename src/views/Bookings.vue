@@ -1826,6 +1826,20 @@ export default {
             const firstItem = group.items[0]
             const extractedSport = firstItem?.sport || firstItem?.court?.sport || null
 
+            // Calculate POS sales total for this date
+            let posSalesTotal = 0
+            if (transaction.pos_sales && transaction.pos_sales.length > 0) {
+              posSalesTotal = transaction.pos_sales
+                .filter(sale => {
+                  // Filter POS sales by the same date as this group
+                  const saleDate = typeof sale.sale_date === 'string' && sale.sale_date.includes('T')
+                    ? sale.sale_date.split('T')[0]
+                    : sale.sale_date
+                  return saleDate === group.date
+                })
+                .reduce((sum, sale) => sum + parseFloat(sale.total_amount || 0), 0)
+            }
+
             flattened.push({
               id: `${transaction.id}_${groupKey}`,
               // booking_id: group.bookings.id,
@@ -1834,7 +1848,9 @@ export default {
               court: group.court,
               sport: extractedSport,
               cart_items: group.items,
-              price: group.price,
+              price: group.price + posSalesTotal,
+              cart_price: group.price, // Store cart-only price separately
+              pos_sales_total: posSalesTotal, // Store POS sales total separately
               user: transaction.user,
               approval_status: transaction.approval_status,
               payment_method: transaction.payment_method,
