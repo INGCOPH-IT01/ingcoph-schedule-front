@@ -144,6 +144,25 @@
               <div class="detail-value" style="white-space: pre-wrap; text-align: left;">{{ rejectionReason }}</div>
             </div>
             <v-divider class="my-2"></v-divider>
+            <!-- Price Breakdown (if has POS products) -->
+            <div v-if="hasPosProducts && (booking.booking_amount || booking.pos_amount)">
+              <div class="detail-row">
+                <span class="detail-label">
+                  <v-icon size="16" class="mr-1">mdi-calendar-clock</v-icon>
+                  Court Booking:
+                </span>
+                <span class="detail-value font-weight-medium">₱{{ parseFloat(booking.booking_amount || 0).toFixed(2) }}</span>
+              </div>
+              <v-divider class="my-2"></v-divider>
+              <div class="detail-row">
+                <span class="detail-label">
+                  <v-icon size="16" class="mr-1">mdi-shopping</v-icon>
+                  POS Products:
+                </span>
+                <span class="detail-value font-weight-medium">₱{{ parseFloat(booking.pos_amount || 0).toFixed(2) }}</span>
+              </div>
+              <v-divider class="my-2"></v-divider>
+            </div>
             <div class="detail-row">
               <span class="detail-label">Total Price:</span>
               <span class="detail-value font-weight-bold text-h6 text-success">₱{{ totalPrice }}</span>
@@ -535,6 +554,63 @@
           </v-card>
         </div>
 
+        <!-- POS Products Section -->
+        <div class="detail-section mb-4" v-if="hasPosProducts">
+          <h4 class="detail-section-title">
+            <v-icon class="mr-2" color="success">mdi-shopping</v-icon>
+            POS Products ({{ posProductsCount }} item{{ posProductsCount !== 1 ? 's' : '' }})
+          </h4>
+          <v-card variant="outlined" class="pa-4">
+            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+              <div class="text-caption">
+                <strong>Products purchased with this booking</strong>
+              </div>
+            </v-alert>
+
+            <div v-for="(sale, saleIndex) in (booking.cart_transaction?.pos_sales || booking.pos_sales)" :key="sale.id" class="mb-3">
+              <v-card variant="tonal" color="success" class="pa-3">
+                <div class="d-flex align-center justify-space-between mb-2">
+                  <div class="d-flex align-center">
+                    <v-icon size="small" class="mr-2">mdi-receipt-text</v-icon>
+                    <span class="text-body-2 font-weight-bold">Sale #{{ sale.sale_number }}</span>
+                  </div>
+                  <v-chip size="small" :color="sale.status === 'completed' ? 'success' : 'warning'" variant="flat">
+                    {{ sale.status }}
+                  </v-chip>
+                </div>
+
+                <v-divider class="my-2"></v-divider>
+
+                <!-- Sale Items -->
+                <div v-for="(item, itemIndex) in sale.sale_items" :key="item.id" class="mb-2">
+                  <div class="d-flex align-center justify-space-between">
+                    <div class="d-flex align-center flex-grow-1">
+                      <v-icon size="16" class="mr-2" color="success">mdi-package-variant</v-icon>
+                      <span class="text-body-2">{{ item.product?.name || 'Product' }}</span>
+                      <span class="text-caption text-grey ml-2">
+                        ({{ item.quantity }} × ₱{{ parseFloat(item.unit_price).toFixed(2) }})
+                      </span>
+                    </div>
+                    <span class="text-body-2 font-weight-medium">
+                      ₱{{ parseFloat(item.subtotal).toFixed(2) }}
+                    </span>
+                  </div>
+                </div>
+
+                <v-divider class="my-2"></v-divider>
+
+                <!-- Sale Total -->
+                <div class="d-flex justify-space-between align-center">
+                  <span class="text-body-2 font-weight-bold">Sale Total:</span>
+                  <span class="text-h6 font-weight-bold text-success">
+                    ₱{{ parseFloat(sale.total_amount).toFixed(2) }}
+                  </span>
+                </div>
+              </v-card>
+            </div>
+          </v-card>
+        </div>
+
         <!-- Frequency Booking Details -->
         <div class="detail-section mb-4" v-if="showAdminFeatures && booking.frequency_type && booking.frequency_type !== 'once'">
           <h4 class="detail-section-title">
@@ -816,63 +892,6 @@
               <div v-else class="mb-0 text-body-2 text-grey">
                 <em>No client notes for this booking</em>
               </div>
-            </div>
-          </v-card>
-        </div>
-
-        <!-- POS Products Section -->
-        <div class="detail-section mb-4" v-if="hasPosProducts">
-          <h4 class="detail-section-title">
-            <v-icon class="mr-2" color="success">mdi-shopping</v-icon>
-            POS Products ({{ posProductsCount }} item{{ posProductsCount !== 1 ? 's' : '' }})
-          </h4>
-          <v-card variant="outlined" class="pa-4">
-            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
-              <div class="text-caption">
-                <strong>Products purchased with this booking</strong>
-              </div>
-            </v-alert>
-
-            <div v-for="(sale, saleIndex) in (booking.cart_transaction?.pos_sales || booking.pos_sales)" :key="sale.id" class="mb-3">
-              <v-card variant="tonal" color="success" class="pa-3">
-                <div class="d-flex align-center justify-space-between mb-2">
-                  <div class="d-flex align-center">
-                    <v-icon size="small" class="mr-2">mdi-receipt-text</v-icon>
-                    <span class="text-body-2 font-weight-bold">Sale #{{ sale.sale_number }}</span>
-                  </div>
-                  <v-chip size="small" :color="sale.status === 'completed' ? 'success' : 'warning'" variant="flat">
-                    {{ sale.status }}
-                  </v-chip>
-                </div>
-
-                <v-divider class="my-2"></v-divider>
-
-                <!-- Sale Items -->
-                <div v-for="(item, itemIndex) in sale.sale_items" :key="item.id" class="mb-2">
-                  <div class="d-flex align-center justify-space-between">
-                    <div class="d-flex align-center flex-grow-1">
-                      <v-icon size="16" class="mr-2" color="success">mdi-package-variant</v-icon>
-                      <span class="text-body-2">{{ item.product?.name || 'Product' }}</span>
-                      <span class="text-caption text-grey ml-2">
-                        ({{ item.quantity }} × ₱{{ parseFloat(item.unit_price).toFixed(2) }})
-                      </span>
-                    </div>
-                    <span class="text-body-2 font-weight-medium">
-                      ₱{{ parseFloat(item.subtotal).toFixed(2) }}
-                    </span>
-                  </div>
-                </div>
-
-                <v-divider class="my-2"></v-divider>
-
-                <!-- Sale Total -->
-                <div class="d-flex justify-space-between align-center">
-                  <span class="text-body-2 font-weight-bold">Sale Total:</span>
-                  <span class="text-h6 font-weight-bold text-success">
-                    ₱{{ parseFloat(sale.total_amount).toFixed(2) }}
-                  </span>
-                </div>
-              </v-card>
             </div>
           </v-card>
         </div>

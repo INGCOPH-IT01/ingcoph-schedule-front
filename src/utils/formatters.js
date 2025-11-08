@@ -496,6 +496,17 @@ export function getBookingTimeRange(booking) {
 export function getTotalPrice(booking) {
   if (!booking) return '0.00'
 
+  // For transactions with POS products, use total_price which includes both booking and POS amounts
+  // Check if this is a transaction (has cart_items or isTransaction flag)
+  const isTransaction = booking.isTransaction || (booking.cart_items && booking.cart_items.length > 0)
+
+  // If total_price exists (from backend calculation), use it
+  // This handles transactions with POS products correctly
+  if (booking.total_price !== undefined && booking.total_price !== null) {
+    return formatPriceValue(booking.total_price)
+  }
+
+  // Fallback: calculate from cart_items if available
   if (booking.cart_items && booking.cart_items.length > 0) {
     const total = booking.cart_items.reduce((sum, item) => {
       return sum + parseFloat(item.price || 0)
@@ -503,7 +514,7 @@ export function getTotalPrice(booking) {
     return total.toFixed(2)
   }
 
-  return formatPriceValue(booking.total_price || 0)
+  return '0.00'
 }
 
 // ============================================================================

@@ -496,8 +496,27 @@
             </template>
 
             <template v-slot:[`item.total_price`]="{ item }">
-              <div class="text-h6 font-weight-bold text-success">
-                {{ formatPrice(item.total_price ?? 0) }}
+              <div>
+                <div class="text-h6 font-weight-bold text-success">
+                  {{ formatPrice(item.total_price ?? 0) }}
+                </div>
+                <!-- Show breakdown if has POS products -->
+                <div v-if="item.pos_amount && parseFloat(item.pos_amount) > 0" class="text-caption text-grey mt-1">
+                  <v-tooltip location="top">
+                    <template v-slot:activator="{ props }">
+                      <div v-bind="props" style="cursor: help;">
+                        <v-icon size="12" class="mr-1">mdi-information-outline</v-icon>
+                        Booking + POS
+                      </div>
+                    </template>
+                    <div class="text-left">
+                      <div><v-icon size="12" class="mr-1">mdi-calendar-clock</v-icon>Court Booking: {{ formatPrice(item.booking_amount ?? 0) }}</div>
+                      <div><v-icon size="12" class="mr-1">mdi-shopping</v-icon>POS Products: {{ formatPrice(item.pos_amount ?? 0) }}</div>
+                      <v-divider class="my-1" dark></v-divider>
+                      <div class="font-weight-bold">Total: {{ formatPrice(item.total_price ?? 0) }}</div>
+                    </div>
+                  </v-tooltip>
+                </div>
               </div>
             </template>
 
@@ -612,6 +631,7 @@
       :court-name="selectedBooking?.court_name"
       :show-admin-features="true"
       :show-court-images="true"
+      @close="detailsDialog = false"
       @attendance-updated="handleAttendanceUpdated"
     />
 
@@ -946,6 +966,8 @@ export default {
           { header: 'Courts', key: 'courts', width: 35 },
           { header: 'Booking Date', key: 'bookingDate', width: 15 },
           { header: 'Overall Time Range', key: 'timeRange', width: 20 },
+          { header: 'Court Booking Amount', key: 'bookingAmount', width: 18 },
+          { header: 'POS Amount', key: 'posAmount', width: 15 },
           { header: 'Total Price', key: 'totalPrice', width: 15 },
           { header: 'Payment Status', key: 'paymentStatus', width: 18 },
           { header: 'Approval Status', key: 'approvalStatus', width: 18 },
@@ -1036,6 +1058,8 @@ export default {
             courts: courts,
             bookingDate: bookingDate,
             timeRange: timeRange,
+            bookingAmount: parseFloat(transaction.booking_amount ?? 0),
+            posAmount: parseFloat(transaction.pos_amount ?? 0),
             totalPrice: parseFloat(transaction.total_price ?? 0),
             paymentStatus: getPaymentStatusText(transaction),
             approvalStatus: getApprovalStatusText(transaction.approval_status),
@@ -1044,7 +1068,9 @@ export default {
             clientNotes: cartItems[0]?.notes || ''
           })
 
-          // Apply currency format to Total Price cell
+          // Apply currency format to price cells
+          row.getCell('bookingAmount').numFmt = '₱#,##0.00'
+          row.getCell('posAmount').numFmt = '₱#,##0.00'
           row.getCell('totalPrice').numFmt = '₱#,##0.00'
         })
 
@@ -1167,17 +1193,50 @@ export default {
     }
 
     // Additional helper functions for booking details
-    const viewBookingDetails = (booking) => {
-      selectedBooking.value = booking
+    const viewBookingDetails = async (booking) => {
+      // Fetch fresh booking data with all relationships to ensure POS sales are included
+      try {
+        // Determine if this is a cart transaction or regular booking
+        const endpoint = booking.isTransaction
+          ? `${import.meta.env.VITE_API_URL}/api/cart-transactions/${booking.id}`
+          : `${import.meta.env.VITE_API_URL}/api/bookings/${booking.id}`
+
+        const response = await fetch(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const bookingData = await response.json()
+          // API may return { success: true, data: booking } or just the booking
+          selectedBooking.value = bookingData.data || bookingData
+        } else {
+          // Fallback to cached data if fetch fails
+          selectedBooking.value = booking
+        }
+      } catch (error) {
+        console.error('Error fetching booking details:', error)
+        // Fallback to cached data
+        selectedBooking.value = booking
+      }
+
       detailsDialog.value = true
     }
 
-    const handleAttendanceUpdated = ({ bookingId, status }) => {
+    const handleAttendanceUpdated = async ({ bookingId, status }) => {
       // Update the transaction in the list
       const transaction = pendingBookings.value.find(b => b.id === bookingId)
       if (transaction) {
         transaction.attendance_status = status
       }
+
+      // Reload data to ensure we have the latest information (including POS updates)
+      await loadPendingBookings()
+      await loadStats()
+      await loadPosStats()
+
       showSnackbar('Attendance status updated successfully', 'success')
     }
 
