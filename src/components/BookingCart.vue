@@ -487,6 +487,7 @@ import { cartService } from '../services/cartService'
 import { sportService } from '../services/sportService'
 import { paymentSettingService } from '../services/paymentSettingService'
 import { authService } from '../services/authService'
+import { formatDateLong } from '../utils/formatters'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
 
@@ -531,6 +532,37 @@ export default {
     const loadCart = async () => {
       loading.value = true
       try {
+        // First, validate cart items availability
+        try {
+          const validationResult = await cartService.validateCartItems()
+
+          // If there are unavailable items, show alert to user
+          if (validationResult.has_unavailable_items && validationResult.unavailable_items.length > 0) {
+            const unavailableList = validationResult.unavailable_items
+              .map(item => {
+                const formattedDate = formatDateLong(item.booking_date) || item.booking_date
+                return `• ${item.court_name} - ${formattedDate} ${item.start_time} - ${item.end_time}`
+              })
+              .join('<br>')
+
+            showAlert({
+              icon: 'warning',
+              title: 'Cart Items No Longer Available',
+              html: `<p><strong>${validationResult.removed_count} item${validationResult.removed_count > 1 ? 's have' : ' has'} been removed from your cart because ${validationResult.removed_count > 1 ? 'they are' : 'it is'} no longer available:</strong></p>
+                     <div class="text-left mt-2 mb-2" style="font-size: 0.9em;">${unavailableList}</div>
+                     <p class="text-caption mt-3">These time slots may have been booked by other users or are no longer available.</p>`,
+              confirmButtonText: 'OK',
+              confirmButtonColor: '#1976d2'
+            })
+
+            // Dispatch cart update event so cart count badge updates
+            window.dispatchEvent(new CustomEvent('cart-updated'))
+          }
+        } catch (validationError) {
+          // Continue loading cart even if validation fails
+          console.error('Cart validation error:', validationError)
+        }
+
         const previousItemCount = cartItems.value.length
         const response = await cartService.getCartTransaction()
         const items = response.cart_items || []
@@ -1102,12 +1134,9 @@ export default {
         return 'Invalid Date'
       }
       try {
-        return new Date(date).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        })
+        // Use timezone-aware formatter from utils/formatters.js
+        const formatted = formatDateLong(date)
+        return formatted || 'Invalid Date'
       } catch (error) {
         return date
       }

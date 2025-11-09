@@ -1785,6 +1785,18 @@ export default {
           return
         }
 
+        // Only show transactions that have been converted to Booking records
+        // Skip transactions that are still in "cart" state (not yet checked out/submitted)
+        // Check if transaction has bookings OR if any cart item has bookings
+        const hasBookings = (transaction.bookings && transaction.bookings.length > 0) ||
+                           (transaction.cart_items && transaction.cart_items.some(item =>
+                             item.bookings && item.bookings.length > 0
+                           ))
+
+        if (!hasBookings) {
+          return
+        }
+
         // Filter out cancelled cart items
         const activeCartItems = transaction.cart_items.filter(item =>
           item.status !== 'cancelled'
