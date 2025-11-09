@@ -447,6 +447,18 @@
               <!-- Proof of Payment Upload -->
               <v-row v-if="!isRejected">
                 <v-col cols="12">
+                  <!-- Payment Reference Number -->
+                  <v-text-field
+                    v-model="form.payment_reference_number"
+                    label="Payment Reference Number"
+                    placeholder="Enter QRPH invoice number"
+                    variant="outlined"
+                    prepend-inner-icon="mdi-pound"
+                    hint="Optional: Enter the reference number from your payment"
+                    persistent-hint
+                    class="mb-3"
+                  ></v-text-field>
+
                   <v-file-input
                     v-model="form.proof_of_payment"
                     label="Upload Proof of Payment"
@@ -1191,6 +1203,7 @@ export default {
         frequency_duration_months: 1,
         frequency_end_date: '',
         payment_method: 'gcash',
+        payment_reference_number: '',
         gcash_amount: '',
         proof_of_payment: null
       }
@@ -1608,7 +1621,8 @@ export default {
         const result = await bookingService.uploadProofOfPayment(
           bookingId,
           file,
-          form.value.payment_method
+          form.value.payment_method,
+          form.value.payment_reference_number
         )
 
         return result.data

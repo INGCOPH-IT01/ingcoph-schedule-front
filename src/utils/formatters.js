@@ -489,32 +489,44 @@ export function getBookingTimeRange(booking) {
 }
 
 /**
- * Get total price from cart items
- * @param {Object} booking - Booking object
+ * Get total price - handles both CartTransaction and individual Booking objects
+ * @param {Object} booking - Booking or CartTransaction object
  * @returns {string} Formatted total price
  */
 export function getTotalPrice(booking) {
   if (!booking) return '0.00'
 
-  // For transactions with POS products, use total_price which includes both booking and POS amounts
-  // Check if this is a transaction (has cart_items or isTransaction flag)
+  // Check if this is a CartTransaction (has cart_items or isTransaction flag)
   const isTransaction = booking.isTransaction || (booking.cart_items && booking.cart_items.length > 0)
 
-  // If total_price exists (from backend calculation), use it
-  // This handles transactions with POS products correctly
-  if (booking.total_price !== undefined && booking.total_price !== null) {
-    return formatPriceValue(booking.total_price)
-  }
+  if (isTransaction) {
+    // For CartTransaction: total_price includes booking_amount + pos_amount
+    // Use the transaction's total_price which is calculated on the backend
+    if (booking.total_price !== undefined && booking.total_price !== null) {
+      return formatPriceValue(booking.total_price)
+    }
 
-  // Fallback: calculate from cart_items if available
-  if (booking.cart_items && booking.cart_items.length > 0) {
-    const total = booking.cart_items.reduce((sum, item) => {
-      return sum + parseFloat(item.price || 0)
-    }, 0)
-    return total.toFixed(2)
-  }
+    // Fallback: calculate from cart_items (booking costs only, no POS)
+    if (booking.cart_items && booking.cart_items.length > 0) {
+      const bookingTotal = booking.cart_items.reduce((sum, item) => {
+        return sum + parseFloat(item.price || 0)
+      }, 0)
 
-  return '0.00'
+      // Add POS amount if available (pos_amount is transaction-level)
+      const posAmount = parseFloat(booking.pos_amount || 0)
+      return (bookingTotal + posAmount).toFixed(2)
+    }
+
+    return '0.00'
+  } else {
+    // For individual Booking: total_price is ONLY the court slot price
+    // POS products are NOT associated with individual bookings
+    if (booking.total_price !== undefined && booking.total_price !== null) {
+      return formatPriceValue(booking.total_price)
+    }
+
+    return '0.00'
+  }
 }
 
 // ============================================================================

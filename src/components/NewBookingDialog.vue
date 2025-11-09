@@ -740,6 +740,7 @@
 
                         <ProofOfPaymentUpload
                           v-model="proofOfPayment"
+                          v-model:reference-number="paymentReferenceNumber"
                           label="Proof of Payment"
                           placeholder="Upload screenshots"
                           density="compact"
@@ -959,6 +960,7 @@ export default {
     const paymentMethod = ref('gcash') // GCash payment is required
     const gcashQrCanvas = ref(null)
     const proofOfPayment = ref([])
+    const paymentReferenceNumber = ref('')
     const skipPayment = ref(false) // Admin/Staff can skip payment
 
     // Payment settings from Payment Details module
@@ -1998,6 +2000,7 @@ export default {
 
         await cartService.checkout({
           payment_method: 'gcash',
+          payment_reference_number: paymentReferenceNumber.value,
           proof_of_payment: proofBase64Array,
           selected_items: cartItemIds,
           pos_items: posItems,
@@ -2284,6 +2287,7 @@ export default {
 
         await cartService.checkout({
           payment_method: 'pending',
+          payment_reference_number: paymentReferenceNumber.value,
           skip_payment: true,
           selected_items: cartItemIds,
           pos_items: posItems,
@@ -2417,6 +2421,7 @@ export default {
       bookingNotes.value = ''
       paymentMethod.value = 'gcash'
       proofOfPayment.value = []
+      paymentReferenceNumber.value = ''
       skipPayment.value = false
       selectedProducts.value = [] // Reset POS products
       // Reset admin fields
@@ -2638,6 +2643,7 @@ export default {
       paymentMethod,
       gcashQrCanvas,
       proofOfPayment,
+      paymentReferenceNumber,
       paymentSettings,
       skipPayment,
       selectedSport,

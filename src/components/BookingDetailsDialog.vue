@@ -1003,6 +1003,7 @@
 
                 <ProofOfPaymentUpload
                   v-model="proofFiles"
+                  v-model:reference-number="paymentReferenceNumber"
                   label="Select proof of payment"
                   placeholder="Select images"
                   density="compact"
@@ -1025,6 +1026,12 @@
               </v-card>
             </template>
             <v-divider class="my-2"></v-divider>
+            <!-- Display Payment Reference Number if it exists -->
+            <div class="detail-row" v-if="booking.payment_reference_number">
+              <span class="detail-label">Payment Reference Number:</span>
+              <span class="detail-value font-weight-medium">{{ booking.payment_reference_number }}</span>
+            </div>
+            <v-divider v-if="booking.payment_reference_number" class="my-2"></v-divider>
             <div class="detail-row">
               <span class="detail-label">Total Amount:</span>
               <span class="detail-value font-weight-bold text-h6 text-success">₱{{ totalPrice }}</span>
@@ -1660,6 +1667,7 @@ export default {
     // Proof of Payment Upload state
     const uploadingProof = ref(false)
     const proofFiles = ref([])
+    const paymentReferenceNumber = ref('')
 
     // Court editing state
     const editingCourtItemIndex = ref(null)
@@ -2190,14 +2198,16 @@ export default {
           response = await cartService.uploadProofOfPayment(
             props.booking.id,
             files,
-            paymentMethod
+            paymentMethod,
+            paymentReferenceNumber.value
           )
         } else {
           // For regular bookings, use bookingService
           response = await bookingService.uploadProofOfPayment(
             props.booking.id,
             files,
-            paymentMethod
+            paymentMethod,
+            paymentReferenceNumber.value
           )
         }
 
@@ -2207,10 +2217,12 @@ export default {
           props.booking.payment_method = response.data.payment_method
           props.booking.proof_of_payment = response.data.proof_of_payment
           props.booking.paid_at = response.data.paid_at
+          props.booking.payment_reference_number = response.data.payment_reference_number || paymentReferenceNumber.value
         }
 
         // Reset upload form
         proofFiles.value = []
+        paymentReferenceNumber.value = ''
 
         // Show success message
         const wasAlreadyPaid = isAlreadyPaid.value

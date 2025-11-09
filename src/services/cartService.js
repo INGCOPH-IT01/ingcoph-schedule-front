@@ -138,7 +138,7 @@ export const cartService = {
    * @param {File|File[]} files - Proof of payment file(s)
    * @param {string} paymentMethod - Payment method (gcash, cash)
    */
-  async uploadProofOfPayment(transactionId, files, paymentMethod = 'gcash') {
+  async uploadProofOfPayment(transactionId, files, paymentMethod = 'gcash', paymentReferenceNumber = null) {
     try {
       const formData = new FormData()
 
@@ -151,6 +151,10 @@ export const cartService = {
       })
 
       formData.append('payment_method', paymentMethod)
+
+      if (paymentReferenceNumber) {
+        formData.append('payment_reference_number', paymentReferenceNumber)
+      }
 
       const response = await api.post(`/cart-transactions/${transactionId}/upload-proof`, formData, {
         headers: {

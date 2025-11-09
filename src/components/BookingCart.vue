@@ -360,6 +360,18 @@
             </v-card-text>
           </v-card>
 
+          <!-- Payment Reference Number -->
+          <v-text-field
+            v-model="paymentReferenceNumber"
+            label="Payment Reference Number"
+            placeholder="Enter QRPH invoice number"
+            variant="outlined"
+            prepend-icon="mdi-pound"
+            hint="Optional: Enter the reference number from your payment"
+            persistent-hint
+            class="mb-3"
+          ></v-text-field>
+
           <!-- Proof of Payment Upload -->
           <v-file-input
             v-model="proofOfPayment"
@@ -507,6 +519,7 @@ export default {
     const checkingOut = ref(false)
     const paymentDialog = ref(false)
     const proofOfPayment = ref(null)
+    const paymentReferenceNumber = ref('')
     const proofPreview = ref(null)
     const previewUploadDialog = ref(false)
     const gcashQrCanvas = ref(null)
@@ -986,6 +999,7 @@ export default {
     const closePaymentDialog = () => {
       paymentDialog.value = false
       proofOfPayment.value = null
+      paymentReferenceNumber.value = ''
       proofPreview.value = null
     }
 
@@ -1058,6 +1072,7 @@ export default {
         // Checkout via cart API with selected items only
         const response = await cartService.checkout({
           payment_method: 'gcash',
+          payment_reference_number: paymentReferenceNumber.value,
           proof_of_payment: proofBase64,
           selected_items: selectedItems.map(item => item.id)
         })
@@ -1191,6 +1206,7 @@ export default {
       checkingOut,
       paymentDialog,
       proofOfPayment,
+      paymentReferenceNumber,
       proofPreview,
       previewUploadDialog,
       gcashQrCanvas,
@@ -1216,7 +1232,10 @@ export default {
       // Services
       sportService,
       // Payment settings
-      paymentSettings
+      paymentSettings,
+      cartTransaction,
+      timeRemaining,
+      expirationWarning
     }
   }
 }

@@ -530,8 +530,6 @@ export default {
     const paymentMethods = [
       { title: 'Cash', value: 'cash' },
       { title: 'GCash', value: 'gcash' },
-      { title: 'Card', value: 'card' },
-      { title: 'Bank Transfer', value: 'bank_transfer' }
     ]
 
     const categoryOptions = computed(() => {
