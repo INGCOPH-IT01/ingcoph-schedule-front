@@ -301,6 +301,11 @@ export default {
     const printReceipt = () => {
       // Simple print implementation
       window.print()
+      // Close the dialog after print dialog is opened
+      // Small delay to ensure print dialog is shown first
+      setTimeout(() => {
+        emit('update:isOpen', false)
+      }, 100)
     }
 
     return {

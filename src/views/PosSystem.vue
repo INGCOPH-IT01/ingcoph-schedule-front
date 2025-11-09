@@ -413,15 +413,21 @@
                 class="mb-3"
               ></v-select>
 
-              <v-text-field
-                v-model="paymentReference"
-                label="Payment Reference (Optional)"
-                prepend-inner-icon="mdi-barcode"
-                variant="outlined"
+              <!-- Proof of Payment Upload -->
+              <ProofOfPaymentUpload
+                v-model="proofOfPaymentFiles"
+                v-model:reference-number="paymentReference"
+                reference-label="Payment Reference (Optional)"
+                reference-placeholder="Enter payment reference number"
+                reference-hint="Optional: Enter the reference number from your payment"
+                label="Upload Proof of Payment (Optional)"
+                placeholder="Select image file(s)"
+                hint="Upload screenshots of your payment receipts (max 5MB each)"
                 density="compact"
-                hide-details
+                :persistent-hint="false"
+                :multiple="true"
                 class="mb-3"
-              ></v-text-field>
+              />
 
               <v-textarea
                 v-model="notes"
@@ -485,12 +491,14 @@ import {
 } from '../utils/formatters'
 import PosCart from '../components/PosCart.vue'
 import PosSaleDialog from '../components/PosSaleDialog.vue'
+import ProofOfPaymentUpload from '../components/ProofOfPaymentUpload.vue'
 
 export default {
   name: 'PosSystem',
   components: {
     PosCart,
-    PosSaleDialog
+    PosSaleDialog,
+    ProofOfPaymentUpload
   },
   setup() {
     const products = ref([])
@@ -505,6 +513,7 @@ export default {
     const customerName = ref('')
     const paymentMethod = ref('cash')
     const paymentReference = ref('')
+    const proofOfPaymentFiles = ref(null)
     const notes = ref('')
     const processing = ref(false)
     const recentBookings = ref([])
@@ -693,6 +702,7 @@ export default {
         bookingSearch.value.userName = ''
         customerName.value = ''
         paymentReference.value = ''
+        proofOfPaymentFiles.value = null
         notes.value = ''
       }
     }
@@ -723,8 +733,8 @@ export default {
           status: 'completed'
         }
 
-        // Create sale
-        const sale = await posService.createSale(saleData)
+        // Create sale with proof of payment files
+        const sale = await posService.createSale(saleData, proofOfPaymentFiles.value)
         completedSale.value = sale
         showSnackbar('Sale completed successfully!', 'success')
 
@@ -741,6 +751,7 @@ export default {
         customerName.value = ''
         paymentMethod.value = 'cash'
         paymentReference.value = ''
+        proofOfPaymentFiles.value = null
         notes.value = ''
 
         // Reload products to update stock
@@ -831,6 +842,7 @@ export default {
       customerName,
       paymentMethod,
       paymentReference,
+      proofOfPaymentFiles,
       notes,
       processing,
       recentBookings,

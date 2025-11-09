@@ -20,7 +20,52 @@ export const posService = {
   /**
    * Create a new POS sale
    */
-  async createSale(saleData) {
+  async createSale(saleData, proofOfPaymentFiles = null) {
+    // If there are proof of payment files, use FormData
+    if (proofOfPaymentFiles && Array.isArray(proofOfPaymentFiles) && proofOfPaymentFiles.length > 0) {
+      const formData = new FormData()
+
+      // Append items array - each item as separate indexed fields
+      saleData.items.forEach((item, index) => {
+        formData.append(`items[${index}][product_id]`, item.product_id)
+        formData.append(`items[${index}][quantity]`, item.quantity)
+        formData.append(`items[${index}][discount]`, item.discount)
+      })
+
+      // Append other required fields
+      formData.append('discount', saleData.discount)
+      formData.append('tax', saleData.tax)
+      formData.append('payment_method', saleData.payment_method)
+      formData.append('status', saleData.status)
+
+      // Append optional fields if they exist
+      if (saleData.payment_reference) {
+        formData.append('payment_reference', saleData.payment_reference)
+      }
+      if (saleData.notes) {
+        formData.append('notes', saleData.notes)
+      }
+      if (saleData.customer_name) {
+        formData.append('customer_name', saleData.customer_name)
+      }
+      if (saleData.booking_id) {
+        formData.append('booking_id', saleData.booking_id)
+      }
+
+      // Append proof of payment files
+      proofOfPaymentFiles.forEach((file, index) => {
+        formData.append(`proof_of_payment[${index}]`, file)
+      })
+
+      const response = await api.post('/pos/sales', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      return response.data
+    }
+
+    // Otherwise, send as regular JSON
     const response = await api.post('/pos/sales', saleData)
     return response.data
   },
