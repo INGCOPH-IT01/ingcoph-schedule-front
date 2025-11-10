@@ -44,12 +44,24 @@
                 <v-text-field
                   v-model="search"
                   label="Search products"
+                  placeholder="Search by name, SKU, or scan barcode"
                   prepend-inner-icon="mdi-magnify"
                   variant="outlined"
                   density="compact"
                   clearable
                   hide-details
-                ></v-text-field>
+                >
+                  <template v-slot:append-inner>
+                    <v-tooltip location="top">
+                      <template v-slot:activator="{ props }">
+                        <v-icon v-bind="props" size="small" color="primary">
+                          mdi-barcode-scan
+                        </v-icon>
+                      </template>
+                      Scan or type barcode to auto-add to cart
+                    </v-tooltip>
+                  </template>
+                </v-text-field>
               </v-col>
               <v-col cols="12" md="4">
                 <v-select
@@ -477,7 +489,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { productService } from '../services/productService'
 import { posService } from '../services/posService'
 import { cartService } from '../services/cartService'
@@ -661,7 +673,7 @@ export default {
       return 'success'
     }
 
-    const addToCart = (product) => {
+    const addToCart = (product, isBarcodeScan = false) => {
       // Check stock
       if (product.track_inventory && product.stock_quantity <= 0) {
         showSnackbar('Product is out of stock', 'error')
@@ -686,7 +698,10 @@ export default {
         })
       }
 
-      showSnackbar(`Added ${product.name} to cart`, 'success')
+      const message = isBarcodeScan
+        ? `🔍 Barcode scanned: ${product.name} added to cart`
+        : `Added ${product.name} to cart`
+      showSnackbar(message, 'success')
     }
 
     const clearCart = () => {
@@ -823,6 +838,23 @@ export default {
     }
 
     const getApprovalStatusText = formatApprovalStatus
+
+    // Watch for barcode search and auto-add to cart
+    watch(search, (newValue) => {
+      if (!newValue || newValue.length < 3) return
+
+      // Check for exact barcode match
+      const barcodeMatch = products.value.find(p =>
+        p.barcode && p.barcode.toLowerCase() === newValue.toLowerCase()
+      )
+
+      if (barcodeMatch) {
+        // Automatically add to cart with barcode scan flag
+        addToCart(barcodeMatch, true)
+        // Clear search field
+        search.value = ''
+      }
+    })
 
     onMounted(() => {
       loadProducts()
