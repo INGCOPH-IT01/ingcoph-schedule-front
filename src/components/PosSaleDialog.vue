@@ -117,6 +117,32 @@
                 <div>{{ sale.payment_reference }}</div>
               </div>
 
+              <div v-if="hasProofOfPayment" class="mb-2">
+                <div class="text-caption text-grey mb-2">Proof of Payment</div>
+                <div class="proof-of-payment-gallery">
+                  <v-img
+                    v-for="(image, index) in proofOfPaymentImages"
+                    :key="index"
+                    :src="image"
+                    :aspect-ratio="1"
+                    cover
+                    class="proof-image"
+                    @click="openImageViewer(index)"
+                  >
+                    <template v-slot:placeholder>
+                      <v-row class="fill-height ma-0" align="center" justify="center">
+                        <v-progress-circular indeterminate color="grey-lighten-5"></v-progress-circular>
+                      </v-row>
+                    </template>
+                    <template v-slot:error>
+                      <div class="d-flex align-center justify-center h-100 bg-grey-lighten-3">
+                        <v-icon size="32" color="grey">mdi-image-off</v-icon>
+                      </div>
+                    </template>
+                  </v-img>
+                </div>
+              </div>
+
               <div v-if="sale.notes" class="mb-2">
                 <div class="text-caption text-grey">Notes</div>
                 <div>{{ sale.notes }}</div>
@@ -206,6 +232,53 @@
         </v-btn>
       </v-card-actions>
     </v-card>
+
+    <!-- Image Viewer Dialog -->
+    <v-dialog v-model="imageViewerDialog" max-width="900">
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>Proof of Payment {{ imageViewerIndex + 1 }} of {{ proofOfPaymentImages.length }}</span>
+          <v-btn icon="mdi-close" variant="text" @click="imageViewerDialog = false"></v-btn>
+        </v-card-title>
+        <v-card-text class="pa-0">
+          <v-img
+            :src="proofOfPaymentImages[imageViewerIndex]"
+            contain
+            max-height="70vh"
+          >
+            <template v-slot:placeholder>
+              <v-row class="fill-height ma-0" align="center" justify="center">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              </v-row>
+            </template>
+          </v-img>
+        </v-card-text>
+        <v-card-actions class="justify-space-between">
+          <v-btn
+            :disabled="imageViewerIndex === 0"
+            @click="imageViewerIndex--"
+            icon
+          >
+            <v-icon>mdi-chevron-left</v-icon>
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="downloadImage(imageViewerIndex)"
+          >
+            <v-icon start>mdi-download</v-icon>
+            Download
+          </v-btn>
+          <v-btn
+            :disabled="imageViewerIndex === proofOfPaymentImages.length - 1"
+            @click="imageViewerIndex++"
+            icon
+          >
+            <v-icon>mdi-chevron-right</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-dialog>
 </template>
 
@@ -235,6 +308,8 @@ export default {
   setup(props, { emit }) {
     const newStatus = ref(null)
     const updating = ref(false)
+    const imageViewerDialog = ref(false)
+    const imageViewerIndex = ref(0)
 
     // Check if user is admin
     const isAdmin = computed(() => {
@@ -256,6 +331,45 @@ export default {
       { title: 'Cancelled', value: 'cancelled' },
       { title: 'Refunded', value: 'refunded' }
     ]
+
+    // Parse proof of payment images
+    const proofOfPaymentImages = computed(() => {
+      if (!props.sale) {
+        return []
+      }
+
+      // Use proof_of_payment_urls if available (new file-based approach)
+      if (props.sale.proof_of_payment_urls && Array.isArray(props.sale.proof_of_payment_urls)) {
+        return props.sale.proof_of_payment_urls
+      }
+
+      // Fallback to old base64 approach for backward compatibility
+      if (!props.sale.proof_of_payment) {
+        return []
+      }
+
+      try {
+        // If it's already an array, return it
+        if (Array.isArray(props.sale.proof_of_payment)) {
+          return props.sale.proof_of_payment
+        }
+
+        // Try to parse as JSON
+        const parsed = JSON.parse(props.sale.proof_of_payment)
+        return Array.isArray(parsed) ? parsed : []
+      } catch (error) {
+        // If parsing fails, try to use it as a single image
+        if (typeof props.sale.proof_of_payment === 'string' &&
+            props.sale.proof_of_payment.startsWith('data:image')) {
+          return [props.sale.proof_of_payment]
+        }
+        return []
+      }
+    })
+
+    const hasProofOfPayment = computed(() => {
+      return proofOfPaymentImages.value.length > 0
+    })
 
     watch(() => props.sale, (newSale) => {
       if (newSale) {
@@ -308,11 +422,33 @@ export default {
       }, 100)
     }
 
+    const openImageViewer = (index) => {
+      imageViewerIndex.value = index
+      imageViewerDialog.value = true
+    }
+
+    const downloadImage = (index) => {
+      const image = proofOfPaymentImages.value[index]
+      if (!image) return
+
+      // Create a temporary link element
+      const link = document.createElement('a')
+      link.href = image
+      link.download = `proof-of-payment-${props.sale.sale_number}-${index + 1}.jpg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+
     return {
       newStatus,
       updating,
       statusOptions,
       isAdmin,
+      imageViewerDialog,
+      imageViewerIndex,
+      proofOfPaymentImages,
+      hasProofOfPayment,
       getSaleStatusColor,
       getSaleStatusText,
       getSaleStatusIcon,
@@ -320,6 +456,8 @@ export default {
       updateStatus,
       viewBooking,
       printReceipt,
+      openImageViewer,
+      downloadImage,
       formatPrice,
       formatDate
     }
@@ -334,6 +472,27 @@ export default {
 
 .totals-box {
   border: 2px solid rgb(var(--v-theme-primary));
+}
+
+.proof-of-payment-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  max-width: 100%;
+}
+
+.proof-image {
+  cursor: pointer;
+  border-radius: 4px;
+  border: 2px solid #e0e0e0;
+  transition: all 0.2s ease;
+  max-height: 120px;
+}
+
+.proof-image:hover {
+  border-color: rgb(var(--v-theme-primary));
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 @media print {

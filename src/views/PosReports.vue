@@ -167,11 +167,23 @@
 
               <template v-slot:[`item.proof_of_payment`]="{ item }">
                 <v-chip
+                  v-if="item.proof_of_payment || (item.proof_of_payment_urls && item.proof_of_payment_urls.length > 0)"
                   size="small"
-                  :color="item.proof_of_payment ? 'success' : 'grey'"
+                  color="success"
+                  variant="flat"
+                  @click="viewProofOfPayment(item)"
+                  class="clickable-chip"
+                >
+                  <v-icon size="small" start>mdi-file-image</v-icon>
+                  View
+                </v-chip>
+                <v-chip
+                  v-else
+                  size="small"
+                  color="grey"
                   variant="flat"
                 >
-                  {{ item.proof_of_payment ? 'Yes' : 'No' }}
+                  No
                 </v-chip>
               </template>
 
@@ -237,6 +249,138 @@
       @updated="loadReports"
     />
 
+    <!-- Proof of Payment Viewer Dialog -->
+    <v-dialog v-model="proofDialog" max-width="900">
+      <v-card v-if="viewingProofSale">
+        <v-card-title class="d-flex align-center justify-space-between bg-primary">
+          <span class="text-white">
+            <v-icon class="mr-2" color="white">mdi-file-image</v-icon>
+            Proof of Payment - {{ viewingProofSale.sale_number }}
+          </span>
+          <v-btn icon="mdi-close" variant="text" color="white" @click="proofDialog = false"></v-btn>
+        </v-card-title>
+
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-6">
+          <div v-if="proofImages.length === 0" class="text-center py-8 text-grey">
+            <v-icon size="64" color="grey">mdi-image-off</v-icon>
+            <p class="mt-2">No proof of payment images found</p>
+          </div>
+
+          <div v-else>
+            <div class="text-caption text-grey mb-4">
+              {{ proofImages.length }} image{{ proofImages.length !== 1 ? 's' : '' }} uploaded
+            </div>
+
+            <div class="proof-gallery">
+              <v-card
+                v-for="(image, index) in proofImages"
+                :key="index"
+                class="proof-card"
+                @click="openProofImageViewer(index)"
+              >
+                <v-img
+                  :src="image"
+                  :aspect-ratio="1"
+                  cover
+                  class="proof-thumbnail"
+                >
+                  <template v-slot:placeholder>
+                    <v-row class="fill-height ma-0" align="center" justify="center">
+                      <v-progress-circular indeterminate color="grey-lighten-5"></v-progress-circular>
+                    </v-row>
+                  </template>
+                  <template v-slot:error>
+                    <div class="d-flex align-center justify-center h-100 bg-grey-lighten-3">
+                      <v-icon size="48" color="grey">mdi-image-off</v-icon>
+                    </div>
+                  </template>
+                </v-img>
+                <v-overlay
+                  :model-value="true"
+                  contained
+                  class="align-center justify-center"
+                  scrim="rgba(0, 0, 0, 0.3)"
+                >
+                  <v-icon color="white" size="48">mdi-magnify-plus</v-icon>
+                </v-overlay>
+              </v-card>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="text"
+            @click="proofDialog = false"
+          >
+            Close
+          </v-btn>
+          <v-btn
+            v-if="viewingProofSale"
+            color="primary"
+            variant="elevated"
+            @click="viewSale(viewingProofSale)"
+          >
+            <v-icon start>mdi-receipt-text</v-icon>
+            View Full Sale Details
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Proof Image Viewer Dialog -->
+    <v-dialog v-model="proofImageDialog" max-width="1000">
+      <v-card>
+        <v-card-title class="d-flex align-center justify-space-between">
+          <span>Image {{ proofImageIndex + 1 }} of {{ proofImages.length }}</span>
+          <v-btn icon="mdi-close" variant="text" @click="proofImageDialog = false"></v-btn>
+        </v-card-title>
+        <v-card-text class="pa-0">
+          <v-img
+            :src="proofImages[proofImageIndex]"
+            contain
+            max-height="75vh"
+          >
+            <template v-slot:placeholder>
+              <v-row class="fill-height ma-0" align="center" justify="center">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              </v-row>
+            </template>
+          </v-img>
+        </v-card-text>
+        <v-card-actions class="justify-space-between pa-4">
+          <v-btn
+            :disabled="proofImageIndex === 0"
+            @click="proofImageIndex--"
+            icon
+          >
+            <v-icon>mdi-chevron-left</v-icon>
+          </v-btn>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="downloadProofImage(proofImageIndex)"
+          >
+            <v-icon start>mdi-download</v-icon>
+            Download
+          </v-btn>
+          <v-btn
+            :disabled="proofImageIndex === proofImages.length - 1"
+            @click="proofImageIndex++"
+            icon
+          >
+            <v-icon>mdi-chevron-right</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" :timeout="3000">
       {{ snackbar.message }}
@@ -265,6 +409,11 @@ export default {
     const exporting = ref(false)
     const saleDialog = ref(false)
     const selectedSale = ref(null)
+    const proofDialog = ref(false)
+    const viewingProofSale = ref(null)
+    const proofImages = ref([])
+    const proofImageDialog = ref(false)
+    const proofImageIndex = ref(0)
 
     // Get user info for role-based permissions
     const user = ref(null)
@@ -658,6 +807,60 @@ export default {
       return 'Walk-in'
     }
 
+    const parseProofOfPayment = (sale) => {
+      // Use proof_of_payment_urls if available (new file-based approach)
+      if (sale.proof_of_payment_urls && Array.isArray(sale.proof_of_payment_urls)) {
+        return sale.proof_of_payment_urls
+      }
+
+      // Fallback to old base64 approach for backward compatibility
+      const proofData = sale.proof_of_payment
+      if (!proofData) return []
+
+      try {
+        // If it's already an array, return it
+        if (Array.isArray(proofData)) {
+          return proofData
+        }
+
+        // Try to parse as JSON
+        const parsed = JSON.parse(proofData)
+        return Array.isArray(parsed) ? parsed : []
+      } catch (error) {
+        // If parsing fails, try to use it as a single image
+        if (typeof proofData === 'string' && proofData.startsWith('data:image')) {
+          return [proofData]
+        }
+        return []
+      }
+    }
+
+    const viewProofOfPayment = (sale) => {
+      viewingProofSale.value = sale
+      proofImages.value = parseProofOfPayment(sale)
+      proofImageIndex.value = 0
+      proofDialog.value = true
+    }
+
+    const openProofImageViewer = (index) => {
+      proofImageIndex.value = index
+      proofImageDialog.value = true
+      proofDialog.value = false
+    }
+
+    const downloadProofImage = (index) => {
+      const image = proofImages.value[index]
+      if (!image) return
+
+      // Create a temporary link element
+      const link = document.createElement('a')
+      link.href = image
+      link.download = `proof-of-payment-${viewingProofSale.value?.sale_number || 'unknown'}-${index + 1}.jpg`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    }
+
     // Check user role
     const checkUserRole = () => {
       try {
@@ -698,6 +901,11 @@ export default {
       exporting,
       saleDialog,
       selectedSale,
+      proofDialog,
+      viewingProofSale,
+      proofImages,
+      proofImageDialog,
+      proofImageIndex,
       dateFrom,
       dateTo,
       snackbar,
@@ -714,7 +922,10 @@ export default {
       formatDate,
       getDisplayCustomerName,
       isBookingLinked,
-      isAdminCreatedBooking
+      isAdminCreatedBooking,
+      viewProofOfPayment,
+      openProofImageViewer,
+      downloadProofImage
     }
   }
 }
@@ -767,5 +978,46 @@ export default {
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
+}
+
+.clickable-chip {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable-chip:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.proof-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.proof-card {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.proof-card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.proof-thumbnail {
+  border-radius: 8px;
+}
+
+.proof-card .v-overlay {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.proof-card:hover .v-overlay {
+  opacity: 1;
 }
 </style>
