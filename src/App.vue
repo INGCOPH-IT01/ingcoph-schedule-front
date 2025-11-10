@@ -198,16 +198,6 @@
             class="excel-nav-item"
           ></v-list-item>
 
-          <!-- Product Management - For admin, staff, and cashier users -->
-          <v-list-item
-            v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
-            prepend-icon="mdi-package-variant"
-            title="Product Management"
-            value="product-management"
-            :to="{ name: 'ProductManagement' }"
-            class="excel-nav-item"
-          ></v-list-item>
-
           <!-- POS Reports - For admin, staff, and cashier users -->
           <v-list-item
             v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
@@ -215,6 +205,16 @@
             title="POS Reports"
             value="pos-reports"
             :to="{ name: 'PosReports' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <!-- Product Management - For admin, staff, and cashier users -->
+          <v-list-item
+            v-if="isAuthenticated && (isAdmin || isStaff || isCashier)"
+            prepend-icon="mdi-package-variant"
+            title="Product Management"
+            value="product-management"
+            :to="{ name: 'ProductManagement' }"
             class="excel-nav-item"
           ></v-list-item>
 

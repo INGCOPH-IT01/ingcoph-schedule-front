@@ -155,6 +155,26 @@
                 </div>
               </template>
 
+              <template v-slot:[`item.payment_method`]="{ item }">
+                <v-chip size="small" variant="outlined" :color="item.payment_method === 'cash' ? 'success' : 'info'">
+                  {{ item.payment_method || 'N/A' }}
+                </v-chip>
+              </template>
+
+              <template v-slot:[`item.payment_reference`]="{ item }">
+                <span class="text-caption">{{ item.payment_reference || '-' }}</span>
+              </template>
+
+              <template v-slot:[`item.proof_of_payment`]="{ item }">
+                <v-chip
+                  size="small"
+                  :color="item.proof_of_payment ? 'success' : 'grey'"
+                  variant="flat"
+                >
+                  {{ item.proof_of_payment ? 'Yes' : 'No' }}
+                </v-chip>
+              </template>
+
               <template v-slot:[`item.total_amount`]="{ item }">
                 <span class="font-weight-bold">{{ formatPrice(item.total_amount) }}</span>
               </template>
@@ -268,6 +288,9 @@ export default {
         { title: 'Date', key: 'sale_date' },
         { title: 'Customer', key: 'customer' },
         { title: 'Staff', key: 'user.name' },
+        { title: 'Payment Method', key: 'payment_method' },
+        { title: 'Payment Ref', key: 'payment_reference' },
+        { title: 'Proof of Payment', key: 'proof_of_payment' },
         { title: 'Amount', key: 'total_amount' }
       ]
 
@@ -375,6 +398,9 @@ export default {
           { header: 'Date', key: 'date', width: 15 },
           { header: 'Customer', key: 'customer', width: 25 },
           { header: 'Staff', key: 'staff', width: 25 },
+          { header: 'Payment Method', key: 'payment_method', width: 15 },
+          { header: 'Payment Ref', key: 'payment_ref', width: 20 },
+          { header: 'Proof of Payment', key: 'proof_of_payment', width: 18 },
           { header: 'Amount', key: 'amount', width: 15 }
         ]
 
@@ -401,6 +427,9 @@ export default {
             date: formatDate(sale.sale_date),
             customer: getDisplayCustomerName(sale),
             staff: sale.user?.name || 'N/A',
+            payment_method: sale.payment_method || 'N/A',
+            payment_ref: sale.payment_reference || '-',
+            proof_of_payment: sale.proof_of_payment ? 'Yes' : 'No',
             amount: parseFloat(sale.total_amount),
             status: getSaleStatusText(sale.status)
           }
@@ -425,6 +454,9 @@ export default {
           { header: 'Sale Number', key: 'sale_number', width: 20 },
           { header: 'Date', key: 'date', width: 15 },
           { header: 'Customer', key: 'customer', width: 25 },
+          { header: 'Payment Method', key: 'payment_method', width: 15 },
+          { header: 'Payment Ref', key: 'payment_ref', width: 20 },
+          { header: 'Proof of Payment', key: 'proof_of_payment', width: 18 },
           { header: 'Product Name', key: 'product_name', width: 30 },
           { header: 'SKU', key: 'sku', width: 15 },
           { header: 'Quantity', key: 'quantity', width: 12 },
@@ -456,6 +488,9 @@ export default {
                 sale_number: sale.sale_number,
                 date: formatDate(sale.sale_date),
                 customer: getDisplayCustomerName(sale),
+                payment_method: sale.payment_method || 'N/A',
+                payment_ref: sale.payment_reference || '-',
+                proof_of_payment: sale.proof_of_payment ? 'Yes' : 'No',
                 product_name: item.product?.name || 'N/A',
                 sku: item.product?.sku || 'N/A',
                 quantity: item.quantity,
