@@ -10,9 +10,6 @@
         <h1 class="header-title">
           <span class="title-gradient">Champion</span> Dashboard
         </h1>
-        <p class="header-subtitle">
-          Manage multi-sport court bookings and oversee the entire system with professional precision
-        </p>
       </div>
     </div>
 
@@ -156,66 +153,6 @@
         </div>
       </v-col>
     </v-row>
-
-    <!-- Enhanced Quick Actions -->
-    <div class="actions-section">
-      <div class="section-header">
-        <div class="section-badge">
-          <v-icon color="primary" size="20" class="mr-2">mdi-lightning-bolt</v-icon>
-          Quick Actions
-        </div>
-        <h2 class="section-title">
-          <span class="title-gradient">Champion</span> Controls
-        </h2>
-        <p class="section-subtitle">
-          Manage bookings and system operations with professional efficiency
-        </p>
-      </div>
-
-      <div class="actions-grid">
-        <div class="action-card action-card-1">
-          <div class="action-icon">
-            <v-icon color="primary" size="48">mdi-calendar-clock</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Review Pending</h3>
-            <p class="action-description">Review and manage pending booking requests</p>
-            <v-btn
-              class="action-btn"
-              color="primary"
-              size="large"
-              @click="loadPendingBookings"
-              prepend-icon="mdi-calendar-clock"
-              elevation="4"
-            >
-              Review Now
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-
-        <div class="action-card action-card-2">
-          <div class="action-icon">
-            <v-icon color="warning" size="48">mdi-qrcode-scan</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">QR Scanner</h3>
-            <p class="action-description">Scan player QR codes for court check-in</p>
-            <v-btn
-              class="action-btn"
-              color="warning"
-              size="large"
-              @click="openQrScanner"
-              prepend-icon="mdi-qrcode-scan"
-              elevation="4"
-            >
-              Open Scanner
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- Transactions Table -->
     <v-row>
@@ -376,7 +313,7 @@
                   Refresh
                 </v-btn>
               </v-col>
-
+              <v-spacer></v-spacer>
               <v-col cols="12" sm="6" md="1">
                 <v-btn
                   color="success"
@@ -686,11 +623,6 @@
     >
       {{ snackbar.message }}
     </v-snackbar>
-    <!-- QR Code Scanner Dialog -->
-    <QrCodeScanner
-      v-if="qrScannerDialog"
-      @close="closeQrScannerDialog"
-    />
   </div>
 </template>
 
@@ -747,7 +679,6 @@ export default {
       message: '',
       color: 'success'
     })
-    const qrScannerDialog = ref(false)
 
     // View mode state
     const viewMode = ref('calendar')
@@ -1398,22 +1329,6 @@ export default {
     })
 
     // QR Scanner functions
-    const openQrScanner = () => {
-      qrScannerDialog.value = true
-    }
-
-    const closeQrScannerDialog = () => {
-      qrScannerDialog.value = false
-    }
-
-    const handleImageError = (event) => {
-      // Hide the broken image and show fallback icon
-      event.target.style.display = 'none'
-      const fallback = event.target.nextElementSibling
-      if (fallback) {
-        fallback.style.display = 'inline'
-      }
-    }
 
     // Attendance status helper functions (imported from formatters)
 
@@ -1633,11 +1548,6 @@ export default {
       detailsDialog,
       selectedBooking,
       snackbar,
-      showSnackbar,
-      openQrScanner,
-      closeQrScannerDialog,
-      qrScannerDialog,
-      handleImageError,
       headers,
       statusFilter,
       userFilter,
@@ -1884,138 +1794,6 @@ export default {
   font-weight: 600;
 }
 
-/* Actions Section */
-.actions-section {
-  margin-bottom: 48px;
-}
-
-.section-header {
-  text-align: center;
-  margin-bottom: 48px;
-}
-
-.section-badge {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-  border-radius: 50px;
-  padding: 8px 20px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-}
-
-.section-title {
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 800;
-  margin-bottom: 16px;
-  color: #1e293b;
-}
-
-.section-subtitle {
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  color: #475569;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.action-card {
-  position: relative;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 32px;
-  height: 100%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  text-align: center;
-}
-
-.action-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.action-card:hover::before {
-  opacity: 1;
-}
-
-.action-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-.action-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  transition: all 0.3s ease;
-}
-
-.action-card:hover .action-icon {
-  transform: scale(1.1) rotate(5deg);
-}
-
-.action-content {
-  text-align: center;
-}
-
-.action-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #1e293b;
-}
-
-.action-description {
-  color: #475569;
-  line-height: 1.6;
-  margin-bottom: 24px;
-}
-
-.action-btn {
-  border-radius: 12px !important;
-  font-weight: 700 !important;
-  text-transform: none !important;
-  padding: 12px 24px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.action-btn:hover {
-  transform: translateY(-2px) !important;
-}
-
-/* Image Styles */
-.full-size-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
 /* Utility Classes */
 .gap-1 {
   gap: 4px;
@@ -2036,13 +1814,7 @@ export default {
     margin-bottom: 32px;
   }
 
-  .actions-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .stat-card,
-  .action-card {
+  .stat-card {
     padding: 24px;
   }
 }
@@ -2056,8 +1828,7 @@ export default {
     padding: 24px 0;
   }
 
-  .stat-card,
-  .action-card {
+  .stat-card {
     padding: 20px;
   }
 }
