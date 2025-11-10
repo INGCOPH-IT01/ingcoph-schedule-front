@@ -57,8 +57,32 @@
             <v-row>
               <v-col cols="12" md="3">
                 <v-text-field
+                  v-model="productSearch"
+                  label="Quick Add Product"
+                  placeholder="Scan barcode, SKU, or name + Enter"
+                  prepend-inner-icon="mdi-package-variant-closed"
+                  clearable
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  @keyup.enter="handleQuickProductSearch"
+                >
+                  <template v-slot:append-inner>
+                    <v-tooltip location="top">
+                      <template v-slot:activator="{ props }">
+                        <v-icon v-bind="props" size="small" color="primary">
+                          mdi-barcode-scan
+                        </v-icon>
+                      </template>
+                      Press Enter to open new report with product
+                    </v-tooltip>
+                  </template>
+                </v-text-field>
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field
                   v-model="search"
-                  label="Search"
+                  label="Search Reports"
                   prepend-inner-icon="mdi-magnify"
                   clearable
                   @input="debouncedSearch"
@@ -103,7 +127,6 @@
                   hide-details
                 ></v-text-field>
               </v-col>
-
             </v-row>
           </v-card-text>
 
@@ -252,6 +275,7 @@
 
 <script>
 import inventoryService from '@/services/inventoryService';
+import { productService } from '@/services/productService';
 import ReceivingReportDialog from '@/components/ReceivingReportDialog.vue';
 import ReceivingReportViewDialog from '@/components/ReceivingReportViewDialog.vue';
 import { debounce } from '@/utils/debounce';
@@ -269,6 +293,8 @@ export default {
       exporting: false,
       reports: [],
       statistics: {},
+      products: [],
+      productSearch: '',
       search: '',
       filters: {
         status: null,
@@ -315,6 +341,7 @@ export default {
   created() {
     this.debouncedSearch = debounce(this.loadReports, 500);
     this.loadStatistics();
+    this.loadProducts();
   },
   methods: {
     async loadReports() {
@@ -354,6 +381,15 @@ export default {
         this.statistics = response.data;
       } catch (error) {
         console.error('Error loading statistics:', error);
+      }
+    },
+
+    async loadProducts() {
+      try {
+        this.products = await productService.getProducts({ active_only: true });
+      } catch (error) {
+        console.error('Error loading products:', error);
+        this.showSnackbar('Failed to load products', 'error');
       }
     },
 
@@ -539,6 +575,43 @@ export default {
       this.dialogMode = 'create';
       this.selectedReport = null;
       this.dialog = true;
+    },
+
+    handleQuickProductSearch() {
+      if (!this.productSearch || !this.productSearch.trim()) {
+        // If empty, just open the dialog
+        this.openCreateDialog();
+        return;
+      }
+
+      const searchTerm = this.productSearch.trim().toLowerCase();
+
+      // Search for product by barcode, SKU, or name
+      const product = this.products.find(p =>
+        (p.barcode && p.barcode.toLowerCase() === searchTerm) ||
+        (p.sku && p.sku.toLowerCase() === searchTerm) ||
+        (p.name && p.name.toLowerCase().includes(searchTerm))
+      );
+
+      if (product) {
+        this.openCreateDialogWithProduct(product);
+      } else {
+        this.showSnackbar(`Product "${this.productSearch}" not found`, 'warning');
+        // Still open dialog to allow manual entry
+        this.openCreateDialog();
+      }
+
+      // Clear search field
+      this.productSearch = '';
+    },
+
+    openCreateDialogWithProduct(product) {
+      this.dialogMode = 'create';
+      this.selectedReport = {
+        preselectedProduct: product
+      };
+      this.dialog = true;
+      this.showSnackbar(`Opening new report with ${product.name}`, 'info');
     },
 
     viewReport(report) {

@@ -7,7 +7,7 @@
       </v-card-title>
 
       <v-card-text>
-        <v-form ref="form" v-model="valid">
+        <v-form ref="form" v-model="valid" @submit.prevent>
           <!-- Report Details -->
           <v-row>
             <v-col cols="12">
@@ -40,15 +40,15 @@
                       <v-text-field
                         ref="barcodeInput"
                         v-model="barcodeInput"
-                        label="Scan or Enter Barcode"
-                        placeholder="Scan barcode or type SKU and press Enter"
+                        label="Search Product"
+                        placeholder="Scan barcode"
                         prepend-inner-icon="mdi-barcode-scan"
                         variant="outlined"
                         density="compact"
                         clearable
                         :loading="scanningBarcode"
                         @keyup.enter="handleBarcodeScanned"
-                        hint="Scan product barcode to quickly add items"
+                        hint="Scan barcode to quickly add items (auto-increases quantity if already added)"
                         persistent-hint
                       ></v-text-field>
                     </v-col>
@@ -82,7 +82,7 @@
                               <template v-slot:selection="{ item: product }">
                                 <div>
                                   <div class="text-body-2">{{ product.raw.name }}</div>
-                                  <div class="text-caption text-grey">{{ product.raw.sku }}</div>
+                                  <!-- <div class="text-caption text-grey">{{ product.raw.sku }}</div> -->
                                 </div>
                               </template>
                               <template v-slot:item="{ props, item }">
@@ -229,6 +229,16 @@ export default {
         await this.loadReportDetails();
       } else {
         this.resetForm();
+
+        // Check if there's a preselected product to add
+        if (this.report && this.report.preselectedProduct) {
+          const product = this.report.preselectedProduct;
+          this.formData.items.push({
+            product_id: product.id,
+            quantity: 1,
+            notes: '',
+          });
+        }
       }
 
       // Focus on barcode input for immediate scanning
@@ -245,7 +255,6 @@ export default {
         const response = await productService.getProducts();
         // productService already returns response.data, so response is the actual data
         this.products = Array.isArray(response) ? response : (response.data || response);
-        console.log('Loaded products:', this.products);
       } catch (error) {
         console.error('Error loading products:', error);
       } finally {
@@ -300,11 +309,11 @@ export default {
 
       this.scanningBarcode = true;
       try {
-        const barcode = this.barcodeInput.trim();
+        const searchTerm = this.barcodeInput.trim().toLowerCase();
 
-        // Search for product by SKU (barcode)
+        // Search for product by barcode, SKU, or name
         const product = this.products.find(p =>
-          p.sku && p.sku.toLowerCase() === barcode.toLowerCase()
+          p.barcode && p.barcode.toLowerCase() === searchTerm
         );
 
         if (product) {
@@ -331,7 +340,7 @@ export default {
           this.barcodeInput = '';
         } else {
           // Product not found
-          this.showSnackbar(`Product with barcode "${barcode}" not found`, 'error');
+          this.showSnackbar(`Product "${searchTerm}" not found`, 'error');
           this.barcodeInput = '';
         }
       } catch (error) {
