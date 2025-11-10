@@ -425,16 +425,19 @@
                 class="mb-3"
               ></v-select>
 
-              <!-- Proof of Payment Upload -->
+              <!-- Proof of Payment Upload (only for GCash) -->
               <ProofOfPaymentUpload
+                v-if="paymentMethod === 'gcash'"
                 v-model="proofOfPaymentFiles"
                 v-model:reference-number="paymentReference"
-                reference-label="Payment Reference (Optional)"
+                reference-label="Payment Reference (Required)"
                 reference-placeholder="Enter payment reference number"
-                reference-hint="Optional: Enter the reference number from your payment"
-                label="Upload Proof of Payment (Optional)"
+                reference-hint="Required: Enter the reference number from your payment"
+                :reference-rules="[v => !!v || 'Payment reference is required for GCash']"
+                label="Upload Proof of Payment (Required)"
                 placeholder="Select image file(s)"
-                hint="Upload screenshots of your payment receipts (max 5MB each)"
+                hint="Required: Upload screenshots of your payment receipts (max 5MB each)"
+                :rules="[v => !!v || 'Proof of payment is required for GCash']"
                 density="compact"
                 :persistent-hint="false"
                 :multiple="true"
@@ -457,7 +460,7 @@
                 block
                 @click="processSale"
                 :loading="processing"
-                :disabled="cartItems.length === 0"
+                :disabled="!canCompleteSale"
                 class="mt-2"
               >
                 <v-icon start>mdi-check-circle</v-icon>
@@ -583,6 +586,25 @@ export default {
         return sum + (item.product.price * item.quantity)
       }, 0)
       return subtotal - discount.value + tax.value
+    })
+
+    const canCompleteSale = computed(() => {
+      // Check if cart has items
+      if (cartItems.value.length === 0) return false
+
+      // Check GCash payment requirements
+      if (paymentMethod.value === 'gcash') {
+        // Check if payment reference is provided
+        if (!paymentReference.value || !paymentReference.value.trim()) return false
+
+        // Check if proof of payment is uploaded
+        if (!proofOfPaymentFiles.value ||
+            (Array.isArray(proofOfPaymentFiles.value) && proofOfPaymentFiles.value.length === 0)) {
+          return false
+        }
+      }
+
+      return true
     })
 
     const loadProducts = async () => {
@@ -726,6 +748,18 @@ export default {
       if (cartItems.value.length === 0) {
         showSnackbar('Cart is empty', 'error')
         return
+      }
+
+      // Validate GCash payment requirements
+      if (paymentMethod.value === 'gcash') {
+        if (!paymentReference.value || !paymentReference.value.trim()) {
+          showSnackbar('Payment reference is required for GCash payments', 'error')
+          return
+        }
+        if (!proofOfPaymentFiles.value || (Array.isArray(proofOfPaymentFiles.value) && proofOfPaymentFiles.value.length === 0)) {
+          showSnackbar('Proof of payment is required for GCash payments', 'error')
+          return
+        }
       }
 
       try {
@@ -885,6 +919,7 @@ export default {
       categoryOptions,
       filteredProducts,
       total,
+      canCompleteSale,
       bookingSearch,
       searchedBookings,
       searchingBookings,
