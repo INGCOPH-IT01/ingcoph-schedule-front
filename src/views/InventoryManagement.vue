@@ -169,53 +169,76 @@
               </template>
 
               <template v-slot:item.actions="{ item }">
-                <v-menu>
-                  <template v-slot:activator="{ props }">
-                    <v-btn icon="mdi-dots-vertical" v-bind="props"></v-btn>
-                  </template>
-                  <v-list>
-                    <v-list-item
-                      @click="viewReport(item)"
-                      prepend-icon="mdi-eye"
-                      title="View"
-                    ></v-list-item>
+                <div class="d-flex gap-1">
+                  <v-tooltip location="top">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        icon="mdi-eye"
+                        size="small"
+                        variant="text"
+                        v-bind="props"
+                        @click="viewReport(item)"
+                      ></v-btn>
+                    </template>
+                    <span>View</span>
+                  </v-tooltip>
 
-                    <v-list-item
-                      v-if="item.status === 'draft' || item.status === 'pending'"
-                      @click="editReport(item)"
-                      prepend-icon="mdi-pencil"
-                      title="Edit"
-                    ></v-list-item>
+                  <v-tooltip location="top" v-if="item.status === 'draft' || item.status === 'pending'">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        icon="mdi-pencil"
+                        size="small"
+                        variant="text"
+                        color="primary"
+                        v-bind="props"
+                        @click="editReport(item)"
+                      ></v-btn>
+                    </template>
+                    <span>Edit</span>
+                  </v-tooltip>
 
-                    <v-list-item
-                      v-if="item.status === 'draft'"
-                      @click="submitReport(item)"
-                      prepend-icon="mdi-send"
-                      title="Submit for Confirmation"
-                    ></v-list-item>
+                  <v-tooltip location="top" v-if="item.status === 'draft'">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        icon="mdi-send"
+                        size="small"
+                        variant="text"
+                        color="primary"
+                        v-bind="props"
+                        @click="submitReport(item)"
+                      ></v-btn>
+                    </template>
+                    <span>Submit for Confirmation</span>
+                  </v-tooltip>
 
-                    <v-list-item
-                      v-if="item.status === 'pending'"
-                      @click="confirmReport(item)"
-                      prepend-icon="mdi-check-circle"
-                      title="Confirm & Adjust Stock"
-                    ></v-list-item>
+                  <v-tooltip location="top" v-if="item.status === 'pending' && isAdmin">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        icon="mdi-check-circle"
+                        size="small"
+                        variant="text"
+                        color="success"
+                        v-bind="props"
+                        @click="confirmReport(item)"
+                      ></v-btn>
+                    </template>
+                    <span>Confirm & Adjust Stock</span>
+                  </v-tooltip>
 
-                    <v-list-item
-                      v-if="item.status === 'draft' || item.status === 'pending'"
-                      @click="cancelReport(item)"
-                      prepend-icon="mdi-cancel"
-                      title="Cancel"
-                    ></v-list-item>
-
-                    <v-list-item
-                      v-if="item.status === 'draft' || item.status === 'cancelled'"
-                      @click="deleteReport(item)"
-                      prepend-icon="mdi-delete"
-                      title="Delete"
-                    ></v-list-item>
-                  </v-list>
-                </v-menu>
+                  <v-tooltip location="top" v-if="item.status === 'draft' || item.status === 'pending'">
+                    <template v-slot:activator="{ props }">
+                      <v-btn
+                        icon="mdi-cancel"
+                        size="small"
+                        variant="text"
+                        color="warning"
+                        v-bind="props"
+                        @click="cancelReport(item)"
+                      ></v-btn>
+                    </template>
+                    <span>Cancel</span>
+                  </v-tooltip>
+                </div>
               </template>
             </v-data-table>
           </v-card-text>
@@ -296,6 +319,7 @@ export default {
       products: [],
       productSearch: '',
       search: '',
+      user: null,
       filters: {
         status: null,
         start_date: null,
@@ -338,12 +362,41 @@ export default {
       },
     };
   },
+  computed: {
+    isAdmin() {
+      return this.user?.role === 'admin';
+    },
+  },
   created() {
     this.debouncedSearch = debounce(this.loadReports, 500);
+    this.checkUserRole();
     this.loadStatistics();
     this.loadProducts();
   },
+  mounted() {
+    window.addEventListener('auth-changed', this.handleAuthChange);
+  },
+  unmounted() {
+    window.removeEventListener('auth-changed', this.handleAuthChange);
+  },
   methods: {
+    checkUserRole() {
+      try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          this.user = JSON.parse(storedUser);
+        }
+      } catch (error) {
+        console.error('Failed to get user info:', error);
+      }
+    },
+
+    handleAuthChange(event) {
+      if (event.detail?.user) {
+        this.user = event.detail.user;
+      }
+    },
+
     async loadReports() {
       this.loading = true;
       try {
@@ -665,22 +718,6 @@ export default {
         action: async () => {
           await inventoryService.cancelReceivingReport(report.id);
           this.showSnackbar('Report cancelled successfully', 'success');
-          this.loadReports();
-          this.loadStatistics();
-        },
-        loading: false,
-      };
-      this.confirmDialog = true;
-    },
-
-    deleteReport(report) {
-      this.confirmAction = {
-        title: 'Delete Receiving Report?',
-        message: `Are you sure you want to delete report ${report.report_number}? This action cannot be undone.`,
-        color: 'error',
-        action: async () => {
-          await inventoryService.deleteReceivingReport(report.id);
-          this.showSnackbar('Report deleted successfully', 'success');
           this.loadReports();
           this.loadStatistics();
         },
