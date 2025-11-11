@@ -446,48 +446,48 @@
                     </div>
                   </div>
 
-                  <!-- POS Products Section (if any selected) -->
-                  <div v-if="selectedProducts.length > 0" class="pos-products-breakdown mb-4">
-                    <h5 class="text-subtitle-1 font-weight-bold mb-3">
-                      <v-icon class="mr-2" color="success">mdi-shopping</v-icon>
-                      POS Products
-                    </h5>
+              <!-- POS Products Section (if any selected and feature enabled) -->
+              <div v-if="posProductsEnabled && selectedProducts.length > 0" class="pos-products-breakdown mb-4">
+                <h5 class="text-subtitle-1 font-weight-bold mb-3">
+                  <v-icon class="mr-2" color="success">mdi-shopping</v-icon>
+                  POS Products
+                </h5>
 
-                    <v-card variant="outlined" class="pa-3">
-                      <div
-                        v-for="(item, index) in selectedProducts"
-                        :key="index"
-                        class="d-flex align-center justify-space-between mb-2"
-                      >
-                        <div class="d-flex align-center flex-grow-1">
-                          <v-icon size="16" class="mr-2" color="success">mdi-package-variant</v-icon>
-                          <span class="text-body-2">{{ item.product.name }}</span>
-                          <span class="text-caption text-grey ml-2">
-                            ({{ item.quantity }} × ₱{{ parseFloat(item.product.price).toFixed(2) }})
-                          </span>
-                        </div>
-                        <span class="text-body-2 font-weight-medium">
-                          ₱{{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
-                        </span>
-                      </div>
-
-                      <v-divider class="my-2"></v-divider>
-
-                      <div class="d-flex justify-space-between align-center">
-                        <span class="text-caption text-grey">
-                          {{ selectedProducts.length }} product{{ selectedProducts.length !== 1 ? 's' : '' }}
-                        </span>
-                        <span class="text-body-2 font-weight-bold">
-                          Subtotal: ₱{{ calculatePosAmount().toFixed(2) }}
-                        </span>
-                      </div>
-                    </v-card>
+                <v-card variant="outlined" class="pa-3">
+                  <div
+                    v-for="(item, index) in selectedProducts"
+                    :key="index"
+                    class="d-flex align-center justify-space-between mb-2"
+                  >
+                    <div class="d-flex align-center flex-grow-1">
+                      <v-icon size="16" class="mr-2" color="success">mdi-package-variant</v-icon>
+                      <span class="text-body-2">{{ item.product.name }}</span>
+                      <span class="text-caption text-grey ml-2">
+                        ({{ item.quantity }} × ₱{{ parseFloat(item.product.price).toFixed(2) }})
+                      </span>
+                    </div>
+                    <span class="text-body-2 font-weight-medium">
+                      ₱{{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
+                    </span>
                   </div>
+
+                  <v-divider class="my-2"></v-divider>
+
+                  <div class="d-flex justify-space-between align-center">
+                    <span class="text-caption text-grey">
+                      {{ selectedProducts.length }} product{{ selectedProducts.length !== 1 ? 's' : '' }}
+                    </span>
+                    <span class="text-body-2 font-weight-bold">
+                      Subtotal: ₱{{ calculatePosAmount().toFixed(2) }}
+                    </span>
+                  </div>
+                </v-card>
+              </div>
                 </v-card-text>
               </v-card>
 
-              <!-- POS Products Section (Optional) -->
-              <v-expansion-panels class="mt-4">
+              <!-- POS Products Section (Optional) - only show if feature is enabled -->
+              <v-expansion-panels v-if="posProductsEnabled" class="mt-4">
                 <v-expansion-panel>
                   <v-expansion-panel-title>
                     <div class="d-flex align-center">
@@ -512,8 +512,8 @@
               <!-- Total Price Section with Breakdown -->
               <v-card variant="elevated" color="success" class="mt-4">
                 <v-card-text class="pa-4">
-                  <!-- Breakdown when both booking and POS items exist -->
-                  <div v-if="calculateBookingAmount() > 0 && calculatePosAmount() > 0">
+                  <!-- Breakdown when both booking and POS items exist (only if POS products enabled) -->
+                  <div v-if="posProductsEnabled && calculateBookingAmount() > 0 && calculatePosAmount() > 0">
                     <div class="d-flex justify-space-between align-center mb-2">
                       <div class="text-body-2 text-white">
                         <v-icon size="small" color="white" class="mr-1">mdi-calendar-clock</v-icon>
@@ -989,6 +989,9 @@ export default {
 
     // Waitlist feature setting
     const waitlistEnabled = ref(true)
+
+    // POS products feature setting
+    const posProductsEnabled = ref(true)
 
     // Booking disabled snackbar
     const bookingDisabledSnackbar = ref(false)
@@ -2120,17 +2123,17 @@ export default {
         const cartResponse = await cartService.getCartTransaction()
         const cartItemIds = cartResponse.cart_items.map(item => item.id)
 
-        // Prepare POS items if any products selected
-        const posItems = selectedProducts.value.map(item => ({
+        // Prepare POS items if any products selected and feature is enabled
+        const posItems = posProductsEnabled.value ? selectedProducts.value.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
           unit_price: parseFloat(item.product.price),
           discount: item.discount || 0
-        }))
+        })) : []
 
         // Checkout with GCash payment (send array of base64 images) and POS items
         const bookingAmount = calculateBookingAmount()
-        const posAmount = calculatePosAmount()
+        const posAmount = posProductsEnabled.value ? calculatePosAmount() : 0
         const totalAmount = bookingAmount + posAmount
 
         await cartService.checkout({
@@ -2407,17 +2410,17 @@ export default {
         const cartResponse = await cartService.getCartTransaction()
         const cartItemIds = cartResponse.cart_items.map(item => item.id)
 
-        // Prepare POS items if any products selected
-        const posItems = selectedProducts.value.map(item => ({
+        // Prepare POS items if any products selected and feature is enabled
+        const posItems = posProductsEnabled.value ? selectedProducts.value.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
           unit_price: parseFloat(item.product.price),
           discount: item.discount || 0
-        }))
+        })) : []
 
         // Checkout without payment, including POS items
         const bookingAmount = calculateBookingAmount()
-        const posAmount = calculatePosAmount()
+        const posAmount = posProductsEnabled.value ? calculatePosAmount() : 0
         const totalAmount = bookingAmount + posAmount
 
         await cartService.checkout({
@@ -2616,19 +2619,23 @@ export default {
       }
     }
 
-    // Fetch waitlist configuration
+    // Fetch waitlist and POS products configuration
     const fetchWaitlistConfig = async () => {
       try {
         const settings = await companySettingService.getSettings()
         waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
-        console.log('Waitlist config loaded:', {
+        posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
+        console.log('Booking config loaded:', {
           waitlist_enabled: settings.waitlist_enabled,
-          waitlistEnabled: waitlistEnabled.value
+          waitlistEnabled: waitlistEnabled.value,
+          pos_products_enabled: settings.pos_products_enabled,
+          posProductsEnabled: posProductsEnabled.value
         })
       } catch (error) {
-        console.error('Failed to load waitlist config:', error)
+        console.error('Failed to load booking config:', error)
         // Default to true if loading fails
         waitlistEnabled.value = true
+        posProductsEnabled.value = true
       }
     }
 
@@ -2860,6 +2867,8 @@ export default {
       facebookPageName,
       // Waitlist feature setting
       waitlistEnabled,
+      // POS products feature setting
+      posProductsEnabled,
       // Booking disabled snackbar
       bookingDisabledSnackbar,
       bookingDisabledMessage,
