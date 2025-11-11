@@ -113,9 +113,37 @@
                   class="mb-2"
                 ></v-switch>
 
-                <v-alert type="info" variant="tonal" density="compact" class="mt-2">
+                <v-alert type="info" variant="tonal" density="compact" class="mt-2 mb-4">
                   <div class="text-caption">
                     When disabled, regular user accounts cannot add to cart, checkout, or create bookings. Admin and staff are not affected.
+                  </div>
+                </v-alert>
+
+                <v-switch
+                  v-model="waitlistEnabled"
+                  :label="waitlistEnabled ? 'Waitlist feature enabled' : 'Waitlist feature disabled'"
+                  color="primary"
+                  hide-details
+                  class="mb-2"
+                ></v-switch>
+
+                <v-alert type="info" variant="tonal" density="compact" class="mt-2 mb-4">
+                  <div class="text-caption">
+                    When disabled, users cannot join waitlists for pending time slots. Only available slots can be booked.
+                  </div>
+                </v-alert>
+
+                <v-switch
+                  v-model="posProductsEnabled"
+                  :label="posProductsEnabled ? 'POS products enabled in booking' : 'POS products disabled in booking'"
+                  color="primary"
+                  hide-details
+                  class="mb-2"
+                ></v-switch>
+
+                <v-alert type="info" variant="tonal" density="compact" class="mt-2">
+                  <div class="text-caption">
+                    When disabled, users cannot add POS products during the booking process. Only court time slots can be booked.
                   </div>
                 </v-alert>
               </div>
@@ -699,8 +727,10 @@ export default {
     const bgSuccessMessage = ref('')
     const bgErrorMessage = ref('')
 
-        // Booking rules
-        const userBookingEnabled = ref(true)
+    // Booking rules
+    const userBookingEnabled = ref(true)
+    const waitlistEnabled = ref(true)
+    const posProductsEnabled = ref(true)
 
     // Operating hours
     const operatingHoursEnabled = ref(true)
@@ -793,6 +823,8 @@ export default {
         })
         // Load booking rules
         userBookingEnabled.value = settings.user_booking_enabled !== undefined ? settings.user_booking_enabled : true
+        waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
+        posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
       } catch (error) {
         errorMessage.value = 'Failed to load company settings'
         showSnackbar('Failed to load settings', 'error')
@@ -862,7 +894,9 @@ export default {
           contact_viber: contactViber.value,
           facebook_page_url: facebookPageUrl.value,
           facebook_page_name: facebookPageName.value,
-          user_booking_enabled: userBookingEnabled.value
+          user_booking_enabled: userBookingEnabled.value,
+          waitlist_enabled: waitlistEnabled.value,
+          pos_products_enabled: posProductsEnabled.value
         }
 
         // Add logo file if selected
@@ -1092,6 +1126,8 @@ export default {
       applyPreset,
       // Booking rules
       userBookingEnabled,
+      waitlistEnabled,
+      posProductsEnabled,
       // Operating hours
       operatingHoursEnabled,
       operatingHoursOpening,

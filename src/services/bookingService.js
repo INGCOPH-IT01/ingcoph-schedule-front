@@ -59,7 +59,7 @@ export const bookingService = {
   },
 
   // Upload proof of payment for a booking (supports multiple files)
-  async uploadProofOfPayment(bookingId, files, paymentMethod = 'gcash') {
+  async uploadProofOfPayment(bookingId, files, paymentMethod = 'gcash', paymentReferenceNumber = null) {
     try {
       const formData = new FormData()
 
@@ -72,6 +72,10 @@ export const bookingService = {
       })
 
       formData.append('payment_method', paymentMethod)
+
+      if (paymentReferenceNumber) {
+        formData.append('payment_reference_number', paymentReferenceNumber)
+      }
 
       const response = await api.post(`/bookings/${bookingId}/upload-proof`, formData, {
         headers: {

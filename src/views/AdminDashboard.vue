@@ -10,9 +10,6 @@
         <h1 class="header-title">
           <span class="title-gradient">Champion</span> Dashboard
         </h1>
-        <p class="header-subtitle">
-          Manage multi-sport court bookings and oversee the entire system with professional precision
-        </p>
       </div>
     </div>
 
@@ -114,7 +111,39 @@
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ formatPrice(stats.total_revenue ?? 0) }}</div>
-            <div class="stat-label">Total Revenue</div>
+            <div class="stat-label">Booking Revenue</div>
+            <div class="stat-trend">
+              <v-icon color="success" size="16" class="mr-1">mdi-trending-up</v-icon>
+              <span class="text-success">All Time</span>
+            </div>
+          </div>
+          <div class="stat-glow"></div>
+        </div>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <div class="stat-card stat-card-7">
+          <div class="stat-icon">
+            <v-icon color="purple" size="48">mdi-cash-register</v-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-number">{{ posStats.today_sales ?? 0 }}</div>
+            <div class="stat-label">POS Sales Today</div>
+            <div class="stat-trend">
+              <v-icon color="purple" size="16" class="mr-1">mdi-cart</v-icon>
+              <span style="color: #9c27b0;">{{ formatPrice(posStats.today_revenue ?? 0) }}</span>
+            </div>
+          </div>
+          <div class="stat-glow"></div>
+        </div>
+      </v-col>
+      <v-col cols="12" sm="6" md="3">
+        <div class="stat-card stat-card-8">
+          <div class="stat-icon">
+            <v-icon color="success" size="48">mdi-receipt-text</v-icon>
+          </div>
+          <div class="stat-content">
+            <div class="stat-number">{{ formatPrice(posStats.total_revenue ?? 0) }}</div>
+            <div class="stat-label">Total POS Revenue</div>
             <div class="stat-trend">
               <v-icon color="success" size="16" class="mr-1">mdi-trending-up</v-icon>
               <span class="text-success">All Time</span>
@@ -124,66 +153,6 @@
         </div>
       </v-col>
     </v-row>
-
-    <!-- Enhanced Quick Actions -->
-    <div class="actions-section">
-      <div class="section-header">
-        <div class="section-badge">
-          <v-icon color="primary" size="20" class="mr-2">mdi-lightning-bolt</v-icon>
-          Quick Actions
-        </div>
-        <h2 class="section-title">
-          <span class="title-gradient">Champion</span> Controls
-        </h2>
-        <p class="section-subtitle">
-          Manage bookings and system operations with professional efficiency
-        </p>
-      </div>
-
-      <div class="actions-grid">
-        <div class="action-card action-card-1">
-          <div class="action-icon">
-            <v-icon color="primary" size="48">mdi-calendar-clock</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Review Pending</h3>
-            <p class="action-description">Review and manage pending booking requests</p>
-            <v-btn
-              class="action-btn"
-              color="primary"
-              size="large"
-              @click="loadPendingBookings"
-              prepend-icon="mdi-calendar-clock"
-              elevation="4"
-            >
-              Review Now
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-
-        <div class="action-card action-card-2">
-          <div class="action-icon">
-            <v-icon color="warning" size="48">mdi-qrcode-scan</v-icon>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">QR Scanner</h3>
-            <p class="action-description">Scan player QR codes for court check-in</p>
-            <v-btn
-              class="action-btn"
-              color="warning"
-              size="large"
-              @click="openQrScanner"
-              prepend-icon="mdi-qrcode-scan"
-              elevation="4"
-            >
-              Open Scanner
-            </v-btn>
-          </div>
-          <div class="action-glow"></div>
-        </div>
-      </div>
-    </div>
 
     <!-- Transactions Table -->
     <v-row>
@@ -344,7 +313,7 @@
                   Refresh
                 </v-btn>
               </v-col>
-
+              <v-spacer></v-spacer>
               <v-col cols="12" sm="6" md="1">
                 <v-btn
                   color="success"
@@ -464,8 +433,27 @@
             </template>
 
             <template v-slot:[`item.total_price`]="{ item }">
-              <div class="text-h6 font-weight-bold text-success">
-                {{ formatPrice(item.total_price ?? 0) }}
+              <div>
+                <div class="text-h6 font-weight-bold text-success">
+                  {{ formatPrice(item.total_price ?? 0) }}
+                </div>
+                <!-- Show breakdown if has POS products -->
+                <div v-if="item.pos_amount && parseFloat(item.pos_amount) > 0" class="text-caption text-grey mt-1">
+                  <v-tooltip location="top">
+                    <template v-slot:activator="{ props }">
+                      <div v-bind="props" style="cursor: help;">
+                        <v-icon size="12" class="mr-1">mdi-information-outline</v-icon>
+                        Booking + POS
+                      </div>
+                    </template>
+                    <div class="text-left">
+                      <div><v-icon size="12" class="mr-1">mdi-calendar-clock</v-icon>Court Booking: {{ formatPrice(item.booking_amount ?? 0) }}</div>
+                      <div><v-icon size="12" class="mr-1">mdi-shopping</v-icon>POS Products: {{ formatPrice(item.pos_amount ?? 0) }}</div>
+                      <v-divider class="my-1" dark></v-divider>
+                      <div class="font-weight-bold">Total: {{ formatPrice(item.total_price ?? 0) }}</div>
+                    </div>
+                  </v-tooltip>
+                </div>
               </div>
             </template>
 
@@ -580,6 +568,7 @@
       :court-name="selectedBooking?.court_name"
       :show-admin-features="true"
       :show-court-images="true"
+      @close="detailsDialog = false"
       @attendance-updated="handleAttendanceUpdated"
     />
 
@@ -634,11 +623,6 @@
     >
       {{ snackbar.message }}
     </v-snackbar>
-    <!-- QR Code Scanner Dialog -->
-    <QrCodeScanner
-      v-if="qrScannerDialog"
-      @close="closeQrScannerDialog"
-    />
   </div>
 </template>
 
@@ -649,6 +633,7 @@ import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
+import { posService } from '../services/posService'
 import {
   formatPrice,
   formatDate,
@@ -678,6 +663,7 @@ export default {
   setup() {
     const router = useRouter()
     const stats = ref({})
+    const posStats = ref({})
     const pendingBookings = ref([])
     const loading = ref(false)
     const rejecting = ref(false)
@@ -693,7 +679,6 @@ export default {
       message: '',
       color: 'success'
     })
-    const qrScannerDialog = ref(false)
 
     // View mode state
     const viewMode = ref('calendar')
@@ -742,6 +727,15 @@ export default {
         stats.value = response.data
       } catch (error) {
         showSnackbar('Failed to load statistics', 'error')
+      }
+    }
+
+    const loadPosStats = async () => {
+      try {
+        posStats.value = await posService.getStatistics()
+      } catch (error) {
+        console.error('Failed to load POS statistics:', error)
+        // Don't show error to user as POS might not be set up yet
       }
     }
 
@@ -903,6 +897,8 @@ export default {
           { header: 'Courts', key: 'courts', width: 35 },
           { header: 'Booking Date', key: 'bookingDate', width: 15 },
           { header: 'Overall Time Range', key: 'timeRange', width: 20 },
+          { header: 'Court Booking Amount', key: 'bookingAmount', width: 18 },
+          { header: 'POS Amount', key: 'posAmount', width: 15 },
           { header: 'Total Price', key: 'totalPrice', width: 15 },
           { header: 'Payment Status', key: 'paymentStatus', width: 18 },
           { header: 'Approval Status', key: 'approvalStatus', width: 18 },
@@ -993,6 +989,8 @@ export default {
             courts: courts,
             bookingDate: bookingDate,
             timeRange: timeRange,
+            bookingAmount: parseFloat(transaction.booking_amount ?? 0),
+            posAmount: parseFloat(transaction.pos_amount ?? 0),
             totalPrice: parseFloat(transaction.total_price ?? 0),
             paymentStatus: getPaymentStatusText(transaction),
             approvalStatus: getApprovalStatusText(transaction.approval_status),
@@ -1001,7 +999,9 @@ export default {
             clientNotes: cartItems[0]?.notes || ''
           })
 
-          // Apply currency format to Total Price cell
+          // Apply currency format to price cells
+          row.getCell('bookingAmount').numFmt = '₱#,##0.00'
+          row.getCell('posAmount').numFmt = '₱#,##0.00'
           row.getCell('totalPrice').numFmt = '₱#,##0.00'
         })
 
@@ -1124,17 +1124,50 @@ export default {
     }
 
     // Additional helper functions for booking details
-    const viewBookingDetails = (booking) => {
-      selectedBooking.value = booking
+    const viewBookingDetails = async (booking) => {
+      // Fetch fresh booking data with all relationships to ensure POS sales are included
+      try {
+        // Determine if this is a cart transaction or regular booking
+        const endpoint = booking.isTransaction
+          ? `${import.meta.env.VITE_API_URL}/api/cart-transactions/${booking.id}`
+          : `${import.meta.env.VITE_API_URL}/api/bookings/${booking.id}`
+
+        const response = await fetch(endpoint, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Accept': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const bookingData = await response.json()
+          // API may return { success: true, data: booking } or just the booking
+          selectedBooking.value = bookingData.data || bookingData
+        } else {
+          // Fallback to cached data if fetch fails
+          selectedBooking.value = booking
+        }
+      } catch (error) {
+        console.error('Error fetching booking details:', error)
+        // Fallback to cached data
+        selectedBooking.value = booking
+      }
+
       detailsDialog.value = true
     }
 
-    const handleAttendanceUpdated = ({ bookingId, status }) => {
+    const handleAttendanceUpdated = async ({ bookingId, status }) => {
       // Update the transaction in the list
       const transaction = pendingBookings.value.find(b => b.id === bookingId)
       if (transaction) {
         transaction.attendance_status = status
       }
+
+      // Reload data to ensure we have the latest information (including POS updates)
+      await loadPendingBookings()
+      await loadStats()
+      await loadPosStats()
+
       showSnackbar('Attendance status updated successfully', 'success')
     }
 
@@ -1296,22 +1329,6 @@ export default {
     })
 
     // QR Scanner functions
-    const openQrScanner = () => {
-      qrScannerDialog.value = true
-    }
-
-    const closeQrScannerDialog = () => {
-      qrScannerDialog.value = false
-    }
-
-    const handleImageError = (event) => {
-      // Hide the broken image and show fallback icon
-      event.target.style.display = 'none'
-      const fallback = event.target.nextElementSibling
-      if (fallback) {
-        fallback.style.display = 'inline'
-      }
-    }
 
     // Attendance status helper functions (imported from formatters)
 
@@ -1395,6 +1412,7 @@ export default {
     // Listen for booking refresh events
     const handleBookingRefresh = () => {
       loadStats()
+      loadPosStats()
       loadPendingBookings()
     }
 
@@ -1491,6 +1509,7 @@ export default {
       }
 
       loadStats()
+      loadPosStats()
       loadSports()
       loadPendingBookings()
 
@@ -1520,6 +1539,7 @@ export default {
 
     return {
       stats,
+      posStats,
       pendingBookings,
       loading,
       rejecting,
@@ -1528,11 +1548,6 @@ export default {
       detailsDialog,
       selectedBooking,
       snackbar,
-      showSnackbar,
-      openQrScanner,
-      closeQrScannerDialog,
-      qrScannerDialog,
-      handleImageError,
       headers,
       statusFilter,
       userFilter,
@@ -1726,6 +1741,14 @@ export default {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(245, 158, 11, 0.02) 100%);
 }
 
+.stat-card-7:hover {
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.05) 0%, rgba(156, 39, 176, 0.02) 100%);
+}
+
+.stat-card-8:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.02) 100%);
+}
+
 .stat-icon {
   width: 80px;
   height: 80px;
@@ -1771,138 +1794,6 @@ export default {
   font-weight: 600;
 }
 
-/* Actions Section */
-.actions-section {
-  margin-bottom: 48px;
-}
-
-.section-header {
-  text-align: center;
-  margin-bottom: 48px;
-}
-
-.section-badge {
-  display: inline-flex;
-  align-items: center;
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
-  border-radius: 50px;
-  padding: 8px 20px;
-  margin-bottom: 16px;
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-}
-
-.section-title {
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 800;
-  margin-bottom: 16px;
-  color: #1e293b;
-}
-
-.section-subtitle {
-  font-size: clamp(1rem, 2vw, 1.2rem);
-  color: #475569;
-  max-width: 600px;
-  margin: 0 auto;
-  line-height: 1.6;
-}
-
-.actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-}
-
-.action-card {
-  position: relative;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 32px;
-  height: 100%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  text-align: center;
-}
-
-.action-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.action-card:hover::before {
-  opacity: 1;
-}
-
-.action-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-.action-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  transition: all 0.3s ease;
-}
-
-.action-card:hover .action-icon {
-  transform: scale(1.1) rotate(5deg);
-}
-
-.action-content {
-  text-align: center;
-}
-
-.action-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 16px;
-  color: #1e293b;
-}
-
-.action-description {
-  color: #475569;
-  line-height: 1.6;
-  margin-bottom: 24px;
-}
-
-.action-btn {
-  border-radius: 12px !important;
-  font-weight: 700 !important;
-  text-transform: none !important;
-  padding: 12px 24px !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.action-btn:hover {
-  transform: translateY(-2px) !important;
-}
-
-/* Image Styles */
-.full-size-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 12px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-}
-
 /* Utility Classes */
 .gap-1 {
   gap: 4px;
@@ -1923,13 +1814,7 @@ export default {
     margin-bottom: 32px;
   }
 
-  .actions-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
-  .stat-card,
-  .action-card {
+  .stat-card {
     padding: 24px;
   }
 }
@@ -1943,8 +1828,7 @@ export default {
     padding: 24px 0;
   }
 
-  .stat-card,
-  .action-card {
+  .stat-card {
     padding: 20px;
   }
 }

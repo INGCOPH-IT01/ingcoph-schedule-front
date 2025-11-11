@@ -400,6 +400,19 @@ export function formatDate(dateString) {
 }
 
 /**
+ * Format a Date object to YYYY-MM-DD string in local timezone
+ * Avoids toISOString() which converts to UTC and can cause timezone offset issues
+ * @param {Date} date - Date object to format
+ * @returns {string} Date string in YYYY-MM-DD format
+ */
+export function formatDateToLocal(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
  * Format relative time (e.g., "5 mins ago", "2 hours ago")
  * @param {string} dateTime - DateTime string
  * @returns {string} Relative time string
@@ -476,21 +489,44 @@ export function getBookingTimeRange(booking) {
 }
 
 /**
- * Get total price from cart items
- * @param {Object} booking - Booking object
+ * Get total price - handles both CartTransaction and individual Booking objects
+ * @param {Object} booking - Booking or CartTransaction object
  * @returns {string} Formatted total price
  */
 export function getTotalPrice(booking) {
   if (!booking) return '0.00'
 
-  if (booking.cart_items && booking.cart_items.length > 0) {
-    const total = booking.cart_items.reduce((sum, item) => {
-      return sum + parseFloat(item.price || 0)
-    }, 0)
-    return total.toFixed(2)
-  }
+  // Check if this is a CartTransaction (has cart_items or isTransaction flag)
+  const isTransaction = booking.isTransaction || (booking.cart_items && booking.cart_items.length > 0)
 
-  return formatPriceValue(booking.total_price || 0)
+  if (isTransaction) {
+    // For CartTransaction: total_price includes booking_amount + pos_amount
+    // Use the transaction's total_price which is calculated on the backend
+    if (booking.total_price !== undefined && booking.total_price !== null) {
+      return formatPriceValue(booking.total_price)
+    }
+
+    // Fallback: calculate from cart_items (booking costs only, no POS)
+    if (booking.cart_items && booking.cart_items.length > 0) {
+      const bookingTotal = booking.cart_items.reduce((sum, item) => {
+        return sum + parseFloat(item.price || 0)
+      }, 0)
+
+      // Add POS amount if available (pos_amount is transaction-level)
+      const posAmount = parseFloat(booking.pos_amount || 0)
+      return (bookingTotal + posAmount).toFixed(2)
+    }
+
+    return '0.00'
+  } else {
+    // For individual Booking: total_price is ONLY the court slot price
+    // POS products are NOT associated with individual bookings
+    if (booking.total_price !== undefined && booking.total_price !== null) {
+      return formatPriceValue(booking.total_price)
+    }
+
+    return '0.00'
+  }
 }
 
 // ============================================================================

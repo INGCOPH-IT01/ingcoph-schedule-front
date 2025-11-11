@@ -1,5 +1,21 @@
 <template>
   <div class="proof-of-payment-upload">
+    <!-- Payment Reference Number Input -->
+    <v-text-field
+      :model-value="referenceNumber"
+      @update:model-value="handleReferenceNumberChange"
+      :label="referenceLabel"
+      :placeholder="referencePlaceholder"
+      variant="outlined"
+      :density="density"
+      prepend-icon="mdi-pound"
+      :hint="referenceHint"
+      :persistent-hint="persistentHint"
+      :disabled="disabled"
+      :rules="referenceRules"
+      class="mb-2"
+    ></v-text-field>
+
     <v-file-input
       :model-value="modelValue"
       :label="label"
@@ -118,6 +134,10 @@ export default {
       type: [Array, Object, null],
       default: null
     },
+    referenceNumber: {
+      type: String,
+      default: ''
+    },
     label: {
       type: String,
       default: 'Upload Proof of Payment'
@@ -129,6 +149,18 @@ export default {
     hint: {
       type: String,
       default: 'Upload screenshots of your payment receipts (max 5MB each)'
+    },
+    referenceLabel: {
+      type: String,
+      default: 'Payment Reference Number'
+    },
+    referencePlaceholder: {
+      type: String,
+      default: 'Enter QRPH invoice number'
+    },
+    referenceHint: {
+      type: String,
+      default: 'Optional: Enter the reference number from your payment'
     },
     multiple: {
       type: Boolean,
@@ -153,9 +185,13 @@ export default {
     rules: {
       type: Array,
       default: () => []
+    },
+    referenceRules: {
+      type: Array,
+      default: () => []
     }
   },
-  emits: ['update:modelValue'],
+  emits: ['update:modelValue', 'update:referenceNumber', 'update:reference-number'],
   setup(props, { emit }) {
     const previews = ref([])
     const previewDialog = ref(false)
@@ -163,6 +199,10 @@ export default {
 
     const handleFileChange = (files) => {
       emit('update:modelValue', files)
+    }
+
+    const handleReferenceNumberChange = (value) => {
+      emit('update:reference-number', value)
     }
 
     const openPreviewDialog = (index) => {
@@ -218,6 +258,7 @@ export default {
       previewDialog,
       selectedPreview,
       handleFileChange,
+      handleReferenceNumberChange,
       openPreviewDialog,
       removePreview
     }

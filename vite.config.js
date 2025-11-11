@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import { copyFileSync, readFileSync } from 'fs'
+import { fileURLToPath, URL } from 'node:url'
 
 // Plugin to copy .htaccess after build
 const copyHtaccess = () => ({
@@ -26,6 +27,11 @@ try {
 
 export default defineConfig({
   plugins: [vue(), copyHtaccess()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  },
   server: {
     port: 3000,
     host: true,
