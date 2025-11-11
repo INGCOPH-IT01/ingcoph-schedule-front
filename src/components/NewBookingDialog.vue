@@ -264,13 +264,9 @@
                       <v-card
                         v-for="slot in timeSlots[court.id]"
                         :key="slot.start"
-                        :class="['time-slot-card', {
-                          'selected': isTimeSlotSelected(court.id, slot.start),
-                          'unavailable': !slot.available && !slot.is_waitlist_available,
-                          'waitlist': slot.is_waitlist_available
-                        }]"
-                        @click="(slot.available || slot.is_waitlist_available) && toggleTimeSlot(court.id, slot)"
-                        :disabled="!slot.available && !slot.is_waitlist_available"
+                        :class="getSlotClasses(court.id, slot)"
+                        :disabled="!canSelectSlot(slot)"
+                        @click="handleSlotClick(court.id, slot)"
                       >
                         <v-icon
                           v-if="isTimeSlotSelected(court.id, slot.start)"
@@ -285,11 +281,11 @@
                           <div class="text-caption">to</div>
                           <div class="text-body-2 font-weight-bold">{{ formatTime(slot.end) }}</div>
                           <v-chip
-                            :color="slot.is_booked ? 'error' : (slot.is_waitlist_available ? 'warning' : 'success')"
+                            :color="getSlotStatusColor(slot)"
                             size="x-small"
                             class="mt-2"
                           >
-                            {{ slot.is_booked ? 'Booked' : (slot.is_waitlist_available ? 'Waitlist' : 'Available') }}
+                            {{ getSlotStatusLabel(slot) }}
                           </v-chip>
                           <!-- Show customer name when slot is booked or waitlist (Admin/Staff only) -->
                           <div
@@ -647,7 +643,7 @@
               </v-card>
 
               <!-- Waitlist Booking Notice -->
-              <v-card v-if="hasWaitlistSlots" variant="outlined" class="mt-4 waitlist-notice">
+              <v-card v-if="waitlistEnabled && hasWaitlistSlots" variant="outlined" class="mt-4 waitlist-notice">
                 <v-card-text>
                   <h4 class="text-h6 mb-4">
                     <v-icon class="mr-2" color="warning">mdi-clock-alert</v-icon>
@@ -673,7 +669,7 @@
               </v-card>
 
               <!-- Payment Options (only show if not all waitlist or if admin/staff can skip) -->
-              <v-card v-if="!allSlotsAreWaitlist" variant="outlined" class="mt-4 payment-options">
+              <v-card v-if="!(waitlistEnabled && allSlotsAreWaitlist)" variant="outlined" class="mt-4 payment-options">
                 <v-card-text>
                   <h4 class="text-h6 mb-4">
                     <v-icon class="mr-2" color="success">mdi-cellphone-check</v-icon>
@@ -689,7 +685,7 @@
                     </div>
                   </v-alert>
 
-                  <v-alert v-if="hasWaitlistSlots && !allSlotsAreWaitlist" type="info" variant="tonal" class="mb-4">
+                  <v-alert v-if="waitlistEnabled && hasWaitlistSlots && !allSlotsAreWaitlist" type="info" variant="tonal" class="mb-4">
                     <div class="d-flex align-center">
                       <div>
                         <div class="font-weight-bold">Mixed booking: Available + Waitlist</div>
@@ -786,7 +782,7 @@
                 </v-card-text>
               </v-card>
 
-              <v-alert v-if="!skipPayment && !allSlotsAreWaitlist" type="info" class="mt-4" icon="mdi-information">
+              <v-alert v-if="!skipPayment && !(waitlistEnabled && allSlotsAreWaitlist)" type="info" class="mt-4" icon="mdi-information">
                 <div class="font-weight-bold mb-1">Booking Confirmation Process</div>
                 <div>Your booking will be confirmed after payment verification.</div>
                 <div class="text-caption mt-2">
@@ -795,7 +791,7 @@
                 </div>
               </v-alert>
 
-              <v-alert v-if="skipPayment && isAdminOrStaff && !allSlotsAreWaitlist" type="warning" class="mt-4" icon="mdi-alert">
+              <v-alert v-if="skipPayment && isAdminOrStaff && !(waitlistEnabled && allSlotsAreWaitlist)" type="warning" class="mt-4" icon="mdi-alert">
                 <div class="font-weight-bold">Booking without payment</div>
                 <div class="text-caption">Time slots will be marked as booked, but cannot be marked as "showed up" until payment is completed.</div>
                 <div class="text-caption mt-2">
@@ -847,7 +843,7 @@
 
           <!-- Waitlist submission (all slots are waitlist) -->
           <v-btn
-            v-if="allSlotsAreWaitlist"
+            v-if="waitlistEnabled && allSlotsAreWaitlist"
             color="warning"
             :loading="submitting"
             @click="submitWaitlistBooking"
@@ -858,7 +854,7 @@
 
           <!-- Regular checkout with payment (no waitlist or mixed with payment required) -->
           <v-btn
-            v-if="!allSlotsAreWaitlist && !skipPayment"
+            v-if="!(waitlistEnabled && allSlotsAreWaitlist) && !skipPayment"
             color="success"
             :loading="submitting"
             :disabled="!proofOfPayment || proofOfPayment.length === 0"
@@ -870,7 +866,7 @@
 
           <!-- Admin/Staff skip payment -->
           <v-btn
-            v-if="!allSlotsAreWaitlist && skipPayment && isAdminOrStaff"
+            v-if="!(waitlistEnabled && allSlotsAreWaitlist) && skipPayment && isAdminOrStaff"
             color="warning"
             :loading="submitting"
             @click="submitBookingWithoutPayment"
@@ -990,6 +986,9 @@ export default {
     // Facebook page settings
     const facebookPageUrl = ref('')
     const facebookPageName = ref('')
+
+    // Waitlist feature setting
+    const waitlistEnabled = ref(true)
 
     // Booking disabled snackbar
     const bookingDisabledSnackbar = ref(false)
@@ -1208,9 +1207,33 @@ export default {
       }
     }
 
+    const handleSlotClick = (courtId, slot) => {
+      // Debug logging
+      console.log('Slot clicked:', {
+        courtId,
+        start: slot.start,
+        available: slot.available,
+        is_waitlist_available: slot.is_waitlist_available,
+        is_booked: slot.is_booked,
+        waitlistEnabled: waitlistEnabled.value,
+        canSelect: canSelectSlot(slot)
+      })
+
+      // Guard: Only proceed if slot can be selected
+      if (!canSelectSlot(slot)) {
+        console.warn('❌ Slot selection blocked - slot cannot be selected')
+        return
+      }
+
+      console.log('✅ Proceeding with slot selection')
+      toggleTimeSlot(courtId, slot)
+    }
+
     const toggleTimeSlot = (courtId, slot) => {
-      // Allow selection if available OR waitlist is available
-      if (!slot.available && !slot.is_waitlist_available) return
+      // Double-check: Ensure slot can be selected
+      if (!canSelectSlot(slot)) {
+        return
+      }
 
       if (!courtTimeSlots.value[courtId]) {
         courtTimeSlots.value[courtId] = {
@@ -1230,10 +1253,10 @@ export default {
           delete courtTimeSlots.value[courtId]
         }
       } else {
-        // Add slot (include waitlist flag)
+        // Add slot (include waitlist flag if waitlist is enabled)
         slots.push({
           ...slot,
-          is_waitlist: slot.is_waitlist_available && !slot.available
+          is_waitlist: waitlistEnabled.value && slot.is_waitlist_available && !slot.available
         })
       }
     }
@@ -1242,11 +1265,123 @@ export default {
       return courtTimeSlots.value[courtId]?.slots.some(s => s.start === slotStart) || false
     }
 
+    // Helper function to get all CSS classes for a slot
+    const getSlotClasses = (courtId, slot) => {
+      const classes = ['time-slot-card']
+
+      // Check if selected
+      if (isTimeSlotSelected(courtId, slot.start)) {
+        classes.push('selected')
+      }
+
+      // Check if slot can be selected
+      const selectable = canSelectSlot(slot)
+
+      if (!selectable) {
+        // Slot is unavailable
+        classes.push('unavailable')
+
+        // Debug log for unavailable slots
+        if (slot.is_waitlist_available) {
+          console.log(`Slot ${slot.start} marked unavailable (waitlist disabled):`, {
+            available: slot.available,
+            is_waitlist_available: slot.is_waitlist_available,
+            waitlistEnabled: waitlistEnabled.value,
+            classes: [...classes]
+          })
+        }
+      } else if (waitlistEnabled.value && slot.is_waitlist_available && !slot.available) {
+        // Slot is available for waitlist (only if waitlist is enabled)
+        classes.push('waitlist')
+
+        console.log(`Slot ${slot.start} marked as waitlist:`, {
+          waitlistEnabled: waitlistEnabled.value,
+          classes: [...classes]
+        })
+      }
+
+      return classes
+    }
+
+    // Helper function to determine if a slot can be selected
+    const canSelectSlot = (slot) => {
+      // If slot is available, it can always be selected
+      if (slot.available) {
+        return true
+      }
+
+      // If slot is not available and has waitlist
+      if (slot.is_waitlist_available) {
+        // Only allow selection if waitlist feature is enabled
+        if (waitlistEnabled.value) {
+          return true
+        } else {
+          // Waitlist is disabled, cannot select this slot
+          return false
+        }
+      }
+
+      // Otherwise, slot cannot be selected (fully booked, no waitlist)
+      return false
+    }
+
+    // Helper function to get slot status label
+    const getSlotStatusLabel = (slot) => {
+      // If slot is booked (not available and not waitlist)
+      if (slot.is_booked && !slot.is_waitlist_available) {
+        return 'Booked'
+      }
+
+      // If waitlist is enabled and slot is waitlist-available
+      if (waitlistEnabled.value && slot.is_waitlist_available && !slot.available) {
+        return 'Waitlist'
+      }
+
+      // If waitlist is disabled but slot is waitlist-available, show as Booked
+      if (!waitlistEnabled.value && slot.is_waitlist_available) {
+        return 'Booked'
+      }
+
+      // If slot is not available for any other reason
+      if (!slot.available) {
+        return 'Booked'
+      }
+
+      // Slot is available
+      return 'Available'
+    }
+
+    // Helper function to get slot status color
+    const getSlotStatusColor = (slot) => {
+      // If slot is booked (not available and not waitlist)
+      if (slot.is_booked && !slot.is_waitlist_available) {
+        return 'error'
+      }
+
+      // If waitlist is enabled and slot is waitlist-available
+      if (waitlistEnabled.value && slot.is_waitlist_available && !slot.available) {
+        return 'warning'
+      }
+
+      // If waitlist is disabled but slot is waitlist-available, show as error (booked)
+      if (!waitlistEnabled.value && slot.is_waitlist_available) {
+        return 'error'
+      }
+
+      // If slot is not available for any other reason
+      if (!slot.available) {
+        return 'error'
+      }
+
+      // Slot is available
+      return 'success'
+    }
+
     const nextStep = async () => {
       if (!canProceed.value) return
 
-      // If moving from Step 2 to Step 3 and there are waitlist slots, show warning
-      if (step.value === 2 && hasWaitlistSlots.value) {
+      // If moving from Step 2 to Step 3 and there are waitlist slots, show warning (only if waitlist is enabled)
+      if (step.value === 2 && waitlistEnabled.value && hasWaitlistSlots.value) {
         const result = await showAlert({
           icon: 'warning',
           title: 'Waitlist Booking',
@@ -2481,6 +2616,22 @@ export default {
       }
     }
 
+    // Fetch waitlist configuration
+    const fetchWaitlistConfig = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
+        console.log('Waitlist config loaded:', {
+          waitlist_enabled: settings.waitlist_enabled,
+          waitlistEnabled: waitlistEnabled.value
+        })
+      } catch (error) {
+        console.error('Failed to load waitlist config:', error)
+        // Default to true if loading fails
+        waitlistEnabled.value = true
+      }
+    }
+
     // Watchers
     /**
      * Generate or load GCash QR code
@@ -2551,6 +2702,9 @@ export default {
 
     watch(() => props.isOpen, async (newValue) => {
       if (newValue) {
+        // Refresh waitlist config when dialog opens
+        await fetchWaitlistConfig()
+
         await fetchSports()
         await fetchCourts()
         await fetchCurrentUser()
@@ -2592,6 +2746,9 @@ export default {
     }
 
     onMounted(async () => {
+      // Load waitlist configuration immediately on mount
+      await fetchWaitlistConfig()
+
       if (props.isOpen) {
         await fetchSports()
         await fetchCourts()
@@ -2624,12 +2781,16 @@ export default {
       // Listen for booking updates to refresh availability
       window.addEventListener('booking-updated', handleBookingUpdated)
       window.addEventListener('booking-created', handleBookingUpdated)
+
+      // Listen for company settings updates to refresh waitlist config
+      window.addEventListener('company-settings-updated', fetchWaitlistConfig)
     })
 
     // Cleanup event listeners when component is unmounted
     onUnmounted(() => {
       window.removeEventListener('booking-updated', handleBookingUpdated)
       window.removeEventListener('booking-created', handleBookingUpdated)
+      window.removeEventListener('company-settings-updated', fetchWaitlistConfig)
     })
 
     return {
@@ -2659,8 +2820,13 @@ export default {
       overallTimeRange,
       getCourtSports,
       selectSport,
+      handleSlotClick,
       toggleTimeSlot,
       isTimeSlotSelected,
+      getSlotClasses,
+      canSelectSlot,
+      getSlotStatusLabel,
+      getSlotStatusColor,
       nextStep,
       loadTimeSlots,
       loadTimeSlotsForAllCourts,
@@ -2692,6 +2858,8 @@ export default {
       // Facebook page settings
       facebookPageUrl,
       facebookPageName,
+      // Waitlist feature setting
+      waitlistEnabled,
       // Booking disabled snackbar
       bookingDisabledSnackbar,
       bookingDisabledMessage,
@@ -3128,29 +3296,47 @@ export default {
   color: white !important;
 }
 
-.time-slot-card.unavailable {
-  opacity: 0.5;
-  cursor: not-allowed;
+.time-slot-card.unavailable,
+.time-slot-card[disabled],
+.time-slot-card:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
   background: #f5f5f5 !important;
+  pointer-events: none !important;
 }
 
-.time-slot-card.waitlist {
+.time-slot-card.unavailable * {
+  pointer-events: none !important;
+}
+
+.time-slot-card.waitlist:not(.unavailable) {
   border-color: #ff9800;
   background: linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(251, 140, 0, 0.05) 100%) !important;
 }
 
-.time-slot-card.waitlist:hover {
+.time-slot-card.waitlist:not(.unavailable):hover {
   border-color: #ff9800;
   box-shadow: 0 4px 8px rgba(255, 152, 0, 0.3);
 }
 
-.time-slot-card.waitlist .v-chip {
+/* Ensure unavailable always wins */
+.time-slot-card.unavailable.waitlist {
+  border-color: transparent !important;
+  background: #f5f5f5 !important;
+}
+
+.time-slot-card.waitlist:not(.unavailable) .v-chip {
   background: #ff9800 !important;
   color: white !important;
 }
 
 .time-slot-card:not(.unavailable):not(.waitlist) .v-chip {
   background: #4caf50 !important;
+  color: white !important;
+}
+
+.time-slot-card.unavailable .v-chip {
+  background: #9e9e9e !important;
   color: white !important;
 }
 
