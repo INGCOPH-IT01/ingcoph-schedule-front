@@ -474,7 +474,7 @@ export default {
 
     // Smart polling that pauses when tab is hidden (reduces unnecessary API calls)
     // Cart count: check every 60 seconds (increased from 30s)
-    useVisibilityPolling(updateCartCount, 60000)
+    // useVisibilityPolling(updateCartCount, 300000)
 
     // User data refresh: check every 5 minutes (increased from 2min)
     useVisibilityPolling(refreshUserData, 300000)
