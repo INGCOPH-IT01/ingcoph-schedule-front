@@ -274,6 +274,16 @@ export const courtService = {
     }
   },
 
+  // Get price change history for a sport
+  async getPriceHistory(sportId) {
+    try {
+      const response = await api.get(`/sports/${sportId}/price-history`)
+      return response.data.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to fetch price history')
+    }
+  },
+
   async getTotalBookedHours(courtId) {
     try {
       const response = await api.get(`/courts/${courtId}/total-booked-hours`)

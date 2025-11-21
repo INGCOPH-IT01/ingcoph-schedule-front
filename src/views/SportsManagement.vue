@@ -63,6 +63,14 @@
             title="Manage Time-based Pricing"
           ></v-btn>
           <v-btn
+            icon="mdi-history"
+            size="small"
+            variant="text"
+            color="secondary"
+            @click="openPriceHistoryDialog(item)"
+            title="View Price History"
+          ></v-btn>
+          <v-btn
             icon="mdi-pencil"
             size="small"
             variant="text"
@@ -250,6 +258,22 @@
             <div class="text-caption mt-1">This price is used when no time-based rules match</div>
           </v-alert>
 
+          <!-- Info about scheduled pricing -->
+          <v-alert type="success" variant="tonal" density="compact" class="mb-4">
+            <div class="text-subtitle-2 mb-1">
+              <v-icon size="small" class="mr-1">mdi-information</v-icon>
+              Automated Pricing Changes
+            </div>
+            <div class="text-caption mb-2">
+              Schedule pricing changes in advance! Set an effective date and the pricing will automatically
+              apply at that time - no need to be physically present to manually update prices.
+            </div>
+            <div class="text-caption font-weight-bold">
+              💡 Tip: To schedule a price change, create a new pricing rule with a future effective date.
+              The current rule will remain active until the new rule's effective date arrives.
+            </div>
+          </v-alert>
+
           <!-- Add New Pricing Rule Button -->
           <v-btn
             color="primary"
@@ -260,67 +284,274 @@
             Add Pricing Rule
           </v-btn>
 
-          <!-- Pricing Rules List -->
-          <v-list v-if="timeBasedPricing.length > 0">
-            <v-list-item
-              v-for="pricing in timeBasedPricing"
-              :key="pricing.id"
-              class="mb-2 border rounded"
-            >
-              <template v-slot:prepend>
-                <v-icon :color="pricing.is_active ? 'success' : 'grey'">
-                  mdi-clock-outline
-                </v-icon>
-              </template>
+          <!-- Tabs for Active and Scheduled Rules -->
+          <v-tabs v-model="pricingTab" color="primary" class="mb-4">
+            <v-tab value="active">
+              <v-icon start>mdi-check-circle</v-icon>
+              Active Rules ({{ activePricingRules.length }})
+            </v-tab>
+            <v-tab value="scheduled">
+              <v-icon start>mdi-calendar-clock</v-icon>
+              Pending Changes ({{ scheduledPricingRules.length }})
+            </v-tab>
+            <v-tab value="all">
+              <v-icon start>mdi-format-list-bulleted</v-icon>
+              All ({{ timeBasedPricing.length }})
+            </v-tab>
+          </v-tabs>
 
-              <v-list-item-title>
-                <span class="font-weight-bold">{{ pricing.name }}</span>
-                <v-chip size="small" color="success" variant="tonal" class="ml-2">
-                  ₱{{ parseFloat(pricing.price_per_hour).toFixed(2) }}/hr
-                </v-chip>
-              </v-list-item-title>
+          <v-window v-model="pricingTab">
+            <!-- Active Rules Tab -->
+            <v-window-item value="active">
+              <v-list v-if="activePricingRules.length > 0">
+                <v-list-item
+                  v-for="pricing in activePricingRules"
+                  :key="pricing.id"
+                  class="mb-2 border rounded"
+                >
+                  <template v-slot:prepend>
+                    <v-icon color="success">
+                      mdi-clock-check-outline
+                    </v-icon>
+                  </template>
 
-              <v-list-item-subtitle>
-                <div>
-                  <v-icon size="small">mdi-clock</v-icon>
-                  {{ pricing.start_time }} - {{ pricing.end_time }}
-                </div>
-                <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
-                  <v-icon size="small">mdi-calendar</v-icon>
-                  {{ getDayNames(pricing.days_of_week) }}
-                </div>
-                <div v-else>
-                  <v-icon size="small">mdi-calendar</v-icon>
-                  All days
-                </div>
-                <div>
-                  <v-icon size="small">mdi-priority-high</v-icon>
-                  Priority: {{ pricing.priority }}
-                </div>
-              </v-list-item-subtitle>
+                  <v-list-item-title>
+                    <span class="font-weight-bold">{{ pricing.name }}</span>
+                    <v-chip size="small" color="success" variant="tonal" class="ml-2">
+                      ₱{{ parseFloat(pricing.price_per_hour).toFixed(2) }}/hr
+                    </v-chip>
+                    <v-chip size="x-small" color="success" class="ml-2">
+                      ACTIVE NOW
+                    </v-chip>
+                  </v-list-item-title>
 
-              <template v-slot:append>
-                <v-btn
-                  icon="mdi-pencil"
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  @click="editPricingRule(pricing)"
-                ></v-btn>
-                <v-btn
-                  icon="mdi-delete"
-                  size="small"
-                  variant="text"
-                  color="error"
-                  @click="deletePricingRule(pricing)"
-                ></v-btn>
-              </template>
-            </v-list-item>
-          </v-list>
+                  <v-list-item-subtitle>
+                    <div>
+                      <v-icon size="small">mdi-clock</v-icon>
+                      {{ pricing.start_time }} - {{ pricing.end_time }}
+                    </div>
+                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
+                      <v-icon size="small">mdi-calendar</v-icon>
+                      {{ getDayNames(pricing.days_of_week) }}
+                    </div>
+                    <div v-else>
+                      <v-icon size="small">mdi-calendar</v-icon>
+                      All days
+                    </div>
+                    <div>
+                      <v-icon size="small">mdi-priority-high</v-icon>
+                      Priority: {{ pricing.priority }}
+                    </div>
+                    <div v-if="pricing.effective_date" class="mt-1 text-success">
+                      <v-icon size="small">mdi-calendar-check</v-icon>
+                      Became effective: {{ formatEffectiveDate(pricing.effective_date) }}
+                    </div>
+                  </v-list-item-subtitle>
 
-          <v-alert v-else type="warning" variant="tonal" class="mt-4">
-            No time-based pricing rules configured. The default price will be used for all times.
-          </v-alert>
+                  <template v-slot:append>
+                    <v-btn
+                      icon="mdi-pencil"
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      @click="editPricingRule(pricing)"
+                    ></v-btn>
+                    <v-btn
+                      icon="mdi-delete"
+                      size="small"
+                      variant="text"
+                      color="error"
+                      @click="deletePricingRule(pricing)"
+                    ></v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
+              <v-alert v-else type="info" variant="tonal">
+                No pricing rules are currently active.
+              </v-alert>
+            </v-window-item>
+
+            <!-- Scheduled Rules Tab -->
+            <v-window-item value="scheduled">
+              <v-alert type="warning" variant="tonal" density="compact" class="mb-4">
+                <div class="text-subtitle-2 mb-1">
+                  <v-icon size="small" class="mr-1">mdi-information</v-icon>
+                  Pending Price Changes
+                </div>
+                <div class="text-caption">
+                  These rules have been configured to take effect on a future date.
+                  The pricing shown below will automatically apply when the effective date arrives.
+                </div>
+              </v-alert>
+
+              <v-list v-if="scheduledPricingRules.length > 0">
+                <v-list-item
+                  v-for="pricing in scheduledPricingRules"
+                  :key="pricing.id"
+                  class="mb-2 border rounded"
+                >
+                  <template v-slot:prepend>
+                    <v-icon color="warning">
+                      mdi-calendar-clock
+                    </v-icon>
+                  </template>
+
+                  <v-list-item-title>
+                    <span class="font-weight-bold">{{ pricing.name }}</span>
+                    <v-chip size="small" color="success" variant="tonal" class="ml-2">
+                      ₱{{ parseFloat(pricing.price_per_hour).toFixed(2) }}/hr
+                    </v-chip>
+                    <v-chip size="x-small" color="warning" class="ml-2">
+                      PENDING
+                    </v-chip>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle>
+                    <div class="text-warning font-weight-bold mb-2">
+                      <v-icon size="small">mdi-calendar-clock</v-icon>
+                      Will take effect on: {{ formatEffectiveDate(pricing.effective_date) }}
+                    </div>
+                    <div>
+                      <v-icon size="small">mdi-clock</v-icon>
+                      {{ pricing.start_time }} - {{ pricing.end_time }}
+                    </div>
+                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
+                      <v-icon size="small">mdi-calendar</v-icon>
+                      {{ getDayNames(pricing.days_of_week) }}
+                    </div>
+                    <div v-else>
+                      <v-icon size="small">mdi-calendar</v-icon>
+                      All days
+                    </div>
+                    <div>
+                      <v-icon size="small">mdi-priority-high</v-icon>
+                      Priority: {{ pricing.priority }}
+                    </div>
+                  </v-list-item-subtitle>
+
+                  <template v-slot:append>
+                    <v-btn
+                      icon="mdi-pencil"
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      @click="editPricingRule(pricing)"
+                      title="Edit scheduled pricing"
+                    ></v-btn>
+                    <v-btn
+                      icon="mdi-delete"
+                      size="small"
+                      variant="text"
+                      color="error"
+                      @click="deletePricingRule(pricing)"
+                      title="Cancel scheduled change"
+                    ></v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
+              <v-alert v-else type="info" variant="tonal">
+                No pricing changes are scheduled for the future.
+              </v-alert>
+            </v-window-item>
+
+            <!-- All Rules Tab -->
+            <v-window-item value="all">
+              <v-list v-if="timeBasedPricing.length > 0">
+                <v-list-item
+                  v-for="pricing in timeBasedPricing"
+                  :key="pricing.id"
+                  class="mb-2 border rounded"
+                >
+                  <template v-slot:prepend>
+                    <v-icon
+                      :color="!pricing.is_active ? 'grey' : (isPricingActive(pricing) ? 'success' : 'warning')"
+                    >
+                      {{ !pricing.is_active ? 'mdi-cancel' : (isPricingActive(pricing) ? 'mdi-clock-check-outline' : 'mdi-calendar-clock') }}
+                    </v-icon>
+                  </template>
+
+                  <v-list-item-title>
+                    <span class="font-weight-bold">{{ pricing.name }}</span>
+                    <v-chip size="small" color="success" variant="tonal" class="ml-2">
+                      ₱{{ parseFloat(pricing.price_per_hour).toFixed(2) }}/hr
+                    </v-chip>
+                    <v-chip
+                      v-if="!pricing.is_active"
+                      size="x-small"
+                      color="grey"
+                      class="ml-2"
+                    >
+                      INACTIVE
+                    </v-chip>
+                    <v-chip
+                      v-else-if="isPricingActive(pricing)"
+                      size="x-small"
+                      color="success"
+                      class="ml-2"
+                    >
+                      ACTIVE NOW
+                    </v-chip>
+                    <v-chip
+                      v-else
+                      size="x-small"
+                      color="warning"
+                      class="ml-2"
+                    >
+                      PENDING
+                    </v-chip>
+                  </v-list-item-title>
+
+                  <v-list-item-subtitle>
+                    <div>
+                      <v-icon size="small">mdi-clock</v-icon>
+                      {{ pricing.start_time }} - {{ pricing.end_time }}
+                    </div>
+                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
+                      <v-icon size="small">mdi-calendar</v-icon>
+                      {{ getDayNames(pricing.days_of_week) }}
+                    </div>
+                    <div v-else>
+                      <v-icon size="small">mdi-calendar</v-icon>
+                      All days
+                    </div>
+                    <div>
+                      <v-icon size="small">mdi-priority-high</v-icon>
+                      Priority: {{ pricing.priority }}
+                    </div>
+                    <div v-if="pricing.effective_date && isPricingActive(pricing)" class="mt-1 text-success">
+                      <v-icon size="small">mdi-calendar-check</v-icon>
+                      Became effective: {{ formatEffectiveDate(pricing.effective_date) }}
+                    </div>
+                    <div v-if="pricing.effective_date && !isPricingActive(pricing)" class="mt-1 text-warning font-weight-bold">
+                      <v-icon size="small">mdi-calendar-clock</v-icon>
+                      Will activate on: {{ formatEffectiveDate(pricing.effective_date) }}
+                    </div>
+                  </v-list-item-subtitle>
+
+                  <template v-slot:append>
+                    <v-btn
+                      icon="mdi-pencil"
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      @click="editPricingRule(pricing)"
+                    ></v-btn>
+                    <v-btn
+                      icon="mdi-delete"
+                      size="small"
+                      variant="text"
+                      color="error"
+                      @click="deletePricingRule(pricing)"
+                    ></v-btn>
+                  </template>
+                </v-list-item>
+              </v-list>
+
+              <v-alert v-else type="warning" variant="tonal" class="mt-4">
+                No time-based pricing rules configured. The default price will be used for all times.
+              </v-alert>
+            </v-window-item>
+          </v-window>
         </v-card-text>
 
         <v-divider></v-divider>
@@ -421,6 +652,62 @@
               class="mb-4"
             ></v-text-field>
 
+            <!-- Effectivity Date -->
+            <v-divider class="mb-4"></v-divider>
+            <div class="text-subtitle-2 mb-3 font-weight-bold">
+              <v-icon class="mr-1">mdi-calendar-clock</v-icon>
+              Effectivity Date
+            </div>
+
+            <v-alert
+              v-if="pricingRuleEditMode"
+              type="warning"
+              variant="tonal"
+              density="compact"
+              class="mb-4"
+            >
+              <div class="text-caption">
+                <strong>Editing an active rule:</strong> Changes will apply immediately.
+                To schedule a future price change, create a new rule instead.
+              </div>
+            </v-alert>
+
+            <v-text-field
+              v-model="pricingFormData.effective_date"
+              label="Effective From (Optional)"
+              type="datetime-local"
+              prepend-inner-icon="mdi-calendar-start"
+              variant="outlined"
+              :hint="pricingRuleEditMode
+                ? 'When editing, leave empty to apply immediately. Setting a future date will delay the update.'
+                : 'Leave empty to apply immediately. Set a future date to schedule this pricing in advance.'"
+              persistent-hint
+              class="mb-4"
+              clearable
+            ></v-text-field>
+
+            <v-alert v-if="pricingFormData.effective_date"
+                     type="info"
+                     variant="tonal"
+                     density="compact"
+                     class="mb-4">
+              <div class="font-weight-bold mb-1">Scheduled Activation</div>
+              This pricing {{ pricingRuleEditMode ? 'update' : 'rule' }} will become active on
+              {{ formatEffectiveDate(pricingFormData.effective_date) }} and continue indefinitely.
+              <div v-if="!pricingRuleEditMode" class="mt-2 text-caption">
+                💡 The current pricing will remain in effect until this date arrives.
+              </div>
+            </v-alert>
+
+            <v-alert v-else
+                     type="success"
+                     variant="tonal"
+                     density="compact"
+                     class="mb-4">
+              <div class="font-weight-bold mb-1">Immediate Activation</div>
+              This {{ pricingRuleEditMode ? 'update' : 'rule' }} will apply immediately when saved.
+            </v-alert>
+
             <v-switch
               v-model="pricingFormData.is_active"
               label="Active"
@@ -453,6 +740,124 @@
       </v-card>
     </v-dialog>
 
+    <!-- Price History Dialog -->
+    <v-dialog v-model="priceHistoryDialog" max-width="1000">
+      <v-card>
+        <v-card-title class="text-h5 pa-6">
+          <v-icon class="mr-2" color="secondary">mdi-history</v-icon>
+          Price Change History for {{ selectedSport?.name }}
+        </v-card-title>
+
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-6">
+          <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+            <div class="text-caption">
+              Track all pricing changes and see who made them and when they took effect.
+            </div>
+          </v-alert>
+
+          <v-progress-linear v-if="loadingHistory" indeterminate color="primary" class="mb-4"></v-progress-linear>
+
+          <v-timeline v-if="priceHistory.length > 0" side="end" align="start" density="compact">
+            <v-timeline-item
+              v-for="history in priceHistory"
+              :key="history.id"
+              :dot-color="getChangeTypeColor(history.change_type)"
+              size="small"
+            >
+              <template v-slot:opposite>
+                <div class="text-caption">
+                  {{ formatEffectiveDate(history.created_at) }}
+                </div>
+              </template>
+
+              <v-card variant="tonal" :color="getChangeTypeColor(history.change_type)">
+                <v-card-text>
+                  <div class="d-flex align-center mb-2">
+                    <v-chip
+                      :color="getChangeTypeColor(history.change_type)"
+                      size="small"
+                      class="mr-2"
+                    >
+                      {{ getChangeTypeLabel(history.change_type) }}
+                    </v-chip>
+                    <span v-if="history.changed_by" class="text-caption text-grey">
+                      by {{ (history.changed_by.first_name && history.changed_by.last_name)
+                        ? `${history.changed_by.first_name} ${history.changed_by.last_name}`.trim()
+                        : history.changed_by.email }}
+                    </span>
+                  </div>
+
+                  <div class="font-weight-bold mb-2">{{ history.description }}</div>
+
+                  <v-row v-if="history.old_value || history.new_value" dense>
+                    <v-col v-if="history.old_value" cols="12" md="6">
+                      <div class="text-caption text-grey mb-1">Previous Value:</div>
+                      <v-card variant="outlined" density="compact">
+                        <v-card-text class="pa-2">
+                          <div v-if="history.change_type === 'default_price_updated'">
+                            <strong>₱{{ parseFloat(history.old_value.price_per_hour || 0).toFixed(2) }}/hr</strong>
+                          </div>
+                          <div v-else>
+                            <div><strong>{{ history.old_value.name }}</strong></div>
+                            <div class="text-caption">
+                              ₱{{ parseFloat(history.old_value.price_per_hour || 0).toFixed(2) }}/hr
+                              | {{ history.old_value.start_time }} - {{ history.old_value.end_time }}
+                            </div>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+
+                    <v-col v-if="history.new_value" cols="12" md="6">
+                      <div class="text-caption text-grey mb-1">New Value:</div>
+                      <v-card variant="outlined" density="compact" color="success">
+                        <v-card-text class="pa-2">
+                          <div v-if="history.change_type === 'default_price_updated'">
+                            <strong>₱{{ parseFloat(history.new_value.price_per_hour || 0).toFixed(2) }}/hr</strong>
+                          </div>
+                          <div v-else>
+                            <div><strong>{{ history.new_value.name }}</strong></div>
+                            <div class="text-caption">
+                              ₱{{ parseFloat(history.new_value.price_per_hour || 0).toFixed(2) }}/hr
+                              | {{ history.new_value.start_time }} - {{ history.new_value.end_time }}
+                            </div>
+                          </div>
+                        </v-card-text>
+                      </v-card>
+                    </v-col>
+                  </v-row>
+
+                  <div v-if="history.effective_date" class="mt-2 text-caption">
+                    <v-icon size="small">mdi-calendar-check</v-icon>
+                    Effective: {{ formatEffectiveDate(history.effective_date) }}
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-timeline-item>
+          </v-timeline>
+
+          <v-alert v-else-if="!loadingHistory" type="info" variant="tonal">
+            No price change history available for this sport.
+          </v-alert>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-6">
+          <v-spacer></v-spacer>
+          <v-btn
+            color="grey"
+            variant="outlined"
+            @click="priceHistoryDialog = false"
+          >
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Snackbar -->
     <v-snackbar
       v-model="snackbar.show"
@@ -465,7 +870,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { courtService } from '../services/courtService'
 import { sportService } from '../services/sportService'
 
@@ -490,6 +895,12 @@ export default {
     const timeBasedPricing = ref([])
     const savingPricing = ref(false)
     const pricingForm = ref(null)
+    const pricingTab = ref('all')
+
+    // Price history state
+    const priceHistory = ref([])
+    const priceHistoryDialog = ref(false)
+    const loadingHistory = ref(false)
 
     const formData = ref({
       name: '',
@@ -506,7 +917,8 @@ export default {
       price_per_hour: 0,
       days_of_week: [],
       is_active: true,
-      priority: 0
+      priority: 0,
+      effective_date: null
     })
 
     const daysOfWeekOptions = [
@@ -532,7 +944,7 @@ export default {
       { title: 'Default Price/Hour', key: 'price_per_hour', sortable: true },
       { title: 'Status', key: 'is_active', sortable: true },
       { title: 'Courts', key: 'courts_count', sortable: false },
-      { title: 'Actions', key: 'actions', sortable: false, width: '150px' }
+      { title: 'Actions', key: 'actions', sortable: false, width: '200px' }
     ]
 
     const commonSportIcons = {
@@ -661,7 +1073,8 @@ export default {
         price_per_hour: 0,
         days_of_week: [],
         is_active: true,
-        priority: 0
+        priority: 0,
+        effective_date: null
       }
       pricingRuleDialog.value = true
     }
@@ -676,7 +1089,8 @@ export default {
         price_per_hour: pricing.price_per_hour,
         days_of_week: pricing.days_of_week || [],
         is_active: pricing.is_active,
-        priority: pricing.priority
+        priority: pricing.priority,
+        effective_date: pricing.effective_date ? formatDateTimeForInput(pricing.effective_date) : null
       }
       pricingRuleDialog.value = true
     }
@@ -689,7 +1103,8 @@ export default {
         const formattedData = {
           ...pricingFormData.value,
           start_time: pricingFormData.value.start_time ? pricingFormData.value.start_time.substring(0, 5) : '',
-          end_time: pricingFormData.value.end_time ? pricingFormData.value.end_time.substring(0, 5) : ''
+          end_time: pricingFormData.value.end_time ? pricingFormData.value.end_time.substring(0, 5) : '',
+          effective_date: pricingFormData.value.effective_date || null
         }
 
         if (pricingRuleEditMode.value) {
@@ -736,6 +1151,105 @@ export default {
       return days.map(day => dayNames[day]).join(', ')
     }
 
+    // Format effectivity date for display
+    const formatEffectiveDate = (dateString) => {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
+    // Format datetime for input field (converts from ISO to datetime-local format)
+    const formatDateTimeForInput = (dateString) => {
+      if (!dateString) return null
+      const date = new Date(dateString)
+      // Format as YYYY-MM-DDTHH:mm for datetime-local input
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day}T${hours}:${minutes}`
+    }
+
+    // Check if a pricing rule is currently active (effective date has passed)
+    const isPricingActive = (pricing) => {
+      if (!pricing.effective_date) return true // No effective date means immediately active
+      const now = new Date()
+      const effectiveDate = new Date(pricing.effective_date)
+      return effectiveDate <= now
+    }
+
+    // Check if a rule has pending changes (effective date is in the future)
+    const hasPendingChanges = (pricing) => {
+      if (!pricing.effective_date) return false
+      const now = new Date()
+      const effectiveDate = new Date(pricing.effective_date)
+      return effectiveDate > now
+    }
+
+    // Computed property for active pricing rules
+    // Only shows rules that are currently in effect (no effective date OR effective date has passed)
+    const activePricingRules = computed(() => {
+      return timeBasedPricing.value.filter(pricing => {
+        if (!pricing.is_active) return false
+        return isPricingActive(pricing)
+      })
+    })
+
+    // Computed property for scheduled pricing rules
+    // Only shows rules with future effective dates
+    const scheduledPricingRules = computed(() => {
+      return timeBasedPricing.value.filter(pricing => {
+        if (!pricing.is_active) return false
+        return hasPendingChanges(pricing)
+      })
+    })
+
+    // Price history methods
+    const fetchPriceHistory = async (sportId) => {
+      try {
+        loadingHistory.value = true
+        const response = await courtService.getPriceHistory(sportId)
+        priceHistory.value = response
+      } catch (error) {
+        showSnackbar('Failed to load price history', 'error')
+      } finally {
+        loadingHistory.value = false
+      }
+    }
+
+    const openPriceHistoryDialog = async (sport) => {
+      selectedSport.value = sport
+      priceHistoryDialog.value = true
+      await fetchPriceHistory(sport.id)
+    }
+
+    const getChangeTypeLabel = (changeType) => {
+      const labels = {
+        'default_price_updated': 'Default Price Updated',
+        'time_based_pricing_created': 'Pricing Rule Created',
+        'time_based_pricing_updated': 'Pricing Rule Updated',
+        'time_based_pricing_deleted': 'Pricing Rule Deleted'
+      }
+      return labels[changeType] || changeType
+    }
+
+    const getChangeTypeColor = (changeType) => {
+      const colors = {
+        'default_price_updated': 'primary',
+        'time_based_pricing_created': 'success',
+        'time_based_pricing_updated': 'warning',
+        'time_based_pricing_deleted': 'error'
+      }
+      return colors[changeType] || 'grey'
+    }
+
     onMounted(async () => {
       await fetchSports()
     })
@@ -777,6 +1291,22 @@ export default {
       savePricingRule,
       deletePricingRule,
       getDayNames,
+      formatEffectiveDate,
+      formatDateTimeForInput,
+      // Pricing tabs and filters
+      pricingTab,
+      activePricingRules,
+      scheduledPricingRules,
+      isPricingActive,
+      hasPendingChanges,
+      // Price history
+      priceHistory,
+      priceHistoryDialog,
+      loadingHistory,
+      fetchPriceHistory,
+      openPriceHistoryDialog,
+      getChangeTypeLabel,
+      getChangeTypeColor,
       // Services
       sportService
     }
