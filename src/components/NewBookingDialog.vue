@@ -1547,6 +1547,14 @@ export default {
 
       // Find the first matching rule with highest priority
       for (const rule of pricingRules) {
+        // Check if the rule has become effective yet
+        if (rule.effective_date) {
+          const effectiveDate = new Date(rule.effective_date)
+          if (dateTime < effectiveDate) {
+            continue // Skip rules that haven't reached their effective date
+          }
+        }
+
         // Check if the rule applies to this day of week
         const daysOfWeek = rule.days_of_week
 
@@ -1633,6 +1641,14 @@ export default {
               const time = startDateTime.toTimeString().substring(0, 8)
 
               for (const rule of pricingRules) {
+                // Check if the rule has become effective yet
+                if (rule.effective_date) {
+                  const effectiveDate = new Date(rule.effective_date)
+                  if (startDateTime < effectiveDate) {
+                    continue // Skip rules that haven't reached their effective date
+                  }
+                }
+
                 const daysOfWeek = rule.days_of_week
                 if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(dayOfWeek)) {
                   continue
