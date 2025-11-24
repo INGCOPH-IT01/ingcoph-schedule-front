@@ -157,5 +157,76 @@ export const companySettingService = {
       console.warn('Error checking booking permissions, failing open:', e)
       return true
     }
+  },
+
+  /**
+   * Get blocked booking dates
+   */
+  async getBlockedBookingDates() {
+    try {
+      const settings = await this.getSettings()
+      return settings?.blocked_booking_dates || []
+    } catch (e) {
+      console.warn('Error fetching blocked booking dates:', e)
+      return []
+    }
+  },
+
+  /**
+   * Check if a date is blocked for booking (for regular users only)
+   * @param {string|Date} date - The date to check (YYYY-MM-DD format or Date object)
+   * @param {string} userRole - The user's role ('user', 'admin', 'staff')
+   * @returns {Object} { isBlocked: boolean, reason: string }
+   */
+  async isDateBlocked(date, userRole = 'user') {
+    // Admin and staff are not affected by blocked dates
+    if (userRole === 'admin' || userRole === 'staff') {
+      return { isBlocked: false, reason: '' }
+    }
+
+    try {
+      const blockedDates = await this.getBlockedBookingDates()
+
+      if (!Array.isArray(blockedDates) || blockedDates.length === 0) {
+        return { isBlocked: false, reason: '' }
+      }
+
+      // Parse the date to check
+      const dateToCheck = new Date(date)
+      dateToCheck.setHours(0, 0, 0, 0)
+
+      // Check each blocked range
+      for (const range of blockedDates) {
+        const startDate = new Date(range.start_date)
+        startDate.setHours(0, 0, 0, 0)
+
+        // Check if this is an indefinite block (no end_date or empty end_date)
+        const isIndefinite = !range.end_date || range.end_date === ''
+
+        let isBlocked = false
+
+        if (isIndefinite) {
+          // Block from start_date onwards (indefinitely)
+          isBlocked = dateToCheck >= startDate
+        } else {
+          // Block specific date range
+          const endDate = new Date(range.end_date)
+          endDate.setHours(23, 59, 59, 999)
+          isBlocked = dateToCheck >= startDate && dateToCheck <= endDate
+        }
+
+        if (isBlocked) {
+          return {
+            isBlocked: true,
+            reason: range.reason || 'This date range is blocked for booking'
+          }
+        }
+      }
+
+      return { isBlocked: false, reason: '' }
+    } catch (e) {
+      console.warn('Error checking if date is blocked:', e)
+      return { isBlocked: false, reason: '' }
+    }
   }
 }

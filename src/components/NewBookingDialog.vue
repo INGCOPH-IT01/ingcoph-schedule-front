@@ -194,6 +194,23 @@
                 </v-col>
               </v-row>
 
+              <!-- Blocked Date Alert -->
+              <v-alert
+                v-if="selectedDateBlockInfo.isBlocked"
+                type="error"
+                variant="tonal"
+                class="mb-4"
+                prominent
+              >
+                <div class="d-flex align-center">
+                  <v-icon class="mr-3" size="large">mdi-calendar-remove</v-icon>
+                  <div>
+                    <div class="font-weight-bold text-h6 mb-1">Date Not Available</div>
+                    <div>{{ selectedDateBlockInfo.reason }}</div>
+                  </div>
+                </div>
+              </v-alert>
+
               <!-- Time Slots Grid for Each Court (Filtered by Sport) -->
               <div v-if="selectedDate">
                 <v-alert
@@ -997,6 +1014,10 @@ export default {
     const bookingDisabledSnackbar = ref(false)
     const bookingDisabledMessage = ref('')
 
+    // Blocked dates
+    const blockedBookingDates = ref([])
+    const selectedDateBlockInfo = ref({ isBlocked: false, reason: '' })
+
     // Computed
     const minDate = computed(() => {
       const today = new Date()
@@ -1734,6 +1755,17 @@ export default {
           return
         }
 
+        // Check if selected date is blocked (for regular users only)
+        if (selectedDateBlockInfo.value.isBlocked && currentUser.value?.role === 'user') {
+          showAlert({
+            icon: 'error',
+            title: 'Date Not Available',
+            text: selectedDateBlockInfo.value.reason || 'This date is blocked for booking.'
+          })
+          addingToCart.value = false
+          return
+        }
+
         // Prepare admin booking data - include admin_notes even if not booking for someone else
         let adminBookingData = null
         if (isAdminOrStaff.value) {
@@ -2036,6 +2068,16 @@ export default {
         return
       }
 
+      // Check if selected date is blocked (for regular users only)
+      if (selectedDateBlockInfo.value.isBlocked && currentUser.value?.role === 'user') {
+        showAlert({
+          icon: 'error',
+          title: 'Date Not Available',
+          text: selectedDateBlockInfo.value.reason || 'This date is blocked for booking.'
+        })
+        return
+      }
+
       submitting.value = true
       try {
         // Convert all proof of payment files to base64 array
@@ -2210,6 +2252,17 @@ export default {
           return
         }
 
+        // Check if selected date is blocked (for regular users only)
+        if (selectedDateBlockInfo.value.isBlocked && currentUser.value?.role === 'user') {
+          showAlert({
+            icon: 'error',
+            title: 'Date Not Available',
+            text: selectedDateBlockInfo.value.reason || 'This date is blocked for booking.'
+          })
+          submitting.value = false
+          return
+        }
+
         // Prepare admin booking data if admin/staff
         let adminBookingData = null
         if (isAdminOrStaff.value) {
@@ -2325,6 +2378,17 @@ export default {
             icon: 'warning',
             title: 'Incomplete Selection',
             text: 'Please select sport and time slots before booking.'
+          })
+          submitting.value = false
+          return
+        }
+
+        // Check if selected date is blocked (for regular users only)
+        if (selectedDateBlockInfo.value.isBlocked && currentUser.value?.role === 'user') {
+          showAlert({
+            icon: 'error',
+            title: 'Date Not Available',
+            text: selectedDateBlockInfo.value.reason || 'This date is blocked for booking.'
           })
           submitting.value = false
           return
@@ -2485,6 +2549,17 @@ export default {
     const submitBooking = async () => {
       submitting.value = true
       try {
+        // Check if selected date is blocked (for regular users only)
+        if (selectedDateBlockInfo.value.isBlocked && currentUser.value?.role === 'user') {
+          showAlert({
+            icon: 'error',
+            title: 'Date Not Available',
+            text: selectedDateBlockInfo.value.reason || 'This date is blocked for booking.'
+          })
+          submitting.value = false
+          return
+        }
+
         // Prepare admin booking data if admin/staff is booking for someone else
         const adminBookingData = {}
         if (isAdminOrStaff.value && bookingForUser.value) {
@@ -2721,11 +2796,12 @@ export default {
           fetchUsers()
         }
 
-        // Load Facebook page settings
+        // Load Facebook page settings and blocked dates
         try {
           const settings = await companySettingService.getSettings()
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
+          blockedBookingDates.value = settings.blocked_booking_dates || []
         } catch (error) {
         }
 
@@ -2766,11 +2842,12 @@ export default {
           fetchUsers()
         }
 
-        // Load Facebook page settings
+        // Load Facebook page settings and blocked dates
         try {
           const settings = await companySettingService.getSettings()
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
+          blockedBookingDates.value = settings.blocked_booking_dates || []
         } catch (error) {
         }
 
@@ -2791,6 +2868,16 @@ export default {
 
       // Listen for company settings updates to refresh waitlist config
       window.addEventListener('company-settings-updated', fetchWaitlistConfig)
+    })
+
+    // Watch for selected date changes to check if it's blocked
+    watch(selectedDate, async (newDate) => {
+      if (newDate && currentUser.value) {
+        const result = await companySettingService.isDateBlocked(newDate, currentUser.value.role)
+        selectedDateBlockInfo.value = result
+      } else {
+        selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
+      }
     })
 
     // Cleanup event listeners when component is unmounted
@@ -2872,6 +2959,8 @@ export default {
       // Booking disabled snackbar
       bookingDisabledSnackbar,
       bookingDisabledMessage,
+      blockedBookingDates,
+      selectedDateBlockInfo,
       // Services
       sportService
     }

@@ -148,6 +148,142 @@
                 </v-alert>
               </div>
 
+              <v-divider class="mb-6"></v-divider>
+
+              <!-- Blocked Booking Dates Section -->
+              <div class="mb-6">
+                <label class="text-subtitle-1 font-weight-bold mb-3 d-block">
+                  <v-icon class="mr-2" color="primary">mdi-calendar-remove</v-icon>
+                  Blocked Booking Dates
+                </label>
+
+                <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+                  <div class="text-caption">
+                    Block specific date ranges from being booked by regular users. Admin and staff can still create bookings for blocked dates.
+                  </div>
+                </v-alert>
+
+                <!-- Blocked Dates List -->
+                <div v-if="blockedBookingDates.length > 0" class="mb-4">
+                  <v-card
+                    v-for="(dateRange, index) in blockedBookingDates"
+                    :key="index"
+                    variant="outlined"
+                    class="mb-2"
+                  >
+                    <v-card-text class="pa-3">
+                      <div class="d-flex justify-space-between align-center">
+                        <div>
+                          <div class="font-weight-bold">
+                            <span v-if="dateRange.end_date">
+                              {{ formatDate(dateRange.start_date) }} - {{ formatDate(dateRange.end_date) }}
+                            </span>
+                            <span v-else>
+                              {{ formatDate(dateRange.start_date) }} <v-icon size="small" class="mx-1">mdi-arrow-right</v-icon> Onwards
+                            </span>
+                          </div>
+                          <div v-if="dateRange.reason" class="text-caption text-grey-darken-1 mt-1">
+                            {{ dateRange.reason }}
+                          </div>
+                        </div>
+                        <v-btn
+                          icon="mdi-delete"
+                          variant="text"
+                          color="error"
+                          size="small"
+                          @click="removeBlockedDate(index)"
+                          :disabled="saving"
+                        ></v-btn>
+                      </div>
+                    </v-card-text>
+                  </v-card>
+                </div>
+
+                <div v-else class="text-center text-grey py-4">
+                  <v-icon size="48" color="grey-lighten-1">mdi-calendar-blank</v-icon>
+                  <div class="text-caption mt-2">No blocked dates configured</div>
+                </div>
+
+                <!-- Add New Blocked Date Range -->
+                <v-card variant="tonal" class="mt-4">
+                  <v-card-title class="text-subtitle-1 pa-3">
+                    <v-icon class="mr-2" size="small">mdi-plus-circle</v-icon>
+                    Add Blocked Date Range
+                  </v-card-title>
+                  <v-card-text class="pa-3">
+                    <v-row>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="newBlockedDate.start_date"
+                          label="Start Date"
+                          type="date"
+                          variant="outlined"
+                          density="compact"
+                          prepend-inner-icon="mdi-calendar-start"
+                          :disabled="saving"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-text-field
+                          v-model="newBlockedDate.end_date"
+                          label="End Date"
+                          type="date"
+                          variant="outlined"
+                          density="compact"
+                          prepend-inner-icon="mdi-calendar-end"
+                          :min="newBlockedDate.start_date"
+                          :disabled="saving || newBlockedDate.block_onwards"
+                          :placeholder="newBlockedDate.block_onwards ? 'Blocked onwards (no end date)' : ''"
+                        ></v-text-field>
+                      </v-col>
+                      <v-col cols="12">
+                        <v-switch
+                          v-model="newBlockedDate.block_onwards"
+                          label="Block from start date onwards (indefinitely)"
+                          color="primary"
+                          density="compact"
+                          hide-details
+                          class="mb-3"
+                        >
+                          <template v-slot:label>
+                            <div class="d-flex align-center">
+                              <v-icon size="small" class="mr-2">mdi-infinity</v-icon>
+                              <span>Block from start date onwards (indefinitely)</span>
+                            </div>
+                          </template>
+                        </v-switch>
+                        <v-alert v-if="newBlockedDate.block_onwards" type="info" variant="tonal" density="compact" class="mt-2 mb-3">
+                          <div class="text-caption">
+                            All dates from the start date onwards will be blocked. No end date required.
+                          </div>
+                        </v-alert>
+                      </v-col>
+                      <v-col cols="12">
+                        <v-text-field
+                          v-model="newBlockedDate.reason"
+                          label="Reason (optional)"
+                          variant="outlined"
+                          density="compact"
+                          prepend-inner-icon="mdi-text"
+                          placeholder="e.g., No advance bookings from December onwards"
+                          :disabled="saving"
+                        ></v-text-field>
+                      </v-col>
+                    </v-row>
+                    <v-btn
+                      color="primary"
+                      variant="flat"
+                      size="small"
+                      @click="addBlockedDate"
+                      :disabled="!newBlockedDate.start_date || (!newBlockedDate.block_onwards && !newBlockedDate.end_date) || saving"
+                      prepend-icon="mdi-plus"
+                    >
+                      Add Date Range
+                    </v-btn>
+                  </v-card-text>
+                </v-card>
+              </div>
+
               <!-- Contact Details Section -->
               <div class="mb-6">
                 <label class="text-subtitle-1 font-weight-bold mb-3 d-block">
@@ -685,7 +821,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { companySettingService } from '../services/companySettingService'
 
 export default {
@@ -731,6 +867,13 @@ export default {
     const userBookingEnabled = ref(true)
     const waitlistEnabled = ref(true)
     const posProductsEnabled = ref(true)
+    const blockedBookingDates = ref([])
+    const newBlockedDate = ref({
+      start_date: '',
+      end_date: '',
+      reason: '',
+      block_onwards: false
+    })
 
     // Operating hours
     const operatingHoursEnabled = ref(true)
@@ -825,6 +968,7 @@ export default {
         userBookingEnabled.value = settings.user_booking_enabled !== undefined ? settings.user_booking_enabled : true
         waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
+        blockedBookingDates.value = settings.blocked_booking_dates || []
       } catch (error) {
         errorMessage.value = 'Failed to load company settings'
         showSnackbar('Failed to load settings', 'error')
@@ -896,7 +1040,8 @@ export default {
           facebook_page_name: facebookPageName.value,
           user_booking_enabled: userBookingEnabled.value,
           waitlist_enabled: waitlistEnabled.value,
-          pos_products_enabled: posProductsEnabled.value
+          pos_products_enabled: posProductsEnabled.value,
+          blocked_booking_dates: JSON.stringify(blockedBookingDates.value)
         }
 
         // Add logo file if selected
@@ -958,6 +1103,69 @@ export default {
         color
       }
     }
+
+    // Blocked booking dates functions
+    const formatDate = (dateString) => {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    }
+
+    const addBlockedDate = () => {
+      if (!newBlockedDate.value.start_date) {
+        showSnackbar('Please select a start date', 'error')
+        return
+      }
+
+      // If not blocking onwards, validate end date
+      if (!newBlockedDate.value.block_onwards) {
+        if (!newBlockedDate.value.end_date) {
+          showSnackbar('Please select an end date or enable "Block onwards"', 'error')
+          return
+        }
+
+        // Validate that end date is not before start date
+        const start = new Date(newBlockedDate.value.start_date)
+        const end = new Date(newBlockedDate.value.end_date)
+
+        if (end < start) {
+          showSnackbar('End date cannot be before start date', 'error')
+          return
+        }
+      }
+
+      blockedBookingDates.value.push({
+        start_date: newBlockedDate.value.start_date,
+        end_date: newBlockedDate.value.block_onwards ? '' : newBlockedDate.value.end_date,
+        reason: newBlockedDate.value.reason || ''
+      })
+
+      // Reset form
+      newBlockedDate.value = {
+        start_date: '',
+        end_date: '',
+        reason: '',
+        block_onwards: false
+      }
+
+      showSnackbar('Blocked date range added. Remember to save changes!', 'success')
+    }
+
+    const removeBlockedDate = (index) => {
+      blockedBookingDates.value.splice(index, 1)
+      showSnackbar('Blocked date range removed. Remember to save changes!', 'info')
+    }
+
+    // Watch for block_onwards toggle to clear end_date
+    watch(() => newBlockedDate.value.block_onwards, (blockOnwards) => {
+      if (blockOnwards) {
+        newBlockedDate.value.end_date = ''
+      }
+    })
 
     // Background color functions
     const saveBackgroundColors = async () => {
@@ -1128,6 +1336,11 @@ export default {
       userBookingEnabled,
       waitlistEnabled,
       posProductsEnabled,
+      blockedBookingDates,
+      newBlockedDate,
+      addBlockedDate,
+      removeBlockedDate,
+      formatDate,
       // Operating hours
       operatingHoursEnabled,
       operatingHoursOpening,
