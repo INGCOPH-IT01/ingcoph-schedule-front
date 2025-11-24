@@ -202,6 +202,23 @@
               ></v-text-field>
             </v-col>
 
+            <!-- Blocked Date Alert -->
+            <v-col cols="12" v-if="selectedDateBlockInfo.isBlocked">
+              <v-alert
+                type="error"
+                variant="tonal"
+                prominent
+              >
+                <div class="d-flex align-center">
+                  <v-icon class="mr-3" size="large">mdi-calendar-remove</v-icon>
+                  <div>
+                    <div class="font-weight-bold text-h6 mb-1">Date Not Available</div>
+                    <div>{{ selectedDateBlockInfo.reason }}</div>
+                  </div>
+                </div>
+              </v-alert>
+            </v-col>
+
             <v-col cols="12" md="6">
               <v-select
                 v-model="form.start_time"
@@ -667,6 +684,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
+import { companySettingService } from '../services/companySettingService'
 import CourtImageGallery from './CourtImageGallery.vue'
 import Swal from 'sweetalert2'
 import { formatPrice, formatNumber } from '../utils/formatters'
@@ -770,6 +788,10 @@ export default {
       }
       return null // Admin and staff have no max date restriction
     })
+
+    // Blocked booking dates
+    const blockedBookingDates = ref([])
+    const selectedDateBlockInfo = ref({ isBlocked: false, reason: '' })
 
     const selectedCourt = ref(null)
 
@@ -1292,6 +1314,11 @@ export default {
           throw new Error('Court, date and start time are required')
         }
 
+        // Check if selected date is blocked (for regular users only)
+        if (selectedDateBlockInfo.value.isBlocked && currentUser.value?.role === 'user') {
+          throw new Error(selectedDateBlockInfo.value.reason || 'This date is blocked for booking.')
+        }
+
 
         // Calculate end time based on start time and duration
         // Ensure start_time is in HH:MM format
@@ -1793,7 +1820,7 @@ export default {
       }
     }, { immediate: true })
 
-    onMounted(() => {
+    onMounted(async () => {
       loadCourts()
       // Load current user for role-based restrictions
       try {
@@ -1804,6 +1831,24 @@ export default {
         }
       } catch (error) {
         currentUser.value = null
+      }
+
+      // Load blocked booking dates
+      try {
+        const settings = await companySettingService.getSettings()
+        blockedBookingDates.value = settings.blocked_booking_dates || []
+      } catch (error) {
+        console.warn('Failed to load blocked dates:', error)
+      }
+    })
+
+    // Watch for date changes to check if it's blocked
+    watch(() => form.value.date, async (newDate) => {
+      if (newDate && currentUser.value) {
+        const result = await companySettingService.isDateBlocked(newDate, currentUser.value.role)
+        selectedDateBlockInfo.value = result
+      } else {
+        selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
       }
     })
 
@@ -1824,6 +1869,8 @@ export default {
       dayOptions,
       today,
       maxDate,
+      blockedBookingDates,
+      selectedDateBlockInfo,
       getFrequencyLabel,
       getSelectedDaysLabel,
       getPriceBreakdown,
