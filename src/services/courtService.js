@@ -250,6 +250,8 @@ export const courtService = {
   async createTimeBasedPricing(sportId, pricingData) {
     try {
       const response = await api.post(`/sports/${sportId}/time-based-pricing`, pricingData)
+      // Clear cache after creating pricing rule
+      this.clearSportsCache()
       return response.data.data
     } catch (error) {
       throw error
@@ -259,6 +261,8 @@ export const courtService = {
   async updateTimeBasedPricing(sportId, pricingId, pricingData) {
     try {
       const response = await api.put(`/sports/${sportId}/time-based-pricing/${pricingId}`, pricingData)
+      // Clear cache after updating pricing rule
+      this.clearSportsCache()
       return response.data.data
     } catch (error) {
       throw error
@@ -268,6 +272,8 @@ export const courtService = {
   async deleteTimeBasedPricing(sportId, pricingId) {
     try {
       const response = await api.delete(`/sports/${sportId}/time-based-pricing/${pricingId}`)
+      // Clear cache after deleting pricing rule
+      this.clearSportsCache()
       return response.data
     } catch (error) {
       throw error
