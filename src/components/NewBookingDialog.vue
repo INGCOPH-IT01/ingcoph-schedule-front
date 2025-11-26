@@ -2713,7 +2713,8 @@ export default {
     // Fetch waitlist and POS products configuration
     const fetchWaitlistConfig = async () => {
       try {
-        const settings = await companySettingService.getSettings()
+        // Always fetch fresh settings to avoid cached blocked dates
+        const settings = await companySettingService.getSettings(false)
         waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
         console.log('Booking config loaded:', {
@@ -2827,9 +2828,9 @@ export default {
           fetchUsers()
         }
 
-        // Load Facebook page settings and blocked dates
+        // Load Facebook page settings and blocked dates (bypass cache for fresh data)
         try {
-          const settings = await companySettingService.getSettings()
+          const settings = await companySettingService.getSettings(false)
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
           blockedBookingDates.value = settings.blocked_booking_dates || []
@@ -2873,9 +2874,9 @@ export default {
           fetchUsers()
         }
 
-        // Load Facebook page settings and blocked dates
+        // Load Facebook page settings and blocked dates (bypass cache for fresh data)
         try {
-          const settings = await companySettingService.getSettings()
+          const settings = await companySettingService.getSettings(false)
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
           blockedBookingDates.value = settings.blocked_booking_dates || []

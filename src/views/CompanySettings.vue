@@ -920,7 +920,8 @@ export default {
     const loadSettings = async () => {
       try {
         loading.value = true
-        const settings = await companySettingService.getSettings()
+        // Always fetch fresh settings (bypass cache) when loading the settings page
+        const settings = await companySettingService.getSettings(false)
         companyName.value = settings.company_name || ''
         originalCompanyName.value = settings.company_name || ''
 
