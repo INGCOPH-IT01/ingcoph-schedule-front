@@ -2730,6 +2730,21 @@ export default {
       }
     }
 
+    // Re-check if currently selected date is blocked (called when settings are updated)
+    const recheckBlockedDates = async () => {
+      if (selectedDate.value && currentUser.value) {
+        const result = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
+        selectedDateBlockInfo.value = result
+        console.log('Rechecked blocked dates for:', selectedDate.value, result)
+      }
+    }
+
+    // Handler for company settings updated event
+    const handleCompanySettingsUpdated = async () => {
+      await fetchWaitlistConfig()
+      await recheckBlockedDates()
+    }
+
     // Watchers
     /**
      * Generate or load GCash QR code
@@ -2882,8 +2897,8 @@ export default {
       window.addEventListener('booking-updated', handleBookingUpdated)
       window.addEventListener('booking-created', handleBookingUpdated)
 
-      // Listen for company settings updates to refresh waitlist config
-      window.addEventListener('company-settings-updated', fetchWaitlistConfig)
+      // Listen for company settings updates to refresh waitlist config and blocked dates
+      window.addEventListener('company-settings-updated', handleCompanySettingsUpdated)
     })
 
     // Watch for selected date changes to check if it's blocked
@@ -2900,7 +2915,7 @@ export default {
     onUnmounted(() => {
       window.removeEventListener('booking-updated', handleBookingUpdated)
       window.removeEventListener('booking-created', handleBookingUpdated)
-      window.removeEventListener('company-settings-updated', fetchWaitlistConfig)
+      window.removeEventListener('company-settings-updated', handleCompanySettingsUpdated)
     })
 
     return {

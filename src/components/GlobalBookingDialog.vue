@@ -681,7 +681,7 @@
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { courtService } from '../services/courtService'
 import { bookingService } from '../services/bookingService'
 import { companySettingService } from '../services/companySettingService'
@@ -1840,6 +1840,9 @@ export default {
       } catch (error) {
         console.warn('Failed to load blocked dates:', error)
       }
+
+      // Listen for company settings updates
+      window.addEventListener('company-settings-updated', handleCompanySettingsUpdated)
     })
 
     // Watch for date changes to check if it's blocked
@@ -1850,6 +1853,25 @@ export default {
       } else {
         selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
       }
+    })
+
+    // Re-check if currently selected date is blocked (called when settings are updated)
+    const recheckBlockedDates = async () => {
+      if (form.value.date && currentUser.value) {
+        const result = await companySettingService.isDateBlocked(form.value.date, currentUser.value.role)
+        selectedDateBlockInfo.value = result
+        console.log('Rechecked blocked dates for:', form.value.date, result)
+      }
+    }
+
+    // Handler for company settings updated event
+    const handleCompanySettingsUpdated = async () => {
+      await recheckBlockedDates()
+    }
+
+    // Cleanup event listeners
+    onUnmounted(() => {
+      window.removeEventListener('company-settings-updated', handleCompanySettingsUpdated)
     })
 
     return {
