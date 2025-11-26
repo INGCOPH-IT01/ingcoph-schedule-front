@@ -48,6 +48,7 @@ export const companySettingService = {
       // Check if we have a file to upload
       const hasFile = settingsData.company_logo && (settingsData.company_logo instanceof File || settingsData.company_logo instanceof Blob)
 
+      let response
       if (hasFile) {
         // Use FormData for file upload
         const payload = new FormData()
@@ -98,17 +99,20 @@ export const companySettingService = {
 
         // Use POST endpoint but with _method=PUT for Laravel
         // Important: Remove Content-Type header to let axios set it automatically with the boundary
-        const response = await api.post('/admin/company-settings', payload, {
+        response = await api.post('/admin/company-settings', payload, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         })
-        return response.data.data
       } else {
         // Use regular JSON with PUT
-        const response = await api.put('/admin/company-settings', settingsData)
-        return response.data.data
+        response = await api.put('/admin/company-settings', settingsData)
       }
+
+      // Clear cache again after successful update to ensure fresh data on next fetch
+      this.clearSettingsCache()
+
+      return response.data.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to update company settings')
     }
@@ -161,10 +165,12 @@ export const companySettingService = {
 
   /**
    * Get blocked booking dates
+   * Always fetches fresh data to ensure accuracy for booking validation
    */
   async getBlockedBookingDates() {
     try {
-      const settings = await this.getSettings()
+      // Always fetch fresh data (bypass cache) to avoid showing outdated blocked dates
+      const settings = await this.getSettings(false)
       return settings?.blocked_booking_dates || []
     } catch (e) {
       console.warn('Error fetching blocked booking dates:', e)
