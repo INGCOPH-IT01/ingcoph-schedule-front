@@ -1833,9 +1833,9 @@ export default {
         currentUser.value = null
       }
 
-      // Load blocked booking dates
+      // Load blocked booking dates (bypass cache for fresh data)
       try {
-        const settings = await companySettingService.getSettings()
+        const settings = await companySettingService.getSettings(false)
         blockedBookingDates.value = settings.blocked_booking_dates || []
       } catch (error) {
         console.warn('Failed to load blocked dates:', error)
