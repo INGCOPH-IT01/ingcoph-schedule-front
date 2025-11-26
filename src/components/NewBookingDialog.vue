@@ -181,16 +181,37 @@
               <!-- Date Selection -->
               <v-row class="mb-4">
                 <v-col cols="12" md="6">
-                  <v-text-field
-                    v-model="selectedDate"
-                    type="date"
-                    label="Select Date"
-                    variant="outlined"
-                    prepend-inner-icon="mdi-calendar"
-                    :min="minDate"
-                    :max="maxDate"
-                    @update:model-value="loadTimeSlotsForAllCourts"
-                  ></v-text-field>
+                  <v-menu
+                    v-model="dateMenu"
+                    :close-on-content-click="false"
+                    transition="scale-transition"
+                    offset-y
+                    min-width="290px"
+                  >
+                    <template #activator="{ props }">
+                      <v-text-field
+                        v-bind="props"
+                        :model-value="selectedDateDisplay"
+                        label="Select Date"
+                        variant="outlined"
+                        prepend-inner-icon="mdi-calendar"
+                        :min="minDate"
+                        :max="maxDate"
+                        readonly
+                        clearable
+                        :disabled="loadingSlots"
+                        @click:clear="clearSelectedDate"
+                      ></v-text-field>
+                    </template>
+
+                    <v-date-picker
+                      v-model="selectedDate"
+                      :min="minDate"
+                      :max="maxDate"
+                      :allowed-dates="isDateAllowed"
+                      @update:model-value="handleDateSelected"
+                    ></v-date-picker>
+                  </v-menu>
                 </v-col>
               </v-row>
 
@@ -212,7 +233,7 @@
               </v-alert>
 
               <!-- Time Slots Grid for Each Court (Filtered by Sport) -->
-              <div v-if="selectedDate">
+              <div v-if="selectedDate && !selectedDateBlockInfo.isBlocked">
                 <v-alert
                   v-if="filteredCourts.length === 0"
                   type="warning"
@@ -228,7 +249,7 @@
                   </div>
                 </v-alert>
 
-                <div
+                <div v-if="selectedDate && !selectedDateBlockInfo.isBlocked"
                   v-for="court in filteredCourts"
                   :key="court.id"
                   class="court-time-slots-section mb-6"
@@ -987,6 +1008,7 @@ export default {
     // Selections
     const selectedSport = ref(null)
     const selectedDate = ref('')
+    const dateMenu = ref(false)
     const courtTimeSlots = ref({}) // Store time slots per court: { courtId: { date: '', slots: [] } }
     const numberOfPlayers = ref(1) // Number of players for the booking
     const bookingNotes = ref('') // Customer notes/special requests
@@ -1024,15 +1046,23 @@ export default {
       return today.toISOString().split('T')[0]
     })
 
-    // Computed property for max date - restrict regular users to current month only
-    const maxDate = computed(() => {
-      if (currentUser.value?.role === 'user') {
-        const now = new Date()
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        return endOfMonth.toISOString().split('T')[0]
+    const selectedDateDisplay = computed(() => {
+      if (!selectedDate.value) return ''
+      const date = new Date(selectedDate.value)
+
+      if (Number.isNaN(date.getTime())) {
+        return selectedDate.value
       }
-      return null // Admin and staff have no max date restriction
+
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const year = date.getFullYear()
+
+      return `${month}/${day}/${year}`
     })
+
+    // Computed property for max date - allow advanced bookings for all roles
+    const maxDate = computed(() => null)
 
     const isAdmin = computed(() => {
       return currentUser.value?.role === 'admin'
@@ -2731,19 +2761,84 @@ export default {
       }
     }
 
+    const isDateAllowed = (dateString) => {
+      if (!dateString) return true
+
+      // Admin and staff can always select any date
+      if (isAdminOrStaff.value) {
+        return true
+      }
+
+      if (!Array.isArray(blockedBookingDates.value) || blockedBookingDates.value.length === 0) {
+        return true
+      }
+
+      const dateToCheck = new Date(dateString)
+      dateToCheck.setHours(0, 0, 0, 0)
+
+      for (const range of blockedBookingDates.value) {
+        if (!range?.start_date) continue
+
+        const startDate = new Date(range.start_date)
+        startDate.setHours(0, 0, 0, 0)
+
+        const isIndefinite = !range.end_date
+        if (isIndefinite) {
+          if (dateToCheck >= startDate) {
+            return false
+          }
+        } else {
+          const endDate = new Date(range.end_date)
+          endDate.setHours(23, 59, 59, 999)
+          if (dateToCheck >= startDate && dateToCheck <= endDate) {
+            return false
+          }
+        }
+      }
+
+      return true
+    }
+
+    const clearSelectedDate = () => {
+      selectedDate.value = ''
+      dateMenu.value = false
+      courtTimeSlots.value = {}
+      timeSlots.value = {}
+      selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
+    }
+
+    const handleDateSelected = (value) => {
+      selectedDate.value = value
+      dateMenu.value = false
+      loadTimeSlotsForAllCourts()
+    }
+
+    // Reload blocked booking dates from server
+    const reloadBlockedDates = async () => {
+      try {
+        const settings = await companySettingService.getSettings(false)
+        blockedBookingDates.value = settings.blocked_booking_dates || []
+        console.log('🔄 Reloaded blocked dates:', blockedBookingDates.value)
+      } catch (error) {
+        console.error('Failed to reload blocked dates:', error)
+      }
+    }
+
     // Re-check if currently selected date is blocked (called when settings are updated)
     const recheckBlockedDates = async () => {
       if (selectedDate.value && currentUser.value) {
         const result = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
         selectedDateBlockInfo.value = result
-        console.log('Rechecked blocked dates for:', selectedDate.value, result)
+        console.log('✅ Rechecked blocked dates for:', selectedDate.value, result)
       }
     }
 
     // Handler for company settings updated event
     const handleCompanySettingsUpdated = async () => {
+      console.log('🔔 Company settings updated event received')
+      await reloadBlockedDates()  // Reload the blocked dates array
       await fetchWaitlistConfig()
-      await recheckBlockedDates()
+      await recheckBlockedDates()  // Re-validate current date
     }
 
     // Watchers
@@ -2932,11 +3027,13 @@ export default {
       proofOfPayment,
       paymentReferenceNumber,
       paymentSettings,
+      dateMenu,
       skipPayment,
       selectedSport,
       selectedDate,
       courtTimeSlots,
       numberOfPlayers,
+      selectedDateDisplay,
       bookingNotes,
       minDate,
       maxDate,
@@ -2950,6 +3047,9 @@ export default {
       toggleTimeSlot,
       isTimeSlotSelected,
       getSlotClasses,
+      isDateAllowed,
+      clearSelectedDate,
+      handleDateSelected,
       canSelectSlot,
       getSlotStatusLabel,
       getSlotStatusColor,

@@ -1628,15 +1628,8 @@ export default {
       }
     })
 
-    // Computed property for max date - restrict regular users to current month only
-    const maxDate = computed(() => {
-      if (user.value?.role === 'user') {
-        const now = new Date()
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        return endOfMonth.toISOString().split('T')[0]
-      }
-      return null // Admin and staff have no max date restriction
-    })
+    // Computed property for max date - allow advanced bookings for all roles
+    const maxDate = computed(() => null)
 
     // View booking dialog
     const viewDialog = ref(false)
