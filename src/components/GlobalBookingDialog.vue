@@ -779,15 +779,8 @@ export default {
     const today = new Date().toISOString().split('T')[0]
     const currentUser = ref(null)
 
-    // Computed property for max date - restrict regular users to current month only
-    const maxDate = computed(() => {
-      if (currentUser.value?.role === 'user') {
-        const now = new Date()
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        return endOfMonth.toISOString().split('T')[0]
-      }
-      return null // Admin and staff have no max date restriction
-    })
+    // Computed property for max date - allow advanced bookings for all roles
+    const maxDate = computed(() => null)
 
     // Blocked booking dates
     const blockedBookingDates = ref([])
@@ -1855,18 +1848,31 @@ export default {
       }
     })
 
+    // Reload blocked booking dates from server
+    const reloadBlockedDates = async () => {
+      try {
+        const settings = await companySettingService.getSettings(false)
+        blockedBookingDates.value = settings.blocked_booking_dates || []
+        console.log('🔄 Reloaded blocked dates:', blockedBookingDates.value)
+      } catch (error) {
+        console.error('Failed to reload blocked dates:', error)
+      }
+    }
+
     // Re-check if currently selected date is blocked (called when settings are updated)
     const recheckBlockedDates = async () => {
       if (form.value.date && currentUser.value) {
         const result = await companySettingService.isDateBlocked(form.value.date, currentUser.value.role)
         selectedDateBlockInfo.value = result
-        console.log('Rechecked blocked dates for:', form.value.date, result)
+        console.log('✅ Rechecked blocked dates for:', form.value.date, result)
       }
     }
 
     // Handler for company settings updated event
     const handleCompanySettingsUpdated = async () => {
-      await recheckBlockedDates()
+      console.log('🔔 Company settings updated event received')
+      await reloadBlockedDates()  // Reload the blocked dates array
+      await recheckBlockedDates()  // Re-validate current date
     }
 
     // Cleanup event listeners
