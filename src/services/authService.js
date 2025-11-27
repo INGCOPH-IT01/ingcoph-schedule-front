@@ -214,5 +214,69 @@ export const authService = {
       console.error('Failed to parse cached user data:', e)
     }
     return null
+  },
+
+  /**
+   * Send OTP to email for password reset
+   * @param {string} email - User's email address
+   */
+  async sendPasswordResetOtp(email) {
+    try {
+      const response = await api.post('/forgot-password', { email })
+      if (response.data.success) {
+        return response.data
+      }
+      throw new Error(response.data.message || 'Failed to send OTP')
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to send OTP. Please try again.')
+    }
+  },
+
+  /**
+   * Verify OTP for password reset
+   * @param {string} email - User's email address
+   * @param {string} otp - 6-digit OTP
+   */
+  async verifyPasswordResetOtp(email, otp) {
+    try {
+      const response = await api.post('/verify-otp', { email, otp })
+      if (response.data.success) {
+        return response.data
+      }
+      throw new Error(response.data.message || 'Invalid OTP')
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Invalid OTP. Please try again.')
+    }
+  },
+
+  /**
+   * Reset password with OTP
+   * @param {string} email - User's email address
+   * @param {string} otp - 6-digit OTP
+   * @param {string} password - New password
+   * @param {string} password_confirmation - Password confirmation
+   */
+  async resetPassword(email, otp, password, password_confirmation) {
+    try {
+      const response = await api.post('/reset-password', {
+        email,
+        otp,
+        password,
+        password_confirmation
+      })
+      if (response.data.success) {
+        // Store the token and user data if login is automatic
+        if (response.data.token) {
+          localStorage.setItem('token', response.data.token)
+        }
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user))
+        }
+        return response.data
+      }
+      throw new Error(response.data.message || 'Failed to reset password')
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to reset password. Please try again.')
+    }
   }
 }
