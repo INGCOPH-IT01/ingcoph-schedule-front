@@ -2818,9 +2818,8 @@ export default {
       try {
         const settings = await companySettingService.getSettings(false)
         blockedBookingDates.value = settings.blocked_booking_dates || []
-        console.log('🔄 Reloaded blocked dates:', blockedBookingDates.value)
       } catch (error) {
-        console.error('Failed to reload blocked dates:', error)
+        // Silent fail
       }
     }
 
@@ -2829,13 +2828,11 @@ export default {
       if (selectedDate.value && currentUser.value) {
         const result = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
         selectedDateBlockInfo.value = result
-        console.log('✅ Rechecked blocked dates for:', selectedDate.value, result)
       }
     }
 
     // Handler for company settings updated event
     const handleCompanySettingsUpdated = async () => {
-      console.log('🔔 Company settings updated event received')
       await reloadBlockedDates()  // Reload the blocked dates array
       await fetchWaitlistConfig()
       await recheckBlockedDates()  // Re-validate current date

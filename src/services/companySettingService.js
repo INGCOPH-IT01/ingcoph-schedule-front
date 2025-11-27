@@ -146,7 +146,6 @@ export const companySettingService = {
       // If user data is null/undefined, we cannot determine permissions safely
       // Return true to fail-open and avoid blocking (user will be checked on backend anyway)
       if (userOrRole === null || userOrRole === undefined) {
-        console.warn('User data not available for booking permission check, failing open')
         return true
       }
 
@@ -158,7 +157,6 @@ export const companySettingService = {
     } catch (e) {
       // Fail-open (allow) if anything goes wrong to avoid blocking unexpectedly
       // Backend will enforce proper permissions
-      console.warn('Error checking booking permissions, failing open:', e)
       return true
     }
   },
@@ -169,11 +167,9 @@ export const companySettingService = {
    */
   async getBlockedBookingDates() {
     try {
-      // Always fetch fresh data (bypass cache) to avoid showing outdated blocked dates
-      const settings = await this.getSettings(false)
+      const settings = await this.getSettings()
       return settings?.blocked_booking_dates || []
     } catch (e) {
-      console.warn('Error fetching blocked booking dates:', e)
       return []
     }
   },
@@ -231,7 +227,6 @@ export const companySettingService = {
 
       return { isBlocked: false, reason: '' }
     } catch (e) {
-      console.warn('Error checking if date is blocked:', e)
       return { isBlocked: false, reason: '' }
     }
   }
