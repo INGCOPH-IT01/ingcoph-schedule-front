@@ -1244,8 +1244,20 @@ export default {
           form.value.duration || 1
         )
 
+        // Filter out booked/unavailable slots unless in edit mode
+        // Only show truly available slots (available: true) or waitlist-available slots
+        const filteredSlots = isEditMode.value
+          ? slots // In edit mode, show all slots including the current booking's slot
+          : slots.filter(slot => {
+              // Include if slot is available
+              if (slot.available) return true
+              // Include if waitlist is available (pending/unpaid bookings)
+              if (slot.is_waitlist_available) return true
+              // Exclude fully booked slots
+              return false
+            })
 
-        availableSlots.value = slots.map(slot => {
+        availableSlots.value = filteredSlots.map(slot => {
           // Use the full datetime format for the value
           let timeValue = slot.start_time
           if (typeof timeValue === 'string' && timeValue.includes('T')) {
@@ -1253,13 +1265,16 @@ export default {
             timeValue = timeValue.replace('T', ' ').substring(0, 19)
           }
 
-          // Add visual distinction for booked slots
+          // Add visual distinction for different slot states
           let displayTitle = slot.formatted_time
           let itemColor = 'primary' // Default color for available slots
 
           if (slot.is_booked) {
             displayTitle = `${slot.formatted_time} (Booked)`
             itemColor = 'error' // Red color for booked slots
+          } else if (slot.is_waitlist_available && !slot.available) {
+            displayTitle = `${slot.formatted_time} (Waitlist)`
+            itemColor = 'warning' // Orange color for waitlist slots
           }
 
           return {
@@ -1267,6 +1282,7 @@ export default {
             value: timeValue,
             color: itemColor,
             isBooked: slot.is_booked || false,
+            isWaitlist: slot.is_waitlist_available && !slot.available,
             bookingId: slot.booking_id || null
           }
         })

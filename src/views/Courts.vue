@@ -534,13 +534,21 @@ export default {
     const courtTotalBookedHours = ref({})
     const loadingTotalBookedHours = ref({})
 
+    // Helper function to format date without timezone issues
+    const formatDateToYYYYMMDD = (date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
     // Date filter state
     const availabilityDate = ref('')
     const minDate = computed(() => {
-      return new Date().toISOString().split('T')[0]
+      return formatDateToYYYYMMDD(new Date())
     })
     const isDateToday = computed(() => {
-      const today = new Date().toISOString().split('T')[0]
+      const today = formatDateToYYYYMMDD(new Date())
       return availabilityDate.value === today
     })
 
@@ -724,7 +732,7 @@ export default {
     const loadCourtTimeSlots = async (courtId) => {
       try {
         loadingTimeSlots.value[courtId] = true
-        const dateToUse = availabilityDate.value || new Date().toISOString().split('T')[0]
+        const dateToUse = availabilityDate.value || formatDateToYYYYMMDD(new Date())
         const slots = await courtService.getAvailableSlots(courtId, dateToUse)
         courtTimeSlots.value[courtId] = slots
       } catch (err) {
@@ -765,13 +773,13 @@ export default {
     }
 
     const setDateToday = () => {
-      availabilityDate.value = new Date().toISOString().split('T')[0]
+      availabilityDate.value = formatDateToYYYYMMDD(new Date())
     }
 
     const setDateTomorrow = () => {
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      availabilityDate.value = tomorrow.toISOString().split('T')[0]
+      availabilityDate.value = formatDateToYYYYMMDD(tomorrow)
     }
 
     const onDateFilterChange = async () => {
@@ -789,8 +797,8 @@ export default {
       tomorrow.setDate(tomorrow.getDate() + 1)
 
       const dateStr = date
-      const todayStr = today.toISOString().split('T')[0]
-      const tomorrowStr = tomorrow.toISOString().split('T')[0]
+      const todayStr = formatDateToYYYYMMDD(today)
+      const tomorrowStr = formatDateToYYYYMMDD(tomorrow)
 
       if (dateStr === todayStr) return 'Today\'s'
       if (dateStr === tomorrowStr) return 'Tomorrow\'s'

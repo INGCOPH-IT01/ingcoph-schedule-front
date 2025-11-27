@@ -14,7 +14,7 @@
         </p>
       </div>
       <v-divider class="dialog-divider"></v-divider>
-      
+
       <v-form ref="form" v-model="valid" @submit.prevent="handleSubmit">
         <v-card-text class="pa-6">
           <v-row>
@@ -147,7 +147,7 @@
                 <p class="text-body-2 text-grey-darken-1 mb-4">
                   Select days and set specific times for each day (e.g., Sunday 8-10 AM, Tuesday 2-4 PM, Friday 6-8 PM)
                 </p>
-                
+
                 <div v-for="(dayTime, index) in form.day_specific_times" :key="`day-${index}`" class="mb-4">
                   <v-card variant="outlined" class="pa-4">
                     <v-row>
@@ -204,7 +204,7 @@
                     </v-row>
                   </v-card>
                 </div>
-                
+
                 <v-btn
                   color="primary"
                   variant="outlined"
@@ -379,7 +379,7 @@ export default {
     const loading = ref(false)
 
     const isEditing = computed(() => !!props.schedule)
-    
+
     // Direct control for recurrence type
     const recurrenceTypeRef = ref(null)
 
@@ -391,19 +391,19 @@ export default {
       if (form.value.recurrence_type === newType) {
         return
       }
-      
+
       // Only reset related fields if they're not compatible with the new type
       if (form.value.recurrence_type) {
         form.value.recurrence_days = []
         form.value.day_specific_times = []
-        
+
         // Only reset start/end times for non-multiple times types
         if (!['weekly_multiple_times', 'yearly_multiple_times'].includes(newType)) {
           form.value.start_time = ''
           form.value.end_time = ''
         }
       }
-      
+
       // Add default day time for weekly_multiple_times and yearly_multiple_times
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(newType) && form.value.day_specific_times.length === 0) {
         addDayTime()
@@ -464,7 +464,9 @@ export default {
       form.value.recurrence_days = []
       form.value.day_specific_times = []
       form.value.recurrence_interval = 1
-      form.value.start_date = new Date().toISOString().split('T')[0]
+      // Use local timezone for today's date
+      const today = new Date()
+      form.value.start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
       form.value.end_date = ''
       form.value.max_occurrences = null
       form.value.auto_approve = false
@@ -489,7 +491,7 @@ export default {
       form.value.auto_approve = schedule.auto_approve || false
       form.value.notes = schedule.notes || ''
       formInitialized.value = true
-      
+
       // If editing a weekly_multiple_times or yearly_multiple_times schedule and no day_specific_times, add one
       if (['weekly_multiple_times', 'yearly_multiple_times'].includes(schedule.recurrence_type) && (!schedule.day_specific_times || schedule.day_specific_times.length === 0)) {
         addDayTime()
@@ -600,8 +602,9 @@ export default {
     // })
 
     onMounted(() => {
-      // Set default start date to today
-      form.value.start_date = new Date().toISOString().split('T')[0]
+      // Set default start date to today (using local timezone)
+      const today = new Date()
+      form.value.start_date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
     })
 
     return {
@@ -647,7 +650,7 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.2) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.2) 0%, transparent 50%);
   z-index: 1;

@@ -1351,7 +1351,7 @@
               prepend-inner-icon="mdi-calendar"
               class="mb-4"
               :rules="[v => !!v || 'Date is required']"
-              :min="new Date().toISOString().split('T')[0]"
+              :min="getTodayDate()"
               @update:model-value="fetchEditAvailableSlots"
             ></v-text-field>
 
@@ -2047,7 +2047,8 @@ export default {
               return
             }
 
-            const dateKey = groupDate.toISOString().split('T')[0]
+            // Use local date formatting to avoid timezone issues
+            const dateKey = formatDateToYYYYMMDD(groupDate)
 
             if (!groups[dateKey]) {
               groups[dateKey] = {
@@ -2076,7 +2077,8 @@ export default {
             return
           }
 
-          const dateKey = groupDate.toISOString().split('T')[0]
+          // Use local date formatting to avoid timezone issues
+          const dateKey = formatDateToYYYYMMDD(groupDate)
 
           if (!groups[dateKey]) {
             groups[dateKey] = {
@@ -2126,6 +2128,19 @@ export default {
       } else {
         return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
       }
+    }
+
+    // Helper function to format date to YYYY-MM-DD without timezone issues
+    const formatDateToYYYYMMDD = (date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    // Helper function to get today's date in local timezone
+    const getTodayDate = () => {
+      return formatDateToYYYYMMDD(new Date())
     }
 
     // Expanded cart items
@@ -3015,7 +3030,9 @@ export default {
       if (editingBooking.value) {
         // Simple form population
         editForm.court_id = editingBooking.value.court_id || 1
-        editForm.date = new Date(editingBooking.value.start_time).toISOString().split('T')[0]
+        // Extract date without timezone conversion
+        const startTime = new Date(editingBooking.value.start_time)
+        editForm.date = formatDateToYYYYMMDD(startTime)
         editForm.start_time = new Date(editingBooking.value.start_time).toISOString()
         editForm.duration = 1
         editForm.notes = editingBooking.value.notes || ''
@@ -3348,10 +3365,10 @@ export default {
         // Small delay to ensure backend processes deletions
         await new Promise(resolve => setTimeout(resolve, 300))
 
-        // Format booking date to ensure it's in Y-m-d format
+        // Format booking date to ensure it's in Y-m-d format (avoid timezone issues)
         let bookingDate = editItem.value.booking_date
         if (bookingDate instanceof Date) {
-          bookingDate = bookingDate.toISOString().split('T')[0]
+          bookingDate = formatDateToYYYYMMDD(bookingDate)
         } else if (typeof bookingDate === 'string') {
           // Extract date part if it's a datetime string
           bookingDate = bookingDate.split(' ')[0]
@@ -3466,24 +3483,40 @@ export default {
           editForm.duration || 1
         )
 
-        // If we're editing a booking, add the current booking's time slot to available slots
+        // Filter out booked/unavailable slots
+        // Only show truly available slots (available: true) or waitlist-available slots
+        // UNLESS we're editing a booking, then include the current booking's slot
+        const filteredSlots = slots.filter(slot => {
+          // Include if slot is available
+          if (slot.available) return true
+          // Include if waitlist is available (pending/unpaid bookings)
+          if (slot.is_waitlist_available) return true
+          // If editing, include the current booking's slot even if it's marked as booked
+          if (editingBooking.value && slot.booking_id === editingBooking.value.id) return true
+          // Exclude fully booked slots
+          return false
+        })
+
+        // If we're editing a booking and the current slot wasn't in the filtered list,
+        // manually add it to ensure users can keep their existing time slot
         if (editingBooking.value) {
           const currentStartTime = new Date(editingBooking.value.start_time).toISOString()
-          const currentEndTime = new Date(editingBooking.value.end_time).toISOString()
-          const currentSlot = {
-            start_time: currentStartTime,
-            end_time: currentEndTime,
-            formatted_time: `${new Date(currentStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(currentEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-          }
+          const existingSlot = filteredSlots.find(slot => slot.start_time === currentStartTime)
 
-          // Check if current slot is already in the list
-          const existingSlot = slots.find(slot => slot.start_time === currentStartTime)
           if (!existingSlot) {
-            slots.unshift(currentSlot) // Add to beginning
+            const currentEndTime = new Date(editingBooking.value.end_time).toISOString()
+            const currentSlot = {
+              start_time: currentStartTime,
+              end_time: currentEndTime,
+              formatted_time: `${new Date(currentStartTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(currentEndTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+              available: true, // Mark as available so it can be selected
+              booking_id: editingBooking.value.id
+            }
+            filteredSlots.unshift(currentSlot) // Add to beginning
           }
         }
 
-        availableSlots.value = slots
+        availableSlots.value = filteredSlots
         triggerRef(availableSlots) // Manually trigger reactivity for shallowRef
         calculatePrice()
       } catch (error) {
