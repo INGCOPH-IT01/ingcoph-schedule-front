@@ -136,7 +136,7 @@
                       label="Select Date"
                       variant="outlined"
                       prepend-inner-icon="mdi-calendar"
-                      :min="new Date().toISOString().split('T')[0]"
+                      :min="formatDateToYYYYMMDD(new Date())"
                       :max="maxDate"
                       @update:model-value="fetchAvailability"
                       density="comfortable"
@@ -564,19 +564,27 @@ export default {
       router.push('/bookings')
     }
 
+    // Helper function to format date without timezone issues
+    const formatDateToYYYYMMDD = (date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
     const setToday = () => {
-      selectedDate.value = new Date().toISOString().split('T')[0]
+      selectedDate.value = formatDateToYYYYMMDD(new Date())
     }
 
     const setTomorrow = () => {
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      selectedDate.value = tomorrow.toISOString().split('T')[0]
+      selectedDate.value = formatDateToYYYYMMDD(tomorrow)
     }
 
     const isToday = (date) => {
       if (!date) return false
-      const today = new Date().toISOString().split('T')[0]
+      const today = formatDateToYYYYMMDD(new Date())
       return date === today
     }
 

@@ -319,9 +319,12 @@ export default {
 
         court.value = await courtService.getCourt(courtId)
 
-        // Set today's date as default
+        // Set today's date as default (using local timezone)
         const today = new Date()
-        selectedDate.value = today.toISOString().split('T')[0]
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        selectedDate.value = `${year}-${month}-${day}`
 
         // Load initial availability
         await loadAvailability()

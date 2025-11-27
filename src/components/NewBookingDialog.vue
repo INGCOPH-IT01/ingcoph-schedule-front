@@ -1042,8 +1042,12 @@ export default {
 
     // Computed
     const minDate = computed(() => {
+      // Get today's date in local timezone, not UTC
       const today = new Date()
-      return today.toISOString().split('T')[0]
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     })
 
     const selectedDateDisplay = computed(() => {
@@ -2808,7 +2812,19 @@ export default {
     }
 
     const handleDateSelected = (value) => {
-      selectedDate.value = value
+      // Ensure the date is formatted as YYYY-MM-DD to avoid timezone issues
+      if (value instanceof Date) {
+        // If it's a Date object, format it properly without timezone conversion
+        const year = value.getFullYear()
+        const month = String(value.getMonth() + 1).padStart(2, '0')
+        const day = String(value.getDate()).padStart(2, '0')
+        selectedDate.value = `${year}-${month}-${day}`
+      } else if (typeof value === 'string') {
+        // If it's already a string, ensure it's in YYYY-MM-DD format
+        selectedDate.value = value.split('T')[0]
+      } else {
+        selectedDate.value = value
+      }
       dateMenu.value = false
       loadTimeSlotsForAllCourts()
     }
@@ -2818,9 +2834,8 @@ export default {
       try {
         const settings = await companySettingService.getSettings(false)
         blockedBookingDates.value = settings.blocked_booking_dates || []
-        console.log('🔄 Reloaded blocked dates:', blockedBookingDates.value)
       } catch (error) {
-        console.error('Failed to reload blocked dates:', error)
+        // Silent fail
       }
     }
 
@@ -2829,13 +2844,11 @@ export default {
       if (selectedDate.value && currentUser.value) {
         const result = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
         selectedDateBlockInfo.value = result
-        console.log('✅ Rechecked blocked dates for:', selectedDate.value, result)
       }
     }
 
     // Handler for company settings updated event
     const handleCompanySettingsUpdated = async () => {
-      console.log('🔔 Company settings updated event received')
       await reloadBlockedDates()  // Reload the blocked dates array
       await fetchWaitlistConfig()
       await recheckBlockedDates()  // Re-validate current date
