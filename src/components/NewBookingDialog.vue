@@ -1376,24 +1376,12 @@ export default {
     }
 
     const handleSlotClick = (courtId, slot) => {
-      // Debug logging
-      console.log('Slot clicked:', {
-        courtId,
-        start: slot.start,
-        available: slot.available,
-        is_waitlist_available: slot.is_waitlist_available,
-        is_booked: slot.is_booked,
-        waitlistEnabled: waitlistEnabled.value,
-        canSelect: canSelectSlot(slot)
-      })
-
       // Guard: Only proceed if slot can be selected
       if (!canSelectSlot(slot)) {
         console.warn('❌ Slot selection blocked - slot cannot be selected')
         return
       }
 
-      console.log('✅ Proceeding with slot selection')
       toggleTimeSlot(courtId, slot)
     }
 
@@ -1448,24 +1436,9 @@ export default {
       if (!selectable) {
         // Slot is unavailable
         classes.push('unavailable')
-
-        // Debug log for unavailable slots
-        if (slot.is_waitlist_available) {
-          console.log(`Slot ${slot.start} marked unavailable (waitlist disabled):`, {
-            available: slot.available,
-            is_waitlist_available: slot.is_waitlist_available,
-            waitlistEnabled: waitlistEnabled.value,
-            classes: [...classes]
-          })
-        }
       } else if (waitlistEnabled.value && slot.is_waitlist_available && !slot.available) {
         // Slot is available for waitlist (only if waitlist is enabled)
         classes.push('waitlist')
-
-        console.log(`Slot ${slot.start} marked as waitlist:`, {
-          waitlistEnabled: waitlistEnabled.value,
-          classes: [...classes]
-        })
       }
 
       return classes
@@ -2848,9 +2821,6 @@ export default {
         const hasScrollbar = element.scrollHeight > element.clientHeight
         if (!hasScrollbar) {
           termsScrolledToBottom.value = true
-          console.log('Terms content is short - Accept button enabled immediately')
-        } else {
-          console.log('Terms content requires scrolling - user must scroll to bottom')
         }
       }
     }
@@ -2916,14 +2886,6 @@ export default {
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
         termsEnabled.value = settings.terms_enabled !== undefined ? settings.terms_enabled : false
         termsContent.value = settings.terms_and_conditions || ''
-        console.log('Booking config loaded:', {
-          waitlist_enabled: settings.waitlist_enabled,
-          waitlistEnabled: waitlistEnabled.value,
-          pos_products_enabled: settings.pos_products_enabled,
-          posProductsEnabled: posProductsEnabled.value,
-          terms_enabled: settings.terms_enabled,
-          termsEnabled: termsEnabled.value
-        })
       } catch (error) {
         console.error('Failed to load booking config:', error)
         // Default to true if loading fails

@@ -1603,7 +1603,6 @@ export default {
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser)
             role = parsedUser?.role
-            console.log('[Bookings] Using localStorage role fallback:', role)
           }
         } catch (e) {
           // Ignore localStorage errors

@@ -2963,10 +2963,6 @@ export default {
     // Check if current user is the booking owner
     const isBookingOwner = computed(() => {
       if (!props.booking || !currentUserId.value) {
-        console.log('isBookingOwner: Missing booking or currentUserId', {
-          hasBooking: !!props.booking,
-          currentUserId: currentUserId.value
-        })
         return false
       }
 
@@ -2983,25 +2979,12 @@ export default {
         bookingUserId = props.booking.user.id
       }
 
-      console.log('isBookingOwner check:', {
-        isTransaction: isTransaction.value,
-        bookingUserId: bookingUserId,
-        currentUserId: currentUserId.value,
-        match: bookingUserId === currentUserId.value
-      })
-
       return bookingUserId === currentUserId.value
     })
 
     // Check if user can see edit buttons (staff/admin or booking owner)
     const canSeeEditButtons = computed(() => {
-      const result = isStaffOrAdmin.value || isBookingOwner.value
-      console.log('canSeeEditButtons:', {
-        isStaffOrAdmin: isStaffOrAdmin.value,
-        isBookingOwner: isBookingOwner.value,
-        result
-      })
-      return result
+      return isStaffOrAdmin.value || isBookingOwner.value
     })
 
     // Computed properties

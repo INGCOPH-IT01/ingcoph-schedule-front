@@ -455,7 +455,6 @@ export default {
           if (userData && user.value) {
             // Check if role changed
             if (user.value.role !== userData.role) {
-              console.log(`User role changed from ${user.value.role} to ${userData.role}`)
               // Dispatch event so other components can react
               window.dispatchEvent(new CustomEvent('user-role-changed', {
                 detail: { oldRole: user.value.role, newRole: userData.role, user: userData }
