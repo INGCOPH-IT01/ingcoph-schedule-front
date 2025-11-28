@@ -229,8 +229,8 @@
           </v-card>
         </div>
 
-        <!-- Cart Items in Transaction (Staff/Admin detailed view) - Grouped by Court -->
-        <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
+        <!-- Cart Items in Transaction (Staff/Admin/Owner detailed view) - Grouped by Court -->
+        <div class="detail-section mb-4" v-if="isTransaction && (showAdminFeatures || isBookingOwner) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
             Booked Courts & Time Slots ({{ (booking.cart_items || booking.cart_transaction?.cart_items || []).length }} items)
@@ -278,8 +278,8 @@
                 variant="outlined"
                 class="pa-3 mb-3"
               >
-              <!-- Staff/Admin Edit Mode for Court -->
-              <div v-if="isStaffOrAdmin && editingCourtItemIndex === item.id" class="mb-3">
+              <!-- Edit Mode for Court (Staff/Admin/Owner) -->
+              <div v-if="canSeeEditButtons && editingCourtItemIndex === item.id" class="mb-3">
                 <v-select
                   v-model="selectedCourtId"
                   :items="availableCourtsForItem"
@@ -358,8 +358,8 @@
                 </div>
               </div>
 
-              <!-- Staff/Admin Edit Mode for Date/Time -->
-              <div v-else-if="isStaffOrAdmin && editingDateTimeItemIndex === item.id" class="mb-3">
+              <!-- Edit Mode for Date/Time (Staff/Admin/Owner) -->
+              <div v-else-if="canSeeEditButtons && editingDateTimeItemIndex === item.id" class="mb-3">
                 <v-text-field
                   v-model="selectedBookingDate"
                   label="Booking Date"
@@ -421,7 +421,7 @@
                       {{ formatBookingDate(item.booking_date) }}
                     </span>
                   </div>
-                  <div v-if="isStaffOrAdmin" class="d-flex gap-2">
+                  <div v-if="canSeeEditButtons" class="d-flex gap-2">
                     <v-tooltip :disabled="canEditCartItem(item)" location="top">
                       <template v-slot:activator="{ props: tooltipProps }">
                         <div v-bind="tooltipProps">
@@ -465,7 +465,7 @@
                     <span class="text-body-2">
                       {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
                     </span>
-                    <div v-if="isStaffOrAdmin" class="d-flex ml-2">
+                    <div v-if="canSeeEditButtons" class="d-flex ml-2">
                       <v-tooltip :disabled="canEditCartItem(item)" location="top">
                         <template v-slot:activator="{ props: tooltipProps }">
                           <div v-bind="tooltipProps">
@@ -494,8 +494,8 @@
           </v-card>
         </div>
 
-        <!-- Time Slots Details (Simple view for non-admin) - Grouped by Court -->
-        <div class="detail-section mb-4" v-if="(!showAdminFeatures || !isTransaction) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
+        <!-- Time Slots Details (Simple view for non-owner users) - Grouped by Court -->
+        <div class="detail-section mb-4" v-if="((!showAdminFeatures && !isBookingOwner) || !isTransaction) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
             Booked Courts & Time Slots
@@ -2960,6 +2960,50 @@ export default {
       }
     }
 
+    // Check if current user is the booking owner
+    const isBookingOwner = computed(() => {
+      if (!props.booking || !currentUserId.value) {
+        console.log('isBookingOwner: Missing booking or currentUserId', {
+          hasBooking: !!props.booking,
+          currentUserId: currentUserId.value
+        })
+        return false
+      }
+
+      // Get the user_id from different possible locations
+      let bookingUserId = props.booking.user_id
+
+      // For transactions, try original_transaction.user_id first
+      if (isTransaction.value && props.booking.original_transaction?.user_id) {
+        bookingUserId = props.booking.original_transaction.user_id
+      }
+
+      // If still not found, try user.id
+      if (!bookingUserId && props.booking.user?.id) {
+        bookingUserId = props.booking.user.id
+      }
+
+      console.log('isBookingOwner check:', {
+        isTransaction: isTransaction.value,
+        bookingUserId: bookingUserId,
+        currentUserId: currentUserId.value,
+        match: bookingUserId === currentUserId.value
+      })
+
+      return bookingUserId === currentUserId.value
+    })
+
+    // Check if user can see edit buttons (staff/admin or booking owner)
+    const canSeeEditButtons = computed(() => {
+      const result = isStaffOrAdmin.value || isBookingOwner.value
+      console.log('canSeeEditButtons:', {
+        isStaffOrAdmin: isStaffOrAdmin.value,
+        isBookingOwner: isBookingOwner.value,
+        result
+      })
+      return result
+    })
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -3285,6 +3329,8 @@ export default {
       posProductsCount,
       isStaffOrAdmin,
       isAdmin,
+      isBookingOwner,
+      canSeeEditButtons,
       // Waitlist state
       waitlistEntries,
       loadingWaitlist,
@@ -3306,6 +3352,7 @@ export default {
       // Proof of Payment Upload state
       uploadingProof,
       proofFiles,
+      paymentReferenceNumber,
       // Court editing state
       editingCourtItemIndex,
       selectedCourtId,
