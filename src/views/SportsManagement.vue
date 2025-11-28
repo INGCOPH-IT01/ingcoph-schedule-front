@@ -258,19 +258,21 @@
             <div class="text-caption mt-1">This price is used when no time-based rules match</div>
           </v-alert>
 
-          <!-- Info about scheduled pricing -->
+          <!-- Info about features -->
           <v-alert type="success" variant="tonal" density="compact" class="mb-4">
             <div class="text-subtitle-2 mb-1">
-              <v-icon size="small" class="mr-1">mdi-information</v-icon>
-              Automated Pricing Changes
+              <v-icon size="small" class="mr-1">mdi-star</v-icon>
+              Key Features
             </div>
             <div class="text-caption mb-2">
-              Schedule pricing changes in advance! Set an effective date and the pricing will automatically
-              apply at that time - no need to be physically present to manually update prices.
+              <strong>📅 Day-specific Pricing:</strong> Set different prices for specific days (e.g., weekends, weekdays).
+              <br>
+              <strong>⏰ Time-based Rules:</strong> Define pricing for specific time ranges (e.g., peak hours, off-peak).
+              <br>
+              <strong>🔄 Automated Changes:</strong> Schedule future price changes with effective dates.
             </div>
             <div class="text-caption font-weight-bold">
-              💡 Tip: To schedule a price change, create a new pricing rule with a future effective date.
-              The current rule will remain active until the new rule's effective date arrives.
+              💡 Tip: Combine day selection with time ranges for maximum flexibility (e.g., "Weekend Mornings" or "Weekday Evenings").
             </div>
           </v-alert>
 
@@ -330,13 +332,21 @@
                       <v-icon size="small">mdi-clock</v-icon>
                       {{ pricing.start_time }} - {{ pricing.end_time }}
                     </div>
-                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
+                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0" class="d-flex align-center flex-wrap gap-1 my-1">
                       <v-icon size="small">mdi-calendar</v-icon>
-                      {{ getDayNames(pricing.days_of_week) }}
+                      <v-chip
+                        v-for="day in pricing.days_of_week"
+                        :key="day"
+                        size="x-small"
+                        color="primary"
+                        variant="tonal"
+                      >
+                        {{ ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day] }}
+                      </v-chip>
                     </div>
                     <div v-else>
                       <v-icon size="small">mdi-calendar</v-icon>
-                      All days
+                      <v-chip size="x-small" color="info" variant="tonal">All days</v-chip>
                     </div>
                     <div>
                       <v-icon size="small">mdi-priority-high</v-icon>
@@ -415,13 +425,21 @@
                       <v-icon size="small">mdi-clock</v-icon>
                       {{ pricing.start_time }} - {{ pricing.end_time }}
                     </div>
-                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
+                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0" class="d-flex align-center flex-wrap gap-1 my-1">
                       <v-icon size="small">mdi-calendar</v-icon>
-                      {{ getDayNames(pricing.days_of_week) }}
+                      <v-chip
+                        v-for="day in pricing.days_of_week"
+                        :key="day"
+                        size="x-small"
+                        color="primary"
+                        variant="tonal"
+                      >
+                        {{ ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day] }}
+                      </v-chip>
                     </div>
                     <div v-else>
                       <v-icon size="small">mdi-calendar</v-icon>
-                      All days
+                      <v-chip size="x-small" color="info" variant="tonal">All days</v-chip>
                     </div>
                     <div>
                       <v-icon size="small">mdi-priority-high</v-icon>
@@ -506,13 +524,21 @@
                       <v-icon size="small">mdi-clock</v-icon>
                       {{ pricing.start_time }} - {{ pricing.end_time }}
                     </div>
-                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0">
+                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0" class="d-flex align-center flex-wrap gap-1 my-1">
                       <v-icon size="small">mdi-calendar</v-icon>
-                      {{ getDayNames(pricing.days_of_week) }}
+                      <v-chip
+                        v-for="day in pricing.days_of_week"
+                        :key="day"
+                        size="x-small"
+                        color="primary"
+                        variant="tonal"
+                      >
+                        {{ ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day] }}
+                      </v-chip>
                     </div>
                     <div v-else>
                       <v-icon size="small">mdi-calendar</v-icon>
-                      All days
+                      <v-chip size="x-small" color="info" variant="tonal">All days</v-chip>
                     </div>
                     <div>
                       <v-icon size="small">mdi-priority-high</v-icon>
@@ -629,16 +655,73 @@
               class="mb-4"
             ></v-text-field>
 
-            <v-select
-              v-model="pricingFormData.days_of_week"
-              label="Days of Week (leave empty for all days)"
-              :items="daysOfWeekOptions"
-              multiple
-              chips
-              prepend-inner-icon="mdi-calendar"
-              variant="outlined"
-              class="mb-4"
-            ></v-select>
+            <!-- Days of Week Selection -->
+            <div class="mb-4">
+              <div class="text-subtitle-2 mb-2 d-flex align-center">
+                <v-icon size="small" class="mr-2">mdi-calendar-week</v-icon>
+                Applicable Days
+                <v-tooltip location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-icon v-bind="props" size="small" class="ml-1" color="info">mdi-information</v-icon>
+                  </template>
+                  <span>Select specific days or leave empty for all days</span>
+                </v-tooltip>
+              </div>
+
+              <!-- Quick Select Buttons -->
+              <div class="mb-2">
+                <v-chip-group>
+                  <v-chip
+                    size="small"
+                    @click="pricingFormData.days_of_week = [1,2,3,4,5]"
+                    prepend-icon="mdi-briefcase"
+                    variant="outlined"
+                  >
+                    Weekdays
+                  </v-chip>
+                  <v-chip
+                    size="small"
+                    @click="pricingFormData.days_of_week = [0,6]"
+                    prepend-icon="mdi-weather-sunny"
+                    variant="outlined"
+                  >
+                    Weekends
+                  </v-chip>
+                  <v-chip
+                    size="small"
+                    @click="pricingFormData.days_of_week = []"
+                    prepend-icon="mdi-calendar-blank"
+                    variant="outlined"
+                  >
+                    All Days
+                  </v-chip>
+                </v-chip-group>
+              </div>
+
+              <v-select
+                v-model="pricingFormData.days_of_week"
+                label="Select specific days"
+                :items="daysOfWeekOptions"
+                multiple
+                chips
+                closable-chips
+                prepend-inner-icon="mdi-calendar"
+                variant="outlined"
+                hint="Leave empty to apply this pricing to all days of the week"
+                persistent-hint
+              >
+                <template v-slot:selection="{ item, index }">
+                  <v-chip
+                    v-if="index < 7"
+                    size="small"
+                    closable
+                    @click:close="removeDayFromSelection(item.value)"
+                  >
+                    {{ item.title }}
+                  </v-chip>
+                </template>
+              </v-select>
+            </div>
 
             <v-text-field
               v-model.number="pricingFormData.priority"
@@ -1151,6 +1234,13 @@ export default {
       return days.map(day => dayNames[day]).join(', ')
     }
 
+    const removeDayFromSelection = (dayValue) => {
+      const index = pricingFormData.value.days_of_week.indexOf(dayValue)
+      if (index > -1) {
+        pricingFormData.value.days_of_week.splice(index, 1)
+      }
+    }
+
     // Format effectivity date for display
     const formatEffectiveDate = (dateString) => {
       if (!dateString) return ''
@@ -1291,6 +1381,7 @@ export default {
       savePricingRule,
       deletePricingRule,
       getDayNames,
+      removeDayFromSelection,
       formatEffectiveDate,
       formatDateTimeForInput,
       // Pricing tabs and filters
