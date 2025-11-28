@@ -146,6 +146,27 @@
                     When disabled, users cannot add POS products during the booking process. Only court time slots can be booked.
                   </div>
                 </v-alert>
+
+                <v-text-field
+                  v-model.number="rescheduleWindowHours"
+                  label="Reschedule Window (hours)"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-clock-edit"
+                  type="number"
+                  :min="0"
+                  :max="168"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mt-4 mb-2"
+                  hint="Hours before booking when regular users cannot edit (0-168, default: 24). Admin/staff are not restricted."
+                  persistent-hint
+                ></v-text-field>
+
+                <v-alert type="info" variant="tonal" density="compact" class="mt-2">
+                  <div class="text-caption">
+                    <strong>Regular users</strong> can only edit/reschedule bookings if there are at least this many hours remaining before the scheduled time. Set to 0 to allow editing up until the booking time. <strong>Note:</strong> Admin and staff can always edit bookings regardless of this window.
+                  </div>
+                </v-alert>
               </div>
 
               <v-divider class="mb-6"></v-divider>
@@ -806,6 +827,129 @@
             </v-form>
           </v-card-text>
         </v-card>
+
+        <!-- Terms and Conditions Card -->
+        <v-card class="settings-card mt-6">
+          <v-card-title class="text-h5 pa-6 pb-4">
+            <v-icon class="mr-2" color="primary">mdi-file-document-outline</v-icon>
+            Terms and Conditions
+          </v-card-title>
+
+          <v-divider></v-divider>
+
+          <v-card-text class="pa-6">
+            <v-alert type="info" variant="tonal" class="mb-4">
+              <v-icon class="mr-2">mdi-information</v-icon>
+              Create terms and conditions that users must agree to before completing a booking checkout.
+            </v-alert>
+
+            <v-form @submit.prevent="saveTermsAndConditions">
+              <!-- Enable Terms and Conditions -->
+              <div class="mb-4">
+                <v-switch
+                  v-model="termsEnabled"
+                  label="Require users to accept Terms and Conditions before checkout"
+                  color="primary"
+                  hide-details
+                  class="mb-2"
+                ></v-switch>
+                <v-alert
+                  v-if="termsEnabled"
+                  type="warning"
+                  variant="tonal"
+                  density="compact"
+                  class="mt-2"
+                >
+                  <div class="text-caption">
+                    Users will be required to read and accept these terms before they can complete their booking.
+                  </div>
+                </v-alert>
+              </div>
+
+              <v-divider class="mb-4"></v-divider>
+
+              <!-- Rich Text Editor -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  <v-icon class="mr-1" size="small">mdi-text-box-edit</v-icon>
+                  Terms and Conditions Content
+                </label>
+                <div class="editor-container">
+                  <QuillEditor
+                    v-model:content="termsAndConditions"
+                    :options="termsEditorOptions"
+                    content-type="html"
+                    class="terms-editor"
+                  />
+                </div>
+              </div>
+
+              <!-- Preview -->
+              <div class="mb-4">
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  <v-icon class="mr-1" size="small">mdi-eye</v-icon>
+                  Preview
+                  <v-chip size="x-small" color="info" class="ml-2">How users will see it</v-chip>
+                </label>
+                <v-card variant="outlined" class="pa-4 preview-card">
+                  <div
+                    v-if="termsAndConditions"
+                    v-html="termsAndConditions"
+                    class="terms-preview"
+                  ></div>
+                  <div v-else class="text-center text-grey py-8">
+                    <v-icon size="48" color="grey-lighten-1">mdi-file-document-outline</v-icon>
+                    <div class="text-caption mt-2">No terms and conditions set</div>
+                  </div>
+                </v-card>
+              </div>
+
+              <v-alert
+                v-if="termsSuccessMessage"
+                type="success"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="termsSuccessMessage = ''"
+              >
+                {{ termsSuccessMessage }}
+              </v-alert>
+
+              <v-alert
+                v-if="termsErrorMessage"
+                type="error"
+                variant="tonal"
+                closable
+                class="mb-4"
+                @click:close="termsErrorMessage = ''"
+              >
+                {{ termsErrorMessage }}
+              </v-alert>
+
+              <div class="d-flex justify-end gap-2">
+                <v-btn
+                  color="grey"
+                  variant="outlined"
+                  @click="resetTermsAndConditions"
+                  :disabled="termsSaving"
+                >
+                  <v-icon class="mr-2">mdi-refresh</v-icon>
+                  Clear
+                </v-btn>
+                <v-btn
+                  color="primary"
+                  variant="elevated"
+                  type="submit"
+                  :loading="termsSaving"
+                  :disabled="termsSaving"
+                >
+                  <v-icon class="mr-2">mdi-content-save</v-icon>
+                  Save Terms and Conditions
+                </v-btn>
+              </div>
+            </v-form>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
@@ -823,9 +967,14 @@
 <script>
 import { ref, watch, onMounted } from 'vue'
 import { companySettingService } from '../services/companySettingService'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 export default {
   name: 'CompanySettings',
+  components: {
+    QuillEditor
+  },
   setup() {
     const companyName = ref('')
     const originalCompanyName = ref('')
@@ -867,6 +1016,7 @@ export default {
     const userBookingEnabled = ref(true)
     const waitlistEnabled = ref(true)
     const posProductsEnabled = ref(true)
+    const rescheduleWindowHours = ref(24)
     const blockedBookingDates = ref([])
     const newBlockedDate = ref({
       start_date: '',
@@ -901,6 +1051,33 @@ export default {
       { value: 'saturday', label: 'Saturday', icon: 'mdi-numeric-6-circle' },
       { value: 'sunday', label: 'Sunday', icon: 'mdi-numeric-7-circle' }
     ]
+
+    // Terms and Conditions
+    const termsAndConditions = ref('')
+    const termsEnabled = ref(false)
+    const termsSaving = ref(false)
+    const termsSuccessMessage = ref('')
+    const termsErrorMessage = ref('')
+    const termsEditorOptions = {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'code-block'],
+          [{ 'header': 1 }, { 'header': 2 }],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          [{ 'script': 'sub'}, { 'script': 'super' }],
+          [{ 'indent': '-1'}, { 'indent': '+1' }],
+          [{ 'size': ['small', false, 'large', 'huge'] }],
+          [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          ['link'],
+          ['clean']
+        ]
+      },
+      placeholder: 'Enter your terms and conditions here...'
+    }
 
     const snackbar = ref({
       show: false,
@@ -969,7 +1146,12 @@ export default {
         userBookingEnabled.value = settings.user_booking_enabled !== undefined ? settings.user_booking_enabled : true
         waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
+        rescheduleWindowHours.value = settings.reschedule_window_hours !== undefined ? settings.reschedule_window_hours : 24
         blockedBookingDates.value = settings.blocked_booking_dates || []
+
+        // Load terms and conditions
+        termsAndConditions.value = settings.terms_and_conditions || ''
+        termsEnabled.value = settings.terms_enabled !== undefined ? settings.terms_enabled : false
       } catch (error) {
         errorMessage.value = 'Failed to load company settings'
         showSnackbar('Failed to load settings', 'error')
@@ -1042,6 +1224,7 @@ export default {
           user_booking_enabled: userBookingEnabled.value,
           waitlist_enabled: waitlistEnabled.value,
           pos_products_enabled: posProductsEnabled.value,
+          reschedule_window_hours: rescheduleWindowHours.value,
           blocked_booking_dates: JSON.stringify(blockedBookingDates.value)
         }
 
@@ -1292,6 +1475,41 @@ export default {
       operatingErrorMessage.value = ''
     }
 
+    // Terms and Conditions functions
+    const saveTermsAndConditions = async () => {
+      try {
+        termsSaving.value = true
+        termsSuccessMessage.value = ''
+        termsErrorMessage.value = ''
+
+        const data = {
+          terms_and_conditions: termsAndConditions.value,
+          terms_enabled: termsEnabled.value,
+          company_name: companyName.value // Required field
+        }
+
+        await companySettingService.updateSettings(data)
+        termsSuccessMessage.value = 'Terms and Conditions updated successfully!'
+        showSnackbar('Terms and Conditions saved successfully', 'success')
+
+        // Dispatch event to update throughout the app
+        window.dispatchEvent(new CustomEvent('company-settings-updated'))
+
+      } catch (error) {
+        termsErrorMessage.value = error.message || 'Failed to update Terms and Conditions'
+        showSnackbar('Failed to save Terms and Conditions', 'error')
+      } finally {
+        termsSaving.value = false
+      }
+    }
+
+    const resetTermsAndConditions = () => {
+      termsAndConditions.value = ''
+      termsEnabled.value = false
+      termsSuccessMessage.value = ''
+      termsErrorMessage.value = ''
+    }
+
     onMounted(() => {
       loadSettings()
     })
@@ -1337,6 +1555,7 @@ export default {
       userBookingEnabled,
       waitlistEnabled,
       posProductsEnabled,
+      rescheduleWindowHours,
       blockedBookingDates,
       newBlockedDate,
       addBlockedDate,
@@ -1352,7 +1571,16 @@ export default {
       operatingErrorMessage,
       weekDays,
       saveOperatingHours,
-      resetOperatingHours
+      resetOperatingHours,
+      // Terms and Conditions
+      termsAndConditions,
+      termsEnabled,
+      termsSaving,
+      termsSuccessMessage,
+      termsErrorMessage,
+      termsEditorOptions,
+      saveTermsAndConditions,
+      resetTermsAndConditions
     }
   }
 }
@@ -1551,5 +1779,104 @@ export default {
   .settings-header {
     padding: 24px 0;
   }
+}
+
+/* Terms and Conditions Editor Styles */
+.editor-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: white;
+}
+
+.terms-editor {
+  min-height: 300px;
+}
+
+.terms-editor :deep(.ql-toolbar) {
+  background: #f8f9fa;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.terms-editor :deep(.ql-container) {
+  border: none;
+  font-size: 14px;
+  min-height: 300px;
+}
+
+.terms-editor :deep(.ql-editor) {
+  min-height: 300px;
+  padding: 20px;
+}
+
+.terms-editor :deep(.ql-editor.ql-blank::before) {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.preview-card {
+  max-height: 400px;
+  overflow-y: auto;
+  background: #fafafa;
+}
+
+.terms-preview {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+.terms-preview :deep(h1) {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #1e293b;
+}
+
+.terms-preview :deep(h2) {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #334155;
+}
+
+.terms-preview :deep(h3) {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #475569;
+}
+
+.terms-preview :deep(p) {
+  margin-bottom: 12px;
+}
+
+.terms-preview :deep(ul),
+.terms-preview :deep(ol) {
+  margin-left: 24px;
+  margin-bottom: 12px;
+}
+
+.terms-preview :deep(li) {
+  margin-bottom: 8px;
+}
+
+.terms-preview :deep(strong) {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.terms-preview :deep(a) {
+  color: #B71C1C;
+  text-decoration: underline;
+}
+
+.terms-preview :deep(blockquote) {
+  border-left: 4px solid #B71C1C;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #64748b;
+  font-style: italic;
 }
 </style>
