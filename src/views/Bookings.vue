@@ -1603,7 +1603,6 @@ export default {
           if (storedUser) {
             const parsedUser = JSON.parse(storedUser)
             role = parsedUser?.role
-            console.log('[Bookings] Using localStorage role fallback:', role)
           }
         } catch (e) {
           // Ignore localStorage errors
@@ -2996,9 +2995,11 @@ export default {
     }
 
     const viewBooking = async (booking) => {
-      // Fetch fresh booking data with all relationships to ensure POS sales are included
+      // Fetch fresh transaction data with all relationships (like AdminDashboard does)
+      // Use transaction_id instead of the composite booking.id
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/bookings/${booking.id}`, {
+        const transactionId = booking.transaction_id || booking.id
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart-transactions/${transactionId}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Accept': 'application/json'
@@ -3006,15 +3007,25 @@ export default {
         })
 
         if (response.ok) {
-          const bookingData = await response.json()
-          // API may return { success: true, data: booking } or just the booking
-          selectedBooking.value = bookingData.data || bookingData
+          const transactionData = await response.json()
+          // API may return { success: true, data: transaction } or just the transaction
+          const transaction = transactionData.data || transactionData
+
+          // Pass the full transaction with the specific booking context
+          selectedBooking.value = {
+            ...booking,
+            original_transaction: transaction,
+            cart_items: booking.cart_items || transaction.cart_items,
+            pos_sales: transaction.pos_sales,
+            user: transaction.user,
+            approver: transaction.approver
+          }
         } else {
           // Fallback to cached data if fetch fails
           selectedBooking.value = booking
         }
       } catch (error) {
-        console.error('Error fetching booking details:', error)
+        console.error('Error fetching transaction details:', error)
         // Fallback to cached data
         selectedBooking.value = booking
       }

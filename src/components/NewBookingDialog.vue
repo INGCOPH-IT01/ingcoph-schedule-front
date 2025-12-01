@@ -837,6 +837,31 @@
                   Please note: There may be a carry over delay in the confirmation of your booking during weekends and holidays.
                 </div>
               </v-alert>
+
+              <!-- Terms and Conditions Acceptance -->
+              <v-card v-if="termsEnabled" variant="outlined" class="mt-4 terms-acceptance-card">
+                <v-card-text class="pa-4">
+                  <v-checkbox
+                    v-model="termsAccepted"
+                    color="primary"
+                    hide-details
+                    class="terms-checkbox"
+                  >
+                    <template v-slot:label>
+                      <span class="text-body-2">
+                        I agree to the
+                        <a
+                          href="#"
+                          @click.prevent="openTermsDialog"
+                          class="terms-link"
+                        >
+                          Terms & Conditions
+                        </a>
+                      </span>
+                    </template>
+                  </v-checkbox>
+                </v-card-text>
+              </v-card>
             </div>
           </v-window-item>
         </v-window>
@@ -884,6 +909,7 @@
             v-if="waitlistEnabled && allSlotsAreWaitlist"
             color="warning"
             :loading="submitting"
+            :disabled="termsEnabled && !termsAccepted"
             @click="submitWaitlistBooking"
           >
             <v-icon start>mdi-clock-alert</v-icon>
@@ -895,7 +921,7 @@
             v-if="!(waitlistEnabled && allSlotsAreWaitlist) && !skipPayment"
             color="success"
             :loading="submitting"
-            :disabled="!proofOfPayment || proofOfPayment.length === 0"
+            :disabled="!proofOfPayment || proofOfPayment.length === 0 || (termsEnabled && !termsAccepted)"
             @click="submitBookingWithGCash"
           >
             <v-icon start>mdi-cellphone-check</v-icon>
@@ -907,12 +933,88 @@
             v-if="!(waitlistEnabled && allSlotsAreWaitlist) && skipPayment && isAdminOrStaff"
             color="warning"
             :loading="submitting"
+            :disabled="termsEnabled && !termsAccepted"
             @click="submitBookingWithoutPayment"
           >
             <v-icon start>mdi-calendar-check</v-icon>
             Book Without Payment
           </v-btn>
         </template>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+  <!-- Terms and Conditions Dialog -->
+  <v-dialog
+    v-model="showTermsDialog"
+    max-width="800"
+    persistent
+    scrollable
+  >
+    <v-card>
+      <v-card-title class="terms-dialog-header">
+        <div class="d-flex align-items-center justify-space-between w-100">
+          <div class="d-flex align-items-center">
+            <v-icon class="mr-2" color="primary">mdi-file-document-outline</v-icon>
+            <span>Terms and Conditions</span>
+          </div>
+          <v-btn
+            icon="mdi-close"
+            variant="text"
+            size="small"
+            @click="declineTerms"
+          ></v-btn>
+        </div>
+      </v-card-title>
+
+      <v-divider></v-divider>
+
+      <v-card-text
+        ref="termsDialogScroll"
+        class="terms-dialog-content pa-6"
+        @scroll="handleTermsScroll"
+      >
+        <div v-if="termsContent" v-html="termsContent" class="terms-content-display"></div>
+        <div v-else class="text-center text-grey py-8">
+          <v-icon size="48" color="grey-lighten-1">mdi-file-document-outline</v-icon>
+          <div class="text-caption mt-2">No terms and conditions available</div>
+        </div>
+      </v-card-text>
+
+      <v-divider></v-divider>
+
+      <v-card-actions class="pa-4">
+        <div class="d-flex align-items-center flex-grow-1">
+          <v-alert
+            v-if="!termsScrolledToBottom"
+            type="info"
+            density="compact"
+            variant="tonal"
+            class="mb-0"
+          >
+            <div class="text-caption">
+              <v-icon size="small" class="mr-1">mdi-arrow-down</v-icon>
+              Please scroll down to read all terms before accepting
+            </div>
+          </v-alert>
+        </div>
+        <v-spacer></v-spacer>
+        <v-btn
+          color="grey"
+          variant="outlined"
+          @click="declineTerms"
+        >
+          Decline
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="elevated"
+          :disabled="!termsScrolledToBottom"
+          @click="acceptTerms"
+        >
+          <v-icon start>mdi-check</v-icon>
+          Accept
+        </v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -1039,6 +1141,14 @@ export default {
     // Blocked dates
     const blockedBookingDates = ref([])
     const selectedDateBlockInfo = ref({ isBlocked: false, reason: '' })
+
+    // Terms and Conditions
+    const termsEnabled = ref(false)
+    const termsContent = ref('')
+    const termsAccepted = ref(false)
+    const showTermsDialog = ref(false)
+    const termsScrolledToBottom = ref(false)
+    const termsDialogScroll = ref(null)
 
     // Computed
     const minDate = computed(() => {
@@ -1266,24 +1376,12 @@ export default {
     }
 
     const handleSlotClick = (courtId, slot) => {
-      // Debug logging
-      console.log('Slot clicked:', {
-        courtId,
-        start: slot.start,
-        available: slot.available,
-        is_waitlist_available: slot.is_waitlist_available,
-        is_booked: slot.is_booked,
-        waitlistEnabled: waitlistEnabled.value,
-        canSelect: canSelectSlot(slot)
-      })
-
       // Guard: Only proceed if slot can be selected
       if (!canSelectSlot(slot)) {
         console.warn('❌ Slot selection blocked - slot cannot be selected')
         return
       }
 
-      console.log('✅ Proceeding with slot selection')
       toggleTimeSlot(courtId, slot)
     }
 
@@ -1338,24 +1436,9 @@ export default {
       if (!selectable) {
         // Slot is unavailable
         classes.push('unavailable')
-
-        // Debug log for unavailable slots
-        if (slot.is_waitlist_available) {
-          console.log(`Slot ${slot.start} marked unavailable (waitlist disabled):`, {
-            available: slot.available,
-            is_waitlist_available: slot.is_waitlist_available,
-            waitlistEnabled: waitlistEnabled.value,
-            classes: [...classes]
-          })
-        }
       } else if (waitlistEnabled.value && slot.is_waitlist_available && !slot.available) {
         // Slot is available for waitlist (only if waitlist is enabled)
         classes.push('waitlist')
-
-        console.log(`Slot ${slot.start} marked as waitlist:`, {
-          waitlistEnabled: waitlistEnabled.value,
-          classes: [...classes]
-        })
       }
 
       return classes
@@ -2690,6 +2773,56 @@ export default {
       // Reset admin fields
       bookingForUser.value = null
       adminNotes.value = ''
+      // Reset terms acceptance
+      termsAccepted.value = false
+      termsScrolledToBottom.value = false
+    }
+
+    // Terms and Conditions functions
+    const openTermsDialog = () => {
+      showTermsDialog.value = true
+      termsScrolledToBottom.value = false
+      // Reset scroll position when opening and check if scrolling is needed
+      nextTick(() => {
+        if (termsDialogScroll.value) {
+          termsDialogScroll.value.scrollTop = 0
+          // Check if content is short enough that scrolling isn't needed
+          checkIfScrollNeeded()
+        }
+      })
+      // Double-check after a small delay to ensure rendering is complete
+      setTimeout(() => {
+        checkIfScrollNeeded()
+      }, 100)
+    }
+
+    const acceptTerms = () => {
+      termsAccepted.value = true
+      showTermsDialog.value = false
+    }
+
+    const declineTerms = () => {
+      termsAccepted.value = false
+      showTermsDialog.value = false
+    }
+
+    const handleTermsScroll = (event) => {
+      const element = event.target
+      // Check if user has scrolled to bottom (with 10px tolerance)
+      const isAtBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + 10
+      termsScrolledToBottom.value = isAtBottom
+    }
+
+    const checkIfScrollNeeded = () => {
+      if (termsDialogScroll.value) {
+        const element = termsDialogScroll.value
+        // If content doesn't require scrolling (no scrollbar), automatically enable the accept button
+        // Check if scrollHeight is less than or equal to clientHeight (no scrollbar needed)
+        const hasScrollbar = element.scrollHeight > element.clientHeight
+        if (!hasScrollbar) {
+          termsScrolledToBottom.value = true
+        }
+      }
     }
 
     const fetchSports = async () => {
@@ -2751,17 +2884,14 @@ export default {
         const settings = await companySettingService.getSettings(false)
         waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
-        console.log('Booking config loaded:', {
-          waitlist_enabled: settings.waitlist_enabled,
-          waitlistEnabled: waitlistEnabled.value,
-          pos_products_enabled: settings.pos_products_enabled,
-          posProductsEnabled: posProductsEnabled.value
-        })
+        termsEnabled.value = settings.terms_enabled !== undefined ? settings.terms_enabled : false
+        termsContent.value = settings.terms_and_conditions || ''
       } catch (error) {
         console.error('Failed to load booking config:', error)
         // Default to true if loading fails
         waitlistEnabled.value = true
         posProductsEnabled.value = true
+        termsEnabled.value = false
       }
     }
 
@@ -3106,6 +3236,17 @@ export default {
       bookingDisabledMessage,
       blockedBookingDates,
       selectedDateBlockInfo,
+      // Terms and Conditions
+      termsEnabled,
+      termsContent,
+      termsAccepted,
+      showTermsDialog,
+      termsScrolledToBottom,
+      termsDialogScroll,
+      openTermsDialog,
+      acceptTerms,
+      declineTerms,
+      handleTermsScroll,
       // Services
       sportService
     }
@@ -3959,5 +4100,106 @@ export default {
   .time-slots-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Terms and Conditions Styles */
+.terms-acceptance-card {
+  border: 2px solid #1976d2;
+  background: linear-gradient(135deg, rgba(25, 118, 210, 0.05) 0%, rgba(21, 101, 192, 0.02) 100%);
+}
+
+.terms-checkbox :deep(.v-label) {
+  color: #1f2937 !important;
+}
+
+.terms-link {
+  color: #1976d2;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.terms-link:hover {
+  color: #1565c0;
+}
+
+/* Terms Dialog Styles */
+.terms-dialog-header {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white !important;
+}
+
+.terms-dialog-header span,
+.terms-dialog-header .v-icon {
+  color: white !important;
+}
+
+.terms-dialog-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #fafafa;
+}
+
+.terms-content-display {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #1f2937;
+}
+
+.terms-content-display :deep(h1),
+.terms-content-display :deep(h2) {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.terms-content-display :deep(h1) {
+  font-size: 24px;
+}
+
+.terms-content-display :deep(h2) {
+  font-size: 20px;
+}
+
+.terms-content-display :deep(h3) {
+  font-size: 18px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  color: #334155;
+}
+
+.terms-content-display :deep(p) {
+  margin-bottom: 12px;
+}
+
+.terms-content-display :deep(ul),
+.terms-content-display :deep(ol) {
+  margin-left: 24px;
+  margin-bottom: 12px;
+}
+
+.terms-content-display :deep(li) {
+  margin-bottom: 8px;
+}
+
+.terms-content-display :deep(strong) {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.terms-content-display :deep(a) {
+  color: #1976d2;
+  text-decoration: underline;
+}
+
+.terms-content-display :deep(blockquote) {
+  border-left: 4px solid #1976d2;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #64748b;
+  font-style: italic;
 }
 </style>

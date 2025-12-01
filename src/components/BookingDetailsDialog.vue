@@ -229,8 +229,8 @@
           </v-card>
         </div>
 
-        <!-- Cart Items in Transaction (Staff/Admin detailed view) - Grouped by Court -->
-        <div class="detail-section mb-4" v-if="isTransaction && showAdminFeatures && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
+        <!-- Cart Items in Transaction (Staff/Admin/Owner detailed view) - Grouped by Court -->
+        <div class="detail-section mb-4" v-if="isTransaction && (showAdminFeatures || isBookingOwner) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
             Booked Courts & Time Slots ({{ (booking.cart_items || booking.cart_transaction?.cart_items || []).length }} items)
@@ -278,8 +278,8 @@
                 variant="outlined"
                 class="pa-3 mb-3"
               >
-              <!-- Staff/Admin Edit Mode for Court -->
-              <div v-if="isStaffOrAdmin && editingCourtItemIndex === item.id" class="mb-3">
+              <!-- Edit Mode for Court (Staff/Admin/Owner) -->
+              <div v-if="canSeeEditButtons && editingCourtItemIndex === item.id" class="mb-3">
                 <v-select
                   v-model="selectedCourtId"
                   :items="availableCourtsForItem"
@@ -358,8 +358,8 @@
                 </div>
               </div>
 
-              <!-- Staff/Admin Edit Mode for Date/Time -->
-              <div v-else-if="isStaffOrAdmin && editingDateTimeItemIndex === item.id" class="mb-3">
+              <!-- Edit Mode for Date/Time (Staff/Admin/Owner) -->
+              <div v-else-if="canSeeEditButtons && editingDateTimeItemIndex === item.id" class="mb-3">
                 <v-text-field
                   v-model="selectedBookingDate"
                   label="Booking Date"
@@ -421,23 +421,39 @@
                       {{ formatBookingDate(item.booking_date) }}
                     </span>
                   </div>
-                  <div v-if="isStaffOrAdmin" class="d-flex gap-2">
-                    <v-btn
-                      icon="mdi-pencil"
-                      size="x-small"
-                      variant="text"
-                      color="primary"
-                      @click="startCartItemCourtEdit(item)"
-                      title="Edit Court"
-                    ></v-btn>
-                    <v-btn
-                      icon="mdi-delete"
-                      size="x-small"
-                      variant="text"
-                      color="error"
-                      @click="confirmDeleteTimeSlot(item)"
-                      title="Delete Time Slot"
-                    ></v-btn>
+                  <div v-if="canSeeEditButtons" class="d-flex gap-2">
+                    <v-tooltip :disabled="canEditCartItem(item)" location="top">
+                      <template v-slot:activator="{ props: tooltipProps }">
+                        <div v-bind="tooltipProps">
+                          <v-btn
+                            icon="mdi-pencil"
+                            size="x-small"
+                            variant="text"
+                            color="primary"
+                            @click="startCartItemCourtEdit(item)"
+                            :title="canEditCartItem(item) ? 'Edit Court' : 'Cannot edit - within reschedule window'"
+                            :disabled="!canEditCartItem(item)"
+                          ></v-btn>
+                        </div>
+                      </template>
+                      <span>Cannot edit: Booking is within {{ rescheduleWindowHours }} hour(s) of scheduled time</span>
+                    </v-tooltip>
+                    <v-tooltip :disabled="canEditCartItem(item)" location="top">
+                      <template v-slot:activator="{ props: tooltipProps }">
+                        <div v-bind="tooltipProps">
+                          <v-btn
+                            icon="mdi-delete"
+                            size="x-small"
+                            variant="text"
+                            color="error"
+                            @click="confirmDeleteTimeSlot(item)"
+                            :title="canEditCartItem(item) ? 'Delete Time Slot' : 'Cannot delete - within reschedule window'"
+                            :disabled="!canEditCartItem(item)"
+                          ></v-btn>
+                        </div>
+                      </template>
+                      <span>Cannot delete: Booking is within {{ rescheduleWindowHours }} hour(s) of scheduled time</span>
+                    </v-tooltip>
                   </div>
                 </div>
 
@@ -449,15 +465,23 @@
                     <span class="text-body-2">
                       {{ formatTimeSlot(item.start_time) }} - {{ formatTimeSlot(item.end_time) }}
                     </span>
-                    <div v-if="isStaffOrAdmin" class="d-flex ml-2">
-                      <v-btn
-                        icon="mdi-calendar-edit"
-                        size="x-small"
-                        variant="text"
-                        color="primary"
-                        @click="startCartItemDateTimeEdit(item)"
-                        title="Edit Date/Time"
-                      ></v-btn>
+                    <div v-if="canSeeEditButtons" class="d-flex ml-2">
+                      <v-tooltip :disabled="canEditCartItem(item)" location="top">
+                        <template v-slot:activator="{ props: tooltipProps }">
+                          <div v-bind="tooltipProps">
+                            <v-btn
+                              icon="mdi-calendar-edit"
+                              size="x-small"
+                              variant="text"
+                              color="primary"
+                              @click="startCartItemDateTimeEdit(item)"
+                              :title="canEditCartItem(item) ? 'Edit Date/Time' : 'Cannot edit - within reschedule window'"
+                              :disabled="!canEditCartItem(item)"
+                            ></v-btn>
+                          </div>
+                        </template>
+                        <span>Cannot edit: Booking is within {{ rescheduleWindowHours }} hour(s) of scheduled time</span>
+                      </v-tooltip>
                     </div>
                   </div>
                   <span class="text-body-1 font-weight-bold text-success">
@@ -470,8 +494,8 @@
           </v-card>
         </div>
 
-        <!-- Time Slots Details (Simple view for non-admin) - Grouped by Court -->
-        <div class="detail-section mb-4" v-if="(!showAdminFeatures || !isTransaction) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
+        <!-- Time Slots Details (Simple view for non-owner users) - Grouped by Court -->
+        <div class="detail-section mb-4" v-if="((!showAdminFeatures && !isBookingOwner) || !isTransaction) && (booking.cart_items || booking.cart_transaction?.cart_items) && (booking.cart_items?.length > 0 || booking.cart_transaction?.cart_items?.length > 0)">
           <h4 class="detail-section-title">
             <v-icon class="mr-2" color="primary">mdi-calendar-clock</v-icon>
             Booked Courts & Time Slots
@@ -1579,6 +1603,7 @@ import { sportService } from '../services/sportService'
 import { statusService } from '../services/statusService'
 import { authService } from '../services/authService'
 import { paymentSettingService } from '../services/paymentSettingService'
+import { companySettingService } from '../services/companySettingService'
 import {
   formatTimeSlot,
   formatPriceValue,
@@ -1712,6 +1737,9 @@ export default {
     const savingNotes = ref(false)
     const savingAdminNotes = ref(false)
 
+    // Reschedule window state
+    const rescheduleWindowHours = ref(24)
+
     // Load payment settings
     const loadPaymentSettings = async () => {
       try {
@@ -1722,6 +1750,17 @@ export default {
         // Silent error handling
       } finally {
         loadingPaymentSettings.value = false
+      }
+    }
+
+    // Load company settings (for reschedule window)
+    const loadCompanySettings = async () => {
+      try {
+        const settings = await companySettingService.getSettings()
+        rescheduleWindowHours.value = settings.reschedule_window_hours !== undefined ? settings.reschedule_window_hours : 24
+      } catch (error) {
+        // Silent error handling, use default
+        rescheduleWindowHours.value = 24
       }
     }
 
@@ -2892,6 +2931,62 @@ export default {
       }
     }
 
+    // Check if a cart item can be edited based on reschedule window
+    // Note: Reschedule window only applies to regular users, not admin/staff
+    const canEditCartItem = (item) => {
+      // Admin and staff can always edit, regardless of reschedule window
+      if (isStaffOrAdmin.value) {
+        return true
+      }
+
+      if (!item || !item.booking_date || !item.start_time) return true // Allow edit if data is incomplete
+
+      try {
+        // Parse booking date and start time
+        const bookingDateStr = item.booking_date.split('T')[0] // Get YYYY-MM-DD
+        const bookingDateTime = new Date(`${bookingDateStr}T${item.start_time}`)
+
+        // Get current time
+        const now = new Date()
+
+        // Calculate hours until booking
+        const hoursUntilBooking = (bookingDateTime - now) / (1000 * 60 * 60)
+
+        // Allow edit if hours until booking >= reschedule window
+        return hoursUntilBooking >= rescheduleWindowHours.value
+      } catch (error) {
+        // If there's any error parsing dates, allow edit by default
+        return true
+      }
+    }
+
+    // Check if current user is the booking owner
+    const isBookingOwner = computed(() => {
+      if (!props.booking || !currentUserId.value) {
+        return false
+      }
+
+      // Get the user_id from different possible locations
+      let bookingUserId = props.booking.user_id
+
+      // For transactions, try original_transaction.user_id first
+      if (isTransaction.value && props.booking.original_transaction?.user_id) {
+        bookingUserId = props.booking.original_transaction.user_id
+      }
+
+      // If still not found, try user.id
+      if (!bookingUserId && props.booking.user?.id) {
+        bookingUserId = props.booking.user.id
+      }
+
+      return bookingUserId === currentUserId.value
+    })
+
+    // Check if user can see edit buttons (staff/admin or booking owner)
+    const canSeeEditButtons = computed(() => {
+      return isStaffOrAdmin.value || isBookingOwner.value
+    })
+
     // Computed properties
     const isApprovedBooking = computed(() => {
       if (!props.booking) return false
@@ -3171,6 +3266,9 @@ export default {
           // Load payment settings for payment QR code
           loadPaymentSettings()
 
+          // Load company settings for reschedule window
+          loadCompanySettings()
+
           // Load waitlist entries (for all users to see who's waiting)
           loadWaitlistEntries()
 
@@ -3214,6 +3312,8 @@ export default {
       posProductsCount,
       isStaffOrAdmin,
       isAdmin,
+      isBookingOwner,
+      canSeeEditButtons,
       // Waitlist state
       waitlistEntries,
       loadingWaitlist,
@@ -3235,6 +3335,7 @@ export default {
       // Proof of Payment Upload state
       uploadingProof,
       proofFiles,
+      paymentReferenceNumber,
       // Court editing state
       editingCourtItemIndex,
       selectedCourtId,
@@ -3267,8 +3368,11 @@ export default {
       editedAdminNotes,
       savingNotes,
       savingAdminNotes,
+      // Reschedule window state
+      rescheduleWindowHours,
       // Methods
       closeDialog,
+      canEditCartItem,
       formatTimeSlot,
       formatPrice,
       formatBookingDate,
