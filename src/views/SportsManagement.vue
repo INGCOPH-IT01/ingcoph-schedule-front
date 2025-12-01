@@ -305,77 +305,87 @@
           <v-window v-model="pricingTab">
             <!-- Active Rules Tab -->
             <v-window-item value="active">
-              <v-list v-if="activePricingRules.length > 0">
-                <v-list-item
-                  v-for="pricing in activePricingRules"
-                  :key="pricing.id"
-                  class="mb-2 border rounded"
-                >
-                  <template v-slot:prepend>
-                    <v-icon color="success">
+              <v-data-table
+                v-if="activePricingRules.length > 0"
+                :headers="pricingTableHeaders"
+                :items="activePricingRules"
+                :items-per-page="10"
+                class="elevation-1"
+              >
+                <template v-slot:[`item.name`]="{ item }">
+                  <div class="d-flex align-center">
+                    <v-icon color="success" class="mr-2" size="small">
                       mdi-clock-check-outline
                     </v-icon>
-                  </template>
+                    <span class="font-weight-bold">{{ item.name }}</span>
+                  </div>
+                </template>
 
-                  <v-list-item-title>
-                    <span class="font-weight-bold">{{ pricing.name }}</span>
-                    <v-chip size="small" color="success" variant="tonal" class="ml-2">
-                      ₱{{ parseFloat(pricing.price_per_hour).toFixed(2) }}/hr
+                <template v-slot:[`item.price_per_hour`]="{ item }">
+                  <v-chip size="small" color="success" variant="tonal">
+                    ₱{{ parseFloat(item.price_per_hour).toFixed(2) }}/hr
+                  </v-chip>
+                </template>
+
+                <template v-slot:[`item.time_range`]="{ item }">
+                  <div class="text-no-wrap">
+                    <v-icon size="small" class="mr-1">mdi-clock</v-icon>
+                    {{ item.start_time }} - {{ item.end_time }}
+                  </div>
+                </template>
+
+                <template v-slot:[`item.days_of_week`]="{ item }">
+                  <div v-if="item.days_of_week && item.days_of_week.length > 0" class="d-flex flex-wrap gap-1">
+                    <v-chip
+                      v-for="day in item.days_of_week"
+                      :key="day"
+                      size="x-small"
+                      color="primary"
+                      variant="tonal"
+                    >
+                      {{ ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day] }}
                     </v-chip>
-                    <v-chip size="x-small" color="success" class="ml-2">
+                  </div>
+                  <v-chip v-else size="x-small" color="info" variant="tonal">All days</v-chip>
+                </template>
+
+                <template v-slot:[`item.priority`]="{ item }">
+                  <v-chip size="small" color="grey" variant="outlined">
+                    {{ item.priority }}
+                  </v-chip>
+                </template>
+
+                <template v-slot:[`item.status`]="{ item }">
+                  <div>
+                    <v-chip size="x-small" color="success">
                       ACTIVE NOW
                     </v-chip>
-                  </v-list-item-title>
+                    <div v-if="item.effective_date" class="text-caption text-success mt-1">
+                      Since: {{ formatEffectiveDate(item.effective_date) }}
+                    </div>
+                  </div>
+                </template>
 
-                  <v-list-item-subtitle>
-                    <div>
-                      <v-icon size="small">mdi-clock</v-icon>
-                      {{ pricing.start_time }} - {{ pricing.end_time }}
-                    </div>
-                    <div v-if="pricing.days_of_week && pricing.days_of_week.length > 0" class="d-flex align-center flex-wrap gap-1 my-1">
-                      <v-icon size="small">mdi-calendar</v-icon>
-                      <v-chip
-                        v-for="day in pricing.days_of_week"
-                        :key="day"
-                        size="x-small"
-                        color="primary"
-                        variant="tonal"
-                      >
-                        {{ ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day] }}
-                      </v-chip>
-                    </div>
-                    <div v-else>
-                      <v-icon size="small">mdi-calendar</v-icon>
-                      <v-chip size="x-small" color="info" variant="tonal">All days</v-chip>
-                    </div>
-                    <div>
-                      <v-icon size="small">mdi-priority-high</v-icon>
-                      Priority: {{ pricing.priority }}
-                    </div>
-                    <div v-if="pricing.effective_date" class="mt-1 text-success">
-                      <v-icon size="small">mdi-calendar-check</v-icon>
-                      Became effective: {{ formatEffectiveDate(pricing.effective_date) }}
-                    </div>
-                  </v-list-item-subtitle>
+                <template v-slot:[`item.actions`]="{ item }">
+                  <v-btn
+                    icon="mdi-pencil"
+                    size="small"
+                    variant="text"
+                    color="primary"
+                    @click="editPricingRule(item)"
+                    title="Edit rule"
+                  ></v-btn>
+                  <v-btn
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    color="error"
+                    @click="deletePricingRule(item)"
+                    title="Delete rule"
+                  ></v-btn>
+                </template>
+              </v-data-table>
 
-                  <template v-slot:append>
-                    <v-btn
-                      icon="mdi-pencil"
-                      size="small"
-                      variant="text"
-                      color="primary"
-                      @click="editPricingRule(pricing)"
-                    ></v-btn>
-                    <v-btn
-                      icon="mdi-delete"
-                      size="small"
-                      variant="text"
-                      color="error"
-                      @click="deletePricingRule(pricing)"
-                    ></v-btn>
-                  </template>
-                </v-list-item>
-              </v-list>
               <v-alert v-else type="info" variant="tonal">
                 No pricing rules are currently active.
               </v-alert>
@@ -1030,6 +1040,16 @@ export default {
       { title: 'Actions', key: 'actions', sortable: false, width: '200px' }
     ]
 
+    const pricingTableHeaders = [
+      { title: 'Rule Name', key: 'name', sortable: true },
+      { title: 'Price/Hour', key: 'price_per_hour', sortable: true, width: '130px' },
+      { title: 'Time Range', key: 'time_range', sortable: false, width: '150px' },
+      { title: 'Days', key: 'days_of_week', sortable: false, width: '200px' },
+      { title: 'Priority', key: 'priority', sortable: true, width: '100px' },
+      { title: 'Status', key: 'status', sortable: false, width: '150px' },
+      { title: 'Actions', key: 'actions', sortable: false, width: '120px' }
+    ]
+
     const commonSportIcons = {
       'Basketball': 'mdi-basketball',
       'Badminton': 'mdi-badminton',
@@ -1356,6 +1376,7 @@ export default {
       formData,
       snackbar,
       headers,
+      pricingTableHeaders,
       commonSportIcons,
       sportToDelete,
       fetchSports,
