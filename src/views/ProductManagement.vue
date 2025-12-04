@@ -253,6 +253,9 @@
                   label="Stock Quantity"
                   type="number"
                   variant="outlined"
+                  :disabled="!isAdmin"
+                  :hint="isAdmin ? '' : 'Only administrators can set initial stock quantity'"
+                  persistent-hint
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
@@ -318,6 +321,8 @@
             label="New Stock Quantity"
             type="number"
             variant="outlined"
+            :disabled="!isAdmin"
+            :placeholder="isAdmin ? 'Enter new quantity' : 'Admin only'"
           ></v-text-field>
           <v-textarea
             v-model="stockForm.notes"
@@ -414,6 +419,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { productService } from '../services/productService'
 import { formatPrice } from '../utils/formatters'
+import { authService } from '../services/authService'
 
 export default {
   name: 'ProductManagement',
@@ -450,8 +456,13 @@ export default {
     const productImage = ref(null)
     const stockForm = ref({ quantity: 0, notes: '' })
     const newCategory = ref({ name: '' })
+    const userRole = ref(null) // To store user role
 
     const snackbar = ref({ show: false, message: '', color: 'success' })
+
+    const isAdmin = computed(() => {
+      return userRole.value === 'admin'
+    })
 
     // Image validation rules
     const imageRules = [
@@ -557,6 +568,15 @@ export default {
         categories.value = await productService.getCategories(false, false)
       } catch (error) {
         console.error('Failed to load categories:', error)
+      }
+    }
+
+    const loadUserRole = async () => {
+      try {
+        userRole.value = await authService.getUserRole()
+      } catch (error) {
+        console.error('Failed to load user role:', error)
+        userRole.value = 'user'
       }
     }
 
@@ -765,6 +785,7 @@ export default {
     onMounted(() => {
       loadProducts()
       loadCategories()
+      loadUserRole() // Call loadUserRole on mount
     })
 
     return {
@@ -806,7 +827,8 @@ export default {
       deleteCategory,
       getProductImageUrl,
       openImageViewer,
-      formatPrice
+      formatPrice,
+      isAdmin
     }
   }
 }
