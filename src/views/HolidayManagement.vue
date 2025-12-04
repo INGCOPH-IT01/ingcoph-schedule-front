@@ -90,6 +90,15 @@
                     >
                       Recurring
                     </v-chip>
+                    <v-chip
+                      v-if="holiday.no_business_operations"
+                      size="x-small"
+                      color="error"
+                      variant="flat"
+                      class="ml-2"
+                    >
+                      No Operations
+                    </v-chip>
                   </v-list-item-subtitle>
 
                   <v-list-item-subtitle v-if="holiday.description" class="mt-1">
@@ -163,6 +172,17 @@
             <v-alert v-if="formData.is_recurring" type="info" variant="tonal" density="compact">
               This holiday will automatically apply to the same date every year
             </v-alert>
+
+            <v-checkbox
+              v-model="formData.no_business_operations"
+              label="No Business Operations"
+              color="error"
+              class="mt-2"
+            ></v-checkbox>
+
+            <v-alert v-if="formData.no_business_operations" type="warning" variant="tonal" density="compact">
+              The business will be completely closed on this date with no operations
+            </v-alert>
           </v-form>
 
           <v-alert v-if="errorMessage" type="error" variant="tonal" class="mt-4">
@@ -232,7 +252,8 @@ const formData = ref({
   name: '',
   date: '',
   description: '',
-  is_recurring: false
+  is_recurring: false,
+  no_business_operations: false
 })
 
 // Load holidays
@@ -266,7 +287,8 @@ const openCreateDialog = () => {
     name: '',
     date: '',
     description: '',
-    is_recurring: false
+    is_recurring: false,
+    no_business_operations: false
   }
   errorMessage.value = ''
   dialogOpen.value = true
@@ -279,7 +301,8 @@ const openEditDialog = (holiday) => {
     name: holiday.name,
     date: holiday.date,
     description: holiday.description || '',
-    is_recurring: holiday.is_recurring
+    is_recurring: holiday.is_recurring,
+    no_business_operations: holiday.no_business_operations || false
   }
   errorMessage.value = ''
   dialogOpen.value = true
@@ -293,7 +316,8 @@ const closeDialog = () => {
     name: '',
     date: '',
     description: '',
-    is_recurring: false
+    is_recurring: false,
+    no_business_operations: false
   }
   errorMessage.value = ''
 }
