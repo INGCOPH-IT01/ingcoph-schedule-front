@@ -1036,6 +1036,7 @@ import { paymentSettingService } from '../services/paymentSettingService'
 import { companySettingService } from '../services/companySettingService'
 import { authService } from '../services/authService'
 import { productService } from '../services/productService'
+import { holidayService } from '../services/holidayService'
 import { formatTime, formatDateLong, formatPrice } from '../utils/formatters'
 import api from '../services/api'
 import Swal from 'sweetalert2'
@@ -1141,6 +1142,9 @@ export default {
     // Blocked dates
     const blockedBookingDates = ref([])
     const selectedDateBlockInfo = ref({ isBlocked: false, reason: '' })
+
+    // Holidays
+    const holidays = ref([])
 
     // Terms and Conditions
     const termsEnabled = ref(false)
@@ -2898,7 +2902,12 @@ export default {
     const isDateAllowed = (dateString) => {
       if (!dateString) return true
 
-      // Admin and staff can always select any date
+      // Check if date has no business operations (applies to all users including admin/staff)
+      if (holidayService.hasNoBusinessOperations(dateString, holidays.value)) {
+        return false
+      }
+
+      // Admin and staff can select any other date (except no business operations dates)
       if (isAdminOrStaff.value) {
         return true
       }
@@ -2955,6 +2964,17 @@ export default {
       } else {
         selectedDate.value = value
       }
+
+      // Check if selected date has no business operations
+      if (selectedDate.value && holidayService.hasNoBusinessOperations(selectedDate.value, holidays.value)) {
+        selectedDateBlockInfo.value = {
+          isBlocked: true,
+          reason: 'This date is a holiday with no business operations. The facility is closed on this date.'
+        }
+      } else {
+        selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
+      }
+
       dateMenu.value = false
       loadTimeSlotsForAllCourts()
     }
@@ -2966,6 +2986,16 @@ export default {
         blockedBookingDates.value = settings.blocked_booking_dates || []
       } catch (error) {
         // Silent fail
+      }
+    }
+
+    // Fetch holidays from server
+    const fetchHolidays = async () => {
+      try {
+        holidays.value = await holidayService.getHolidays()
+      } catch (error) {
+        console.error('Failed to load holidays:', error)
+        holidays.value = []
       }
     }
 
@@ -2981,6 +3011,7 @@ export default {
     const handleCompanySettingsUpdated = async () => {
       await reloadBlockedDates()  // Reload the blocked dates array
       await fetchWaitlistConfig()
+      await fetchHolidays()  // Reload holidays
       await recheckBlockedDates()  // Re-validate current date
     }
 
@@ -3060,6 +3091,7 @@ export default {
         await fetchSports()
         await fetchCourts()
         await fetchCurrentUser()
+        await fetchHolidays()
 
         // Only fetch users if the current user is admin or staff
         if (isAdminOrStaff.value) {
@@ -3106,6 +3138,7 @@ export default {
         await fetchSports()
         await fetchCourts()
         await fetchCurrentUser()
+        await fetchHolidays()
 
         // Only fetch users if the current user is admin or staff
         if (isAdminOrStaff.value) {
