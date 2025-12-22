@@ -367,7 +367,20 @@
                   variant="outlined"
                   density="compact"
                   class="mb-2"
+                  :error="isSelectedDateHoliday"
+                  :error-messages="isSelectedDateHoliday ? 'This date is a holiday with no business operations' : ''"
                 ></v-text-field>
+                <v-alert
+                  v-if="isSelectedDateHoliday"
+                  type="warning"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-2"
+                >
+                  <div class="text-caption">
+                    <strong>Warning:</strong> The selected date is a holiday with no business operations. Please choose a different date.
+                  </div>
+                </v-alert>
                 <v-row class="mb-2">
                   <v-col cols="6">
                     <v-text-field
@@ -397,7 +410,7 @@
                     variant="tonal"
                     @click="saveCartItemDateTimeChange(item)"
                     :loading="savingDateTime"
-                    :disabled="!dateTimeChanged"
+                    :disabled="!dateTimeChanged || isSelectedDateHoliday"
                   >
                     Save
                   </v-btn>
@@ -1604,6 +1617,7 @@ import { statusService } from '../services/statusService'
 import { authService } from '../services/authService'
 import { paymentSettingService } from '../services/paymentSettingService'
 import { companySettingService } from '../services/companySettingService'
+import { holidayService } from '../services/holidayService'
 import {
   formatTimeSlot,
   formatPriceValue,
@@ -1740,6 +1754,10 @@ export default {
     // Reschedule window state
     const rescheduleWindowHours = ref(24)
 
+    // Holiday state
+    const holidays = ref([])
+    const loadingHolidays = ref(false)
+
     // Load payment settings
     const loadPaymentSettings = async () => {
       try {
@@ -1761,6 +1779,20 @@ export default {
       } catch (error) {
         // Silent error handling, use default
         rescheduleWindowHours.value = 24
+      }
+    }
+
+    // Load holidays
+    const loadHolidays = async () => {
+      try {
+        loadingHolidays.value = true
+        const holidaysList = await holidayService.getHolidays()
+        holidays.value = holidaysList
+      } catch (error) {
+        // Silent error handling
+        holidays.value = []
+      } finally {
+        loadingHolidays.value = false
       }
     }
 
@@ -2609,6 +2641,12 @@ export default {
              selectedEndTime.value !== originalEndTime.value
     })
 
+    // Computed property to check if selected date is a holiday with no business operations
+    const isSelectedDateHoliday = computed(() => {
+      if (!selectedBookingDate.value) return false
+      return holidayService.hasNoBusinessOperations(selectedBookingDate.value, holidays.value)
+    })
+
     // Date/Time editing methods
     const startCartItemDateTimeEdit = (item) => {
       // Set current values from cart item
@@ -2647,6 +2685,12 @@ export default {
     const saveCartItemDateTimeChange = async (item) => {
       if (!selectedBookingDate.value || !selectedStartTime.value || !selectedEndTime.value) {
         showSnackbar('Please fill in all date and time fields', 'error')
+        return
+      }
+
+      // Check if the selected date is a holiday with no business operations
+      if (holidayService.hasNoBusinessOperations(selectedBookingDate.value, holidays.value)) {
+        showSnackbar('Cannot book on this date: It is a holiday with no business operations', 'error')
         return
       }
 
@@ -3269,6 +3313,9 @@ export default {
           // Load company settings for reschedule window
           loadCompanySettings()
 
+          // Load holidays for date validation
+          loadHolidays()
+
           // Load waitlist entries (for all users to see who's waiting)
           loadWaitlistEntries()
 
@@ -3370,6 +3417,10 @@ export default {
       savingAdminNotes,
       // Reschedule window state
       rescheduleWindowHours,
+      // Holiday state
+      holidays,
+      loadingHolidays,
+      isSelectedDateHoliday,
       // Methods
       closeDialog,
       canEditCartItem,
