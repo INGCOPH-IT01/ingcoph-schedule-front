@@ -70,18 +70,63 @@ export const cartService = {
   },
 
   /**
-   * Get all cart transactions (Admin only)
-   * @param {Object} filters - Optional filters (date_from, date_to, sort_by, sort_order)
+   * Get all cart transactions (Admin only) - Optimized with server-side filtering
+   * @param {Object} filters - Optional filters
+   * @param {string} filters.date_from - Start date for filtering
+   * @param {string} filters.date_to - End date for filtering
+   * @param {string} filters.sort_by - Field to sort by (id, created_at, total_price, booking_date)
+   * @param {string} filters.sort_order - Sort order (asc, desc)
+   * @param {Array<string>} filters.approval_status - Filter by approval status
+   * @param {Array<string>} filters.payment_status - Filter by payment status
+   * @param {string} filters.sport - Filter by sport name
+   * @param {string} filters.user_search - Search users by name, email, or admin notes
+   * @param {number} filters.page - Page number for pagination
+   * @param {number} filters.per_page - Items per page (default 50, max 100)
    */
   async getAllTransactions(filters = {}) {
     const params = {}
+
+    // Date range filters
     if (filters.date_from) params.date_from = filters.date_from
     if (filters.date_to) params.date_to = filters.date_to
+
+    // Sorting
     if (filters.sort_by) params.sort_by = filters.sort_by
     if (filters.sort_order) params.sort_order = filters.sort_order
 
+    // Server-side filtering
+    if (filters.approval_status && filters.approval_status.length > 0) {
+      params.approval_status = filters.approval_status.join(',')
+    }
+
+    if (filters.payment_status && filters.payment_status.length > 0) {
+      params.payment_status = filters.payment_status.join(',')
+    }
+
+    if (filters.sport && filters.sport !== 'All Sports') {
+      params.sport = filters.sport
+    }
+
+    if (filters.user_search && filters.user_search.trim() !== '') {
+      params.user_search = filters.user_search.trim()
+    }
+
+    // Pagination
+    if (filters.page) params.page = filters.page
+    if (filters.per_page) params.per_page = Math.min(filters.per_page, 100)
+
     const response = await api.get('/admin/cart-transactions', { params })
-    // API Resources wrap data in a 'data' property
+
+    // Handle paginated response
+    if (response.data.pagination) {
+      return {
+        data: response.data.data || [],
+        pagination: response.data.pagination,
+        summary: response.data.summary
+      }
+    }
+
+    // Handle non-paginated response (backward compatibility)
     return response.data.data || response.data
   },
 
