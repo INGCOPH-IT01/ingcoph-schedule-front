@@ -104,7 +104,7 @@
           <div class="stat-glow"></div>
         </div>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isAdmin" cols="12" sm="6" md="3">
         <div class="stat-card stat-card-6">
           <div class="stat-icon">
             <v-icon color="warning" size="48">mdi-cash-multiple</v-icon>
@@ -120,7 +120,7 @@
           <div class="stat-glow"></div>
         </div>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isAdmin" cols="12" sm="6" md="3">
         <div class="stat-card stat-card-7">
           <div class="stat-icon">
             <v-icon color="purple" size="48">mdi-cash-register</v-icon>
@@ -136,7 +136,7 @@
           <div class="stat-glow"></div>
         </div>
       </v-col>
-      <v-col cols="12" sm="6" md="3">
+      <v-col v-if="isAdmin" cols="12" sm="6" md="3">
         <div class="stat-card stat-card-8">
           <div class="stat-icon">
             <v-icon color="success" size="48">mdi-receipt-text</v-icon>
@@ -629,6 +629,7 @@
 <script>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { authService } from '../services/authService'
 import { bookingService } from '../services/bookingService'
 import { cartService } from '../services/cartService'
 import { courtService } from '../services/courtService'
@@ -673,6 +674,8 @@ export default {
     const detailsDialog = ref(false)
     const selectedBooking = ref(null)
     const sports = ref([])
+    const currentUser = ref(null)
+    const isAdmin = ref(false)
 
     const snackbar = ref({
       show: false,
@@ -731,6 +734,11 @@ export default {
     }
 
     const loadPosStats = async () => {
+      // Only load POS stats for admin users
+      if (!isAdmin.value) {
+        return
+      }
+
       try {
         posStats.value = await posService.getStatistics()
       } catch (error) {
@@ -750,44 +758,61 @@ export default {
     const loadPendingBookings = async () => {
       try {
         loading.value = true
-        // Prepare filters for backend
-        const filters = {}
-        if (dateFromFilter.value) {
-          filters.date_from = dateFromFilter.value
-        }
-        if (dateToFilter.value) {
-          filters.date_to = dateToFilter.value
+
+        // Prepare optimized filters for server-side filtering
+        const filters = {
+          sort_by: sortBy.value,
+          sort_order: sortOrder.value
         }
 
-        // Add sorting parameters
-        if (sortBy.value) {
-          filters.sort_by = sortBy.value
-        }
-        if (sortOrder.value) {
-          filters.sort_order = sortOrder.value
+        // Date filters - only if in table view (calendar handles its own range)
+        if (viewMode.value === 'table') {
+          if (dateFromFilter.value) {
+            filters.date_from = dateFromFilter.value
+          }
+          if (dateToFilter.value) {
+            filters.date_to = dateToFilter.value
+          }
+        } else {
+          // Calendar view: use calendar's month range
+          if (dateFromFilter.value) {
+            filters.date_from = dateFromFilter.value
+          }
+          if (dateToFilter.value) {
+            filters.date_to = dateToFilter.value
+          }
         }
 
-        // Fetch all cart transactions with date filters and sorting
-        const transactions = await cartService.getAllTransactions(filters)
+        // Server-side filters
+        if (statusFilter.value.length > 0) {
+          filters.approval_status = statusFilter.value
+        }
 
-        // Filter out incomplete transactions (cart items that haven't been checked out yet)
-        // Only show transactions that have completed checkout with proof of payment
+        if (paymentStatusFilter.value.length > 0) {
+          filters.payment_status = paymentStatusFilter.value
+        }
+
+        if (sportFilter.value && sportFilter.value !== 'All Sports') {
+          filters.sport = sportFilter.value
+        }
+
+        if (userFilter.value && userFilter.value.trim() !== '') {
+          filters.user_search = userFilter.value.trim()
+        }
+
+        // Fetch filtered transactions from backend
+        const result = await cartService.getAllTransactions(filters)
+
+        // Handle paginated or non-paginated response
+        const transactions = Array.isArray(result) ? result : (result.data || [])
+
+        // Filter out incomplete transactions (minimal client-side filtering)
         const completedTransactions = transactions.filter(transaction => {
-          // Check if this is a completed transaction (has gone through checkout)
-          // A transaction is considered complete if:
-          // 1. It has a payment_method set AND proof_of_payment (regular user checkout)
-          // 2. OR it's an admin/staff booking that may have skipped payment (has payment_method as 'pending')
-          // 3. OR it's a waitlist booking (waitlist transactions are created without immediate payment)
-
           const hasPaymentMethod = transaction.payment_method && transaction.payment_method.trim() !== ''
           const hasProofOfPayment = transaction.proof_of_payment && transaction.proof_of_payment.trim() !== ''
           const isAdminBooking = transaction.user?.role === 'admin' || transaction.user?.role === 'staff'
           const isPendingPayment = transaction.payment_method === 'pending'
 
-          // Show transaction if:
-          // - Has both payment method and proof (regular checkout completed)
-          // - OR is admin/staff booking with pending payment (admin skip payment)
-          // - OR is waitlist booking (approval_status indicates waitlist)
           return (hasPaymentMethod && hasProofOfPayment) ||
                  (isAdminBooking && isPendingPayment) ||
                  (hasPaymentMethod && (transaction.approval_status === 'pending_waitlist' ||
@@ -795,15 +820,14 @@ export default {
                                        transaction.approval_status === 'rejected'))
         })
 
+        // Map transactions with minimal processing
         pendingBookings.value = completedTransactions.map(transaction => ({
           ...transaction,
           approving: false,
           user_name: transaction.user?.name || 'N/A',
-          // Get first court name from cart items
           court_name: transaction.cart_items?.[0]?.court?.name || 'Multiple Courts',
           total_price: parseFloat(transaction.total_price) || 0,
           payment_status: transaction.payment_status,
-          // Add transaction-specific fields
           isTransaction: true,
           transaction_id: transaction.id,
           items_count: transaction.cart_items?.length || 0
@@ -838,13 +862,28 @@ export default {
         await cartService.approveTransaction(bookingId)
         showSnackbar('Transaction approved successfully', 'success')
 
+        // Optimized refresh: Only update the specific transaction instead of reloading all
+        const updatedTransaction = {
+          ...transaction,
+          approval_status: 'approved',
+          approved_at: new Date().toISOString()
+        }
+        const index = pendingBookings.value.findIndex(b => b.id === bookingId)
+        if (index !== -1) {
+          pendingBookings.value[index] = updatedTransaction
+        }
+
+        // Load stats separately (lightweight operation)
+        loadStats()
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
 
-        await loadPendingBookings()
-        await loadStats()
       } catch (error) {
         showSnackbar('Failed to approve booking', 'error')
+        // On error, reload the full data
+        await loadPendingBookings()
+        await loadStats()
       } finally {
         const booking = pendingBookings.value.find(b => b.id === bookingId)
         if (booking) booking.approving = false
@@ -865,13 +904,29 @@ export default {
         showSnackbar('Transaction rejected successfully', 'success')
         rejectDialog.value = false
 
+        // Optimized refresh: Only update the specific transaction instead of reloading all
+        const index = pendingBookings.value.findIndex(b => b.id === selectedBookingId.value)
+        if (index !== -1) {
+          const updatedTransaction = {
+            ...pendingBookings.value[index],
+            approval_status: 'rejected',
+            rejection_reason: rejectReason.value,
+            approved_at: new Date().toISOString()
+          }
+          pendingBookings.value[index] = updatedTransaction
+        }
+
+        // Load stats separately (lightweight operation)
+        loadStats()
+
         // Dispatch event to refresh other components
         window.dispatchEvent(new CustomEvent('booking-updated'))
 
-        await loadPendingBookings()
-        await loadStats()
       } catch (error) {
         showSnackbar('Failed to reject transaction', 'error')
+        // On error, reload the full data
+        await loadPendingBookings()
+        await loadStats()
       } finally {
         rejecting.value = false
       }
@@ -1157,14 +1212,13 @@ export default {
     }
 
     const handleAttendanceUpdated = async ({ bookingId, status }) => {
-      // Update the transaction in the list
+      // Optimized refresh: Update the transaction in the list directly
       const transaction = pendingBookings.value.find(b => b.id === bookingId)
       if (transaction) {
         transaction.attendance_status = status
       }
 
-      // Reload data to ensure we have the latest information (including POS updates)
-      await loadPendingBookings()
+      // Only reload stats, not the full booking list
       await loadStats()
       await loadPosStats()
 
@@ -1244,86 +1298,22 @@ export default {
       return pendingBookings.value.filter(t => t.approval_status === 'rejected').length
     })
 
-    // Computed property for filtered transactions
+    // Computed property for filtered transactions - Optimized (most filtering now done server-side)
     const filteredTransactions = computed(() => {
+      // Since most filtering is now done server-side, we only need minimal client-side filtering
+      // This is mainly for special cases that are difficult to handle server-side
+
       let filtered = pendingBookings.value
 
-      // Filter by approval status - multiple selection
-      if (statusFilter.value.length > 0) {
+      // Special handling for 'pending_waitlist' filter on client side
+      // This ensures we show transactions with waitlist entries correctly
+      if (statusFilter.value.includes('pending_waitlist')) {
         filtered = filtered.filter(transaction => {
-          const status = transaction.approval_status || 'pending'
-
-          // Special handling for 'pending_waitlist' filter
-          // This should show all parent bookings that have a waitlist queue
-          // BUT exclude approved parent bookings
-          if (statusFilter.value.includes('pending_waitlist')) {
-            const hasWaitlistQueue = transaction.waitlist_entries && transaction.waitlist_entries.length > 0
-            const isNotApproved = status !== 'approved'
-            if (hasWaitlistQueue && isNotApproved) {
-              return true
-            }
-          }
-
-          return statusFilter.value.includes(status)
+          const hasWaitlistQueue = transaction.waitlist_entries && transaction.waitlist_entries.length > 0
+          const isNotApproved = transaction.approval_status !== 'approved'
+          return hasWaitlistQueue && isNotApproved
         })
       }
-
-      // Filter by user (name or email)
-      // Searches in THREE places:
-      // 1. User who created the booking (transaction.user) - for regular user bookings
-      // 2. "Booking For" user (booking_for_user) - for admin-created bookings
-      // 3. Admin Notes - to find bookings with specific notes
-      if (userFilter.value && userFilter.value.trim() !== '') {
-        const searchTerm = userFilter.value.toLowerCase().trim()
-        filtered = filtered.filter(transaction => {
-          // Search in the transaction creator (who made the booking)
-          const userName = transaction.user?.name?.toLowerCase() || ''
-          const userEmail = transaction.user?.email?.toLowerCase() || ''
-
-          // Search in all "booking for" user fields (for admin-created bookings)
-          const hasMatchInBookingFor = transaction.cart_items?.some(item => {
-            const bookingForUserName = item.booking_for_user_name?.toLowerCase() || ''
-            const bookingForUserEmail = item.booking_for_user?.email?.toLowerCase() || ''
-            return bookingForUserName.includes(searchTerm) ||
-                   bookingForUserEmail.includes(searchTerm)
-          }) || false
-
-          // Search in admin notes
-          const hasMatchInAdminNotes = transaction.cart_items?.some(item => {
-            const adminNotes = item.admin_notes?.toLowerCase() || ''
-            return adminNotes.includes(searchTerm)
-          }) || false
-
-          return userName.includes(searchTerm) ||
-                 userEmail.includes(searchTerm) ||
-                 hasMatchInBookingFor ||
-                 hasMatchInAdminNotes
-        })
-      }
-
-      // Filter by sport
-      if (sportFilter.value && sportFilter.value !== 'All Sports') {
-        filtered = filtered.filter(transaction => {
-          if (!transaction.cart_items || transaction.cart_items.length === 0) {
-            return false
-          }
-          // Check if any cart item has the selected sport
-          return transaction.cart_items.some(item =>
-            item.court?.sport?.name === sportFilter.value
-          )
-        })
-      }
-
-      // Filter by payment status
-      if (paymentStatusFilter.value.length > 0) {
-        filtered = filtered.filter(transaction => {
-          const paymentStatus = getBookingPaymentStatus(transaction)
-          return paymentStatusFilter.value.includes(paymentStatus)
-        })
-      }
-
-      // Note: Date range filtering is now handled by the backend API
-      // when loadPendingBookings() is called
 
       return filtered
     })
@@ -1409,11 +1399,15 @@ export default {
       return 'mdi-account-tie'
     }
 
-    // Listen for booking refresh events
+    // Listen for booking refresh events - Use selective refresh
     const handleBookingRefresh = () => {
-      loadStats()
-      loadPosStats()
-      loadPendingBookings()
+      // Only reload stats if not actively loading bookings
+      if (!loading.value) {
+        loadStats()
+        loadPosStats()
+      }
+      // Don't automatically reload bookings - let user manually refresh if needed
+      // This prevents disrupting their current view/filters
     }
 
     // Handle calendar month changes to update date filters
@@ -1466,6 +1460,40 @@ export default {
       }
     })
 
+    // Watch filters and trigger server-side reload when they change
+    let filterDebounceTimeout = null
+    watch([statusFilter, paymentStatusFilter, sportFilter], () => {
+      // Only react to changes after the component has mounted
+      if (!isMounted.value) return
+
+      // Clear existing timeout
+      if (filterDebounceTimeout) {
+        clearTimeout(filterDebounceTimeout)
+      }
+
+      // Debounce the reload to avoid rapid API calls
+      filterDebounceTimeout = setTimeout(() => {
+        loadPendingBookings()
+      }, 300) // 300ms debounce
+    })
+
+    // Watch user filter with longer debounce (for text input)
+    let userFilterTimeout = null
+    watch(userFilter, () => {
+      // Only react to changes after the component has mounted
+      if (!isMounted.value) return
+
+      // Clear existing timeout
+      if (userFilterTimeout) {
+        clearTimeout(userFilterTimeout)
+      }
+
+      // Debounce the reload to avoid rapid API calls during typing
+      userFilterTimeout = setTimeout(() => {
+        loadPendingBookings()
+      }, 500) // 500ms debounce for text input
+    })
+
     // Watch date filters and reload data when they change (with debounce)
     let dateFilterTimeout = null
     watch([dateFromFilter, dateToFilter], ([newDateFrom, newDateTo]) => {
@@ -1498,7 +1526,16 @@ export default {
       }, 500) // Wait 500ms after the last change
     })
 
-    onMounted(() => {
+    onMounted(async () => {
+      // Get current user and check if admin
+      try {
+        currentUser.value = await authService.getCurrentUser()
+        isAdmin.value = currentUser.value?.role === 'admin'
+      } catch (error) {
+        console.error('Failed to get current user:', error)
+        isAdmin.value = false
+      }
+
       // Check URL params for date filters (to restore state on page reload)
       const urlParams = new URLSearchParams(window.location.search)
       if (urlParams.has('date_from')) {
@@ -1509,7 +1546,7 @@ export default {
       }
 
       loadStats()
-      loadPosStats()
+      loadPosStats() // Will only load if user is admin
       loadSports()
       loadPendingBookings()
 
@@ -1526,9 +1563,15 @@ export default {
     })
 
     onUnmounted(() => {
-      // Clean up timeout
+      // Clean up timeouts
       if (dateFilterTimeout) {
         clearTimeout(dateFilterTimeout)
+      }
+      if (filterDebounceTimeout) {
+        clearTimeout(filterDebounceTimeout)
+      }
+      if (userFilterTimeout) {
+        clearTimeout(userFilterTimeout)
       }
 
       // Clean up event listeners
@@ -1605,7 +1648,9 @@ export default {
       // View mode
       viewMode,
       // Calendar handlers
-      handleCalendarMonthChanged
+      handleCalendarMonthChanged,
+      // Role-based access
+      isAdmin
     }
   }
 }

@@ -16,8 +16,8 @@
     </div>
 
     <!-- Stats Cards -->
-    <v-row class="mb-6">
-      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4">
+    <v-row v-if="isAdmin" class="mb-6">
+      <v-col cols="12" sm="6" md="3">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -30,7 +30,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4">
+      <v-col cols="12" sm="6" md="3">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -43,7 +43,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4" v-if="isAdmin">
+      <v-col cols="12" sm="6" md="3">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
@@ -56,7 +56,7 @@
           </v-card-text>
         </v-card>
       </v-col>
-      <v-col cols="12" sm="6" :md="isAdmin ? 3 : 4">
+      <v-col cols="12" sm="6" md="3">
         <v-card>
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
