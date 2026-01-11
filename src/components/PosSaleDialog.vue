@@ -73,6 +73,7 @@
               <th>Product</th>
               <th class="text-center">Quantity</th>
               <th class="text-right">Unit Price</th>
+              <th v-if="isAdmin" class="text-right">Unit Cost</th>
               <th class="text-right">Discount</th>
               <th class="text-right">Subtotal</th>
             </tr>
@@ -93,6 +94,7 @@
               </td>
               <td class="text-center">{{ item.quantity }}</td>
               <td class="text-right">{{ formatPrice(item.unit_price) }}</td>
+              <td v-if="isAdmin" class="text-right text-grey">{{ formatPrice(item.unit_cost || 0) }}</td>
               <td class="text-right">{{ formatPrice(item.discount) }}</td>
               <td class="text-right font-weight-bold">{{ formatPrice(item.subtotal) }}</td>
             </tr>
