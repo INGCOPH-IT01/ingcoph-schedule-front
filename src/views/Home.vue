@@ -840,9 +840,9 @@ export default {
     }
 
     const showAutoPopup = (promotion) => {
-      // Record the time this promotion was shown
+      // Record the time this promotion was shown (use local timestamp without UTC conversion)
       const storageKey = `promotion_popup_${promotion.id}`
-      localStorage.setItem(storageKey, new Date().toISOString())
+      localStorage.setItem(storageKey, Date.now().toString())
 
       // Small delay for better UX (let page load first)
       setTimeout(() => {

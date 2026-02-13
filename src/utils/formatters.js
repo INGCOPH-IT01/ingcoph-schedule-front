@@ -413,6 +413,14 @@ export function formatDateToLocal(date) {
 }
 
 /**
+ * Get today's date as YYYY-MM-DD string in local timezone
+ * @returns {string} Today's date in YYYY-MM-DD format
+ */
+export function getTodayDateString() {
+  return formatDateToLocal(new Date())
+}
+
+/**
  * Format relative time (e.g., "5 mins ago", "2 hours ago")
  * @param {string} dateTime - DateTime string
  * @returns {string} Relative time string
@@ -872,6 +880,7 @@ export const formatters = {
 
   // Date
   formatDateLocal,
+  getTodayDateString,
   formatBookingDate,
   formatDateLong,
   formatDate,

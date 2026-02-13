@@ -499,10 +499,13 @@ import { cartService } from '../services/cartService'
 import {
   formatPrice,
   formatDate,
+  formatDateToLocal,
   getPaymentStatusColor,
   getPaymentStatusText,
   getApprovalStatusColor,
-  formatApprovalStatus
+  formatApprovalStatus,
+  getBookingDate,
+  formatBookingDate
 } from '../utils/formatters'
 import PosCart from '../components/PosCart.vue'
 import PosSaleDialog from '../components/PosSaleDialog.vue'
@@ -641,9 +644,10 @@ export default {
           filters.date_from = bookingSearch.value.date
           filters.date_to = bookingSearch.value.date
         } else {
-          // Default to last 30 days if no date specified
-          filters.date_from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          filters.date_to = new Date().toISOString().split('T')[0]
+          // Default to last 30 days if no date specified (use local timezone)
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          filters.date_from = formatDateToLocal(thirtyDaysAgo)
+          filters.date_to = formatDateToLocal(new Date())
         }
 
         // Add user name filter if provided

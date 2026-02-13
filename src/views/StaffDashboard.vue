@@ -334,6 +334,7 @@ import { ref, computed, onMounted } from 'vue'
 import { bookingService } from '../services/bookingService'
 import { courtService } from '../services/courtService'
 import { statusService } from '../services/statusService'
+import { formatDateToLocal } from '../utils/formatters'
 import QrCodeScanner from '../components/QrCodeScanner.vue'
 import QrCodeDisplay from '../components/QrCodeDisplay.vue'
 import CourtImageGallery from '../components/CourtImageGallery.vue'
@@ -364,16 +365,15 @@ export default {
       color: 'success'
     })
 
-    // Get today and tomorrow dates in YYYY-MM-DD format
+    // Get today and tomorrow dates in YYYY-MM-DD format (local timezone, no UTC)
     const getTodayDate = () => {
-      const today = new Date()
-      return today.toISOString().split('T')[0]
+      return formatDateToLocal(new Date())
     }
 
     const getTomorrowDate = () => {
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      return tomorrow.toISOString().split('T')[0]
+      return formatDateToLocal(tomorrow)
     }
 
     // Filters
