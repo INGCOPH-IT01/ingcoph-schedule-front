@@ -1,5 +1,8 @@
 <template>
   <div class="sports-home">
+    <!-- Banner Carousel -->
+    <BannerCarousel />
+
     <!-- Dashboard Announcement Banner -->
     <v-alert
       v-if="dashboardSettings.announcement && dashboardSettings.announcement.trim()"
@@ -69,6 +72,62 @@
                 <div class="stat-item">
                   <div class="stat-number">Instant</div>
                   <div class="stat-label">Booking</div>
+                </div>
+              </div>
+
+              <!-- Compact Promotion Banner -->
+              <div v-if="promotions.length > 0 && !promotionBannerDismissed" class="promotion-banner-compact">
+                <!-- <v-btn
+                  icon
+                  size="x-small"
+                  variant="text"
+                  class="promotion-banner-close"
+                  @click="dismissPromotionBanner"
+                >
+                  <v-icon color="white">mdi-close</v-icon>
+                </v-btn> -->
+
+                <div class="promotion-banner-content" @click="openPromotionDialog(promotions[currentPromotionIndex])">
+                  <div class="promotion-banner-left">
+                    <v-icon color="white" size="24" class="mr-3">mdi-tag-multiple</v-icon>
+                    <div class="promotion-banner-thumbnail" v-if="promotions[currentPromotionIndex].media && promotions[currentPromotionIndex].media.length > 0">
+                      <v-img
+                        :src="getPromotionMediaUrl(promotions[currentPromotionIndex].media[0])"
+                        height="50"
+                        width="50"
+                        cover
+                        class="promotion-banner-image"
+                      />
+                    </div>
+                    <div class="promotion-banner-text">
+                      <div class="promotion-banner-title">{{ promotions[currentPromotionIndex].title }}</div>
+                      <div class="promotion-banner-subtitle">
+                        <span v-if="promotions.length > 1">{{ currentPromotionIndex + 1 }} of {{ promotions.length }} offers</span>
+                        <span v-else>Special Offer</span>
+                        • Click to view details
+                      </div>
+                    </div>
+                  </div>
+                  <v-btn
+                    size="small"
+                    variant="flat"
+                    color="white"
+                    class="promotion-banner-btn"
+                    @click.stop="openPromotionDialog(promotions[currentPromotionIndex])"
+                  >
+                    View Details
+                  </v-btn>
+                </div>
+
+                <!-- Navigation dots for multiple promotions -->
+                <div v-if="promotions.length > 1" class="promotion-banner-dots">
+                  <div
+                    v-for="(promo, index) in promotions"
+                    :key="promo.id"
+                    class="promotion-banner-dot"
+                    :class="{ active: index === currentPromotionIndex }"
+                    @click="currentPromotionIndex = index"
+                  ></div>
                 </div>
               </div>
 
@@ -257,6 +316,98 @@
       </v-container>
     </section>
 
+    <!-- Special Offers Section (Full Display) -->
+    <section v-if="promotions.length > 0" class="promotions-section">
+      <v-container class="py-16">
+        <v-row>
+          <v-col cols="12" class="text-center mb-12">
+            <div class="section-badge">
+              <v-icon color="primary" size="20" class="mr-2">mdi-tag-multiple</v-icon>
+              Current Promotions
+            </div>
+            <h2 class="section-title">
+              <span class="title-gradient">Special</span> Offers
+            </h2>
+            <p class="section-subtitle">
+              Check out our latest deals and promotions
+            </p>
+          </v-col>
+        </v-row>
+
+        <v-row>
+          <v-col
+            v-for="(promotion, index) in promotions"
+            :key="promotion.id"
+            cols="12"
+            md="6"
+            lg="4"
+          >
+            <div
+              class="promotion-card-full"
+              :style="{ animationDelay: `${index * 0.1}s` }"
+              @click="openPromotionDialog(promotion)"
+              role="button"
+              tabindex="0"
+            >
+              <div v-if="promotion.media && promotion.media.length > 0" class="promotion-media">
+                <v-carousel
+                  v-if="promotion.media.length > 1"
+                  height="250"
+                  hide-delimiters
+                  show-arrows="hover"
+                >
+                  <v-carousel-item
+                    v-for="(media, mediaIndex) in promotion.media"
+                    :key="mediaIndex"
+                  >
+                    <v-img
+                      v-if="isPromotionImage(media)"
+                      :src="getPromotionMediaUrl(media)"
+                      height="250"
+                      cover
+                    />
+                    <video
+                      v-else
+                      :src="getPromotionMediaUrl(media)"
+                      controls
+                      style="width: 100%; height: 250px; object-fit: cover;"
+                    />
+                  </v-carousel-item>
+                </v-carousel>
+                <template v-else>
+                  <v-img
+                    v-if="isPromotionImage(promotion.media[0])"
+                    :src="getPromotionMediaUrl(promotion.media[0])"
+                    height="250"
+                    cover
+                  />
+                  <video
+                    v-else
+                    :src="getPromotionMediaUrl(promotion.media[0])"
+                    controls
+                    style="width: 100%; height: 250px; object-fit: cover;"
+                  />
+                </template>
+              </div>
+              <div class="promotion-content-full">
+                <h3 class="promotion-title-full">{{ promotion.title }}</h3>
+                <div class="promotion-html-content-full" v-html="promotion.content"></div>
+                <v-btn
+                  variant="text"
+                  color="primary"
+                  prepend-icon="mdi-arrow-right"
+                  class="mt-2"
+                  @click.stop="openPromotionDialog(promotion)"
+                >
+                  View Full Details
+                </v-btn>
+              </div>
+            </div>
+          </v-col>
+        </v-row>
+      </v-container>
+    </section>
+
     <!-- Features Section with Modern Sports Design -->
     <section class="features-section">
       <v-container class="py-16">
@@ -390,6 +541,95 @@
       </v-container>
     </section>
 
+    <!-- Promotion Details Dialog -->
+    <v-dialog v-model="promotionDialog" max-width="900px" scrollable>
+      <v-card v-if="selectedPromotion">
+        <v-card-title class="promotion-dialog-header">
+          <span class="text-h5 font-weight-bold">{{ selectedPromotion.title }}</span>
+          <v-spacer />
+        </v-card-title>
+
+        <v-divider />
+
+        <v-card-text class="promotion-dialog-content pa-0">
+          <!-- Media Carousel -->
+          <div v-if="selectedPromotion.media && selectedPromotion.media.length > 0" class="promotion-dialog-media">
+            <v-carousel
+              v-if="selectedPromotion.media.length > 1"
+              height="400"
+              show-arrows="hover"
+              cycle
+            >
+              <v-carousel-item
+                v-for="(media, mediaIndex) in selectedPromotion.media"
+                :key="mediaIndex"
+              >
+                <v-img
+                  v-if="isPromotionImage(media)"
+                  :src="getPromotionMediaUrl(media)"
+                  height="400"
+                  contain
+                />
+                <video
+                  v-else
+                  :src="getPromotionMediaUrl(media)"
+                  controls
+                  style="width: 100%; height: 400px; object-fit: contain;"
+                />
+              </v-carousel-item>
+            </v-carousel>
+            <template v-else>
+              <v-img
+                v-if="isPromotionImage(selectedPromotion.media[0])"
+                :src="getPromotionMediaUrl(selectedPromotion.media[0])"
+                height="400"
+                contain
+              />
+              <video
+                v-else
+                :src="getPromotionMediaUrl(selectedPromotion.media[0])"
+                controls
+                style="width: 100%; height: 400px; object-fit: contain;"
+              />
+            </template>
+          </div>
+
+          <!-- Full Content -->
+          <div class="promotion-dialog-text pa-6">
+            <div class="promotion-dialog-html-content" v-html="selectedPromotion.content"></div>
+
+            <!-- Dates Info -->
+            <!-- <div v-if="selectedPromotion.published_at || selectedPromotion.expires_at" class="promotion-dialog-dates mt-6">
+              <v-divider class="mb-4" />
+              <div class="d-flex gap-4 flex-wrap">
+                <div v-if="selectedPromotion.published_at" class="date-info">
+                  <v-icon size="small" color="primary" class="mr-1">mdi-calendar-start</v-icon>
+                  <span class="text-caption text-medium-emphasis">
+                    Published: {{ formatDialogDate(selectedPromotion.published_at) }}
+                  </span>
+                </div>
+                <div v-if="selectedPromotion.expires_at" class="date-info">
+                  <v-icon size="small" color="warning" class="mr-1">mdi-calendar-end</v-icon>
+                  <span class="text-caption text-medium-emphasis">
+                    Expires: {{ formatDialogDate(selectedPromotion.expires_at) }}
+                  </span>
+                </div>
+              </div>
+            </div> -->
+          </div>
+        </v-card-text>
+
+        <v-divider />
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn color="primary" variant="text" @click="promotionDialog = false">
+            Close
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Booking Disabled Snackbar -->
     <BookingDisabledSnackbar
       v-model="bookingDisabledSnackbar"
@@ -408,17 +648,26 @@ import { authService } from '../services/authService'
 import { formatPrice } from '../utils/formatters'
 import PriceDisclaimerNote from '../components/PriceDisclaimerNote.vue'
 import BookingDisabledSnackbar from '../components/BookingDisabledSnackbar.vue'
+import BannerCarousel from '../components/BannerCarousel.vue'
+import { promotionService } from '../services/promotionService'
 
 export default {
   name: 'Home',
   components: {
     PriceDisclaimerNote,
-    BookingDisabledSnackbar
+    BookingDisabledSnackbar,
+    BannerCarousel
   },
   setup() {
     const router = useRouter()
     const sports = ref([])
     const courts = ref([])
+    const promotions = ref([])
+    const promotionDialog = ref(false)
+    const selectedPromotion = ref(null)
+    const currentPromotionIndex = ref(0)
+    const promotionBannerDismissed = ref(localStorage.getItem('promotionBannerDismissed') === 'true')
+    const promotionRotationInterval = ref(null)
     const loading = ref(true)
     const error = ref(null)
     const companyName = ref('Perfect Smash')
@@ -552,6 +801,55 @@ export default {
       }
     }
 
+    const fetchPromotions = async () => {
+      try {
+        promotions.value = await promotionService.getActivePromotions()
+      } catch (err) {
+        // Silently fail - promotions are optional
+      }
+    }
+
+    const checkAndShowAutoPopup = () => {
+      // Find promotions with auto-popup enabled
+      const autoPopupPromotions = promotions.value.filter(p => p.auto_popup_enabled)
+
+      if (autoPopupPromotions.length === 0) return
+
+      // Check each promotion to see if it should be shown
+      for (const promotion of autoPopupPromotions) {
+        const storageKey = `promotion_popup_${promotion.id}`
+        const lastShown = localStorage.getItem(storageKey)
+
+        if (!lastShown) {
+          // Never shown before, show it now
+          showAutoPopup(promotion)
+          return // Show only one popup at a time
+        }
+
+        // Check if enough time has passed
+        const lastShownTime = new Date(lastShown).getTime()
+        const now = new Date().getTime()
+        const intervalMs = promotion.auto_popup_interval_hours * 60 * 60 * 1000
+
+        if (now - lastShownTime >= intervalMs) {
+          // Enough time has passed, show it
+          showAutoPopup(promotion)
+          return // Show only one popup at a time
+        }
+      }
+    }
+
+    const showAutoPopup = (promotion) => {
+      // Record the time this promotion was shown
+      const storageKey = `promotion_popup_${promotion.id}`
+      localStorage.setItem(storageKey, new Date().toISOString())
+
+      // Small delay for better UX (let page load first)
+      setTimeout(() => {
+        openPromotionDialog(promotion)
+      }, 1500)
+    }
+
     const getSportPrice = () => {
       if (sports.value.length > 0) {
         // Get the lowest price from all sports using their lowest_price_per_hour
@@ -650,6 +948,57 @@ export default {
       }
 
       return colorMap[color] || '#B71C1C 0%, #C62828 100%'
+    }
+
+    const isPromotionImage = (url) => {
+      return /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+    }
+
+    const getPromotionMediaUrl = (url) => {
+      // Check if URL is already absolute
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url
+      }
+      // Otherwise prepend the backend base URL
+      return import.meta.env.VITE_API_URL.replace('/api', '') + url
+    }
+
+    const openPromotionDialog = (promotion) => {
+      selectedPromotion.value = promotion
+      promotionDialog.value = true
+    }
+
+    const formatDialogDate = (dateString) => {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }
+
+    const dismissPromotionBanner = () => {
+      promotionBannerDismissed.value = true
+      localStorage.setItem('promotionBannerDismissed', 'true')
+      stopPromotionRotation()
+    }
+
+    const startPromotionRotation = () => {
+      if (promotions.value.length > 1 && !promotionBannerDismissed.value) {
+        promotionRotationInterval.value = setInterval(() => {
+          currentPromotionIndex.value = (currentPromotionIndex.value + 1) % promotions.value.length
+        }, 5000) // Rotate every 5 seconds
+      }
+    }
+
+    const stopPromotionRotation = () => {
+      if (promotionRotationInterval.value) {
+        clearInterval(promotionRotationInterval.value)
+        promotionRotationInterval.value = null
+      }
     }
 
     const openBookingDialog = async () => {
@@ -786,7 +1135,13 @@ export default {
       }
 
       // Load data
-      await Promise.all([fetchSports(), fetchCourts(), loadDashboardSettings()])
+      await Promise.all([fetchSports(), fetchCourts(), loadDashboardSettings(), fetchPromotions()])
+
+      // Start promotion banner rotation
+      startPromotionRotation()
+
+      // Check and show auto-popup promotions
+      checkAndShowAutoPopup()
 
       // canUsersBook is now a computed property - no need to set it manually
 
@@ -797,11 +1152,19 @@ export default {
     onUnmounted(() => {
       // Cleanup event listener
       window.removeEventListener('dashboard-settings-updated', handleDashboardUpdate)
+
+      // Stop promotion rotation
+      stopPromotionRotation()
     })
 
     return {
       sports,
       courts,
+      promotions,
+      promotionDialog,
+      selectedPromotion,
+      currentPromotionIndex,
+      promotionBannerDismissed,
       loading,
       error,
       features,
@@ -821,11 +1184,16 @@ export default {
       bookingDisabledMessage,
       getSportPrice,
       openBookingDialog,
+      openPromotionDialog,
+      dismissPromotionBanner,
+      formatDialogDate,
       handleBookNowClick,
       formatPriceTemplate,
       formatTime,
       getImageUrl,
       getSportGradientColor,
+      isPromotionImage,
+      getPromotionMediaUrl,
       sportService
     }
   }
@@ -844,6 +1212,363 @@ export default {
   border-radius: 0;
   z-index: 1000;
   animation: slideInDown 0.5s ease-out;
+}
+
+/* Compact Promotion Banner in Hero */
+.promotion-banner-compact {
+  position: relative;
+  background: linear-gradient(135deg, rgba(183, 28, 28, 0.95) 0%, rgba(198, 40, 40, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 24px auto 32px;
+  max-width: 1000px;
+  box-shadow: 0 8px 32px rgba(183, 28, 28, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideInDown 0.6s ease-out;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.promotion-banner-compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(183, 28, 28, 0.6);
+}
+
+.promotion-banner-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.promotion-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-right: 32px;
+}
+
+.promotion-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.promotion-banner-thumbnail {
+  flex-shrink: 0;
+}
+
+.promotion-banner-image {
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.promotion-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.promotion-banner-title {
+  color: white;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.promotion-banner-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.promotion-banner-btn {
+  flex-shrink: 0;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.promotion-banner-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.promotion-banner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.promotion-banner-dot:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.promotion-banner-dot.active {
+  background: white;
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* Full Promotions Section */
+.promotions-section {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  position: relative;
+}
+
+.promotion-card-full {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out forwards;
+  cursor: pointer;
+}
+
+.promotion-card-full:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.promotion-card-full:focus {
+  outline: 2px solid #B71C1C;
+  outline-offset: 2px;
+}
+
+.promotion-media {
+  width: 100%;
+  overflow: hidden;
+}
+
+.promotion-content-full {
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.promotion-title-full {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #1e293b;
+  background: linear-gradient(135deg, #B71C1C 0%, #5F6368 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.promotion-html-content-full {
+  color: #64748b;
+  line-height: 1.6;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.promotion-html-content-full :deep(h1),
+.promotion-html-content-full :deep(h2),
+.promotion-html-content-full :deep(h3),
+.promotion-html-content-full :deep(h4),
+.promotion-html-content-full :deep(h5),
+.promotion-html-content-full :deep(h6) {
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.promotion-html-content-full :deep(p) {
+  margin-bottom: 1em;
+}
+
+.promotion-html-content-full :deep(ul),
+.promotion-html-content-full :deep(ol) {
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.promotion-html-content-full :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+}
+
+.promotion-html-content-full :deep(a) {
+  color: #B71C1C;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.promotion-html-content-full :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.promotion-html-content-full :deep(blockquote) {
+  border-left: 4px solid #B71C1C;
+  padding-left: 1em;
+  margin: 1em 0;
+  font-style: italic;
+  color: #64748b;
+}
+
+/* Promotion Dialog Styles */
+.promotion-dialog-header {
+  background: linear-gradient(135deg, #B71C1C 0%, #C62828 100%);
+  color: white !important;
+  padding: 20px 24px !important;
+}
+
+.promotion-dialog-header .text-h5 {
+  color: white;
+}
+
+.promotion-dialog-media {
+  width: 100%;
+  background: #000;
+}
+
+.promotion-dialog-content {
+  max-height: 70vh;
+}
+
+.promotion-dialog-text {
+  background: white;
+}
+
+.promotion-dialog-html-content {
+  color: #1e293b;
+  line-height: 1.8;
+  font-size: 1rem;
+}
+
+.promotion-dialog-html-content :deep(h1) {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 1.2em 0 0.6em;
+  color: #1e293b;
+}
+
+.promotion-dialog-html-content :deep(h2) {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 1.2em 0 0.6em;
+  color: #1e293b;
+}
+
+.promotion-dialog-html-content :deep(h3) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 1.1em 0 0.5em;
+  color: #1e293b;
+}
+
+.promotion-dialog-html-content :deep(h4),
+.promotion-dialog-html-content :deep(h5),
+.promotion-dialog-html-content :deep(h6) {
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+  color: #1e293b;
+}
+
+.promotion-dialog-html-content :deep(p) {
+  margin-bottom: 1em;
+  line-height: 1.8;
+}
+
+.promotion-dialog-html-content :deep(ul),
+.promotion-dialog-html-content :deep(ol) {
+  margin-left: 2em;
+  margin-bottom: 1em;
+}
+
+.promotion-dialog-html-content :deep(li) {
+  margin-bottom: 0.5em;
+}
+
+.promotion-dialog-html-content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 1.5em 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.promotion-dialog-html-content :deep(a) {
+  color: #B71C1C;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.promotion-dialog-html-content :deep(a:hover) {
+  text-decoration: underline;
+  color: #C62828;
+}
+
+.promotion-dialog-html-content :deep(blockquote) {
+  border-left: 4px solid #B71C1C;
+  padding: 16px 20px;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: #64748b;
+  background: rgba(183, 28, 28, 0.05);
+  border-radius: 4px;
+}
+
+.promotion-dialog-html-content :deep(code) {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.promotion-dialog-html-content :deep(pre) {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+}
+
+.promotion-dialog-html-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.promotion-dialog-dates {
+  background: rgba(248, 250, 252, 0.8);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.date-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Operating Hours Card in Hero Section */
@@ -1801,6 +2526,59 @@ export default {
   .sport-price-amount {
     font-size: 2rem;
   }
+
+  .promotion-banner-compact {
+    padding: 12px 16px;
+    margin: 16px auto 24px;
+  }
+
+  .promotion-banner-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .promotion-banner-left {
+    width: 100%;
+  }
+
+  .promotion-banner-title {
+    font-size: 1rem;
+    white-space: normal;
+  }
+
+  .promotion-banner-subtitle {
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+
+  .promotion-banner-btn {
+    width: 100%;
+  }
+
+  .promotion-card-full {
+    margin-bottom: 16px;
+  }
+
+  .promotion-content-full {
+    padding: 20px;
+  }
+
+  .promotion-title-full {
+    font-size: 1.3rem;
+  }
+
+  .promotion-dialog-media {
+    height: 300px;
+  }
+
+  .promotion-dialog-content {
+    max-height: 65vh;
+  }
+
+  .promotion-dialog-html-content {
+    font-size: 0.95rem;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1872,6 +2650,116 @@ export default {
 
   .sport-price-amount {
     font-size: 1.8rem;
+  }
+
+  .promotion-banner-compact {
+    padding: 10px 12px;
+    margin: 12px auto 20px;
+    border-radius: 12px;
+  }
+
+  .promotion-banner-content {
+    padding-right: 24px;
+  }
+
+  .promotion-banner-left {
+    gap: 8px;
+  }
+
+  .promotion-banner-thumbnail {
+    display: none;
+  }
+
+  .promotion-banner-title {
+    font-size: 0.95rem;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    display: -webkit-box;
+  }
+
+  .promotion-banner-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .promotion-banner-btn {
+    font-size: 0.8rem;
+    padding: 4px 12px !important;
+  }
+
+  .promotion-banner-dots {
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .promotion-banner-dot {
+    width: 6px;
+    height: 6px;
+  }
+
+  .promotion-banner-dot.active {
+    width: 18px;
+  }
+
+  .promotion-card-full {
+    margin-bottom: 12px;
+  }
+
+  .promotion-content-full {
+    padding: 16px;
+  }
+
+  .promotion-title-full {
+    font-size: 1.2rem;
+  }
+
+  .promotion-html-content-full {
+    font-size: 0.9rem;
+  }
+
+  .promotion-dialog-header {
+    padding: 16px !important;
+  }
+
+  .promotion-dialog-header .text-h5 {
+    font-size: 1.25rem;
+  }
+
+  .promotion-dialog-media {
+    height: 250px;
+  }
+
+  .promotion-dialog-media video,
+  .promotion-dialog-media .v-img {
+    height: 250px !important;
+  }
+
+  .promotion-dialog-content {
+    max-height: 60vh;
+  }
+
+  .promotion-dialog-text {
+    padding: 16px !important;
+  }
+
+  .promotion-dialog-html-content {
+    font-size: 0.9rem;
+  }
+
+  .promotion-dialog-html-content :deep(h1) {
+    font-size: 1.5rem;
+  }
+
+  .promotion-dialog-html-content :deep(h2) {
+    font-size: 1.3rem;
+  }
+
+  .promotion-dialog-html-content :deep(h3) {
+    font-size: 1.1rem;
+  }
+
+  .promotion-dialog-dates {
+    padding: 12px;
   }
 }
 </style>

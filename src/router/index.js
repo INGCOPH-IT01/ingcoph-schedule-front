@@ -292,6 +292,40 @@ const routes = [
     }
   },
   {
+    path: '/admin/promotions',
+    name: 'PromotionManagement',
+    component: () => import(/* webpackChunkName: "admin" */ '../views/PromotionManagement.vue'),
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAdmin = await authService.isAdmin()
+        if (isAdmin) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
+    path: '/admin/banners',
+    name: 'BannerManagement',
+    component: () => import(/* webpackChunkName: "admin" */ '../views/BannerManagement.vue'),
+    beforeEnter: async (to, from, next) => {
+      try {
+        const isAdmin = await authService.isAdmin()
+        if (isAdmin) {
+          next()
+        } else {
+          next('/')
+        }
+      } catch (error) {
+        next('/')
+      }
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     redirect: '/'
