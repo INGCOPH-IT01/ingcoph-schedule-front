@@ -167,6 +167,32 @@
                     <strong>Regular users</strong> can only edit/reschedule bookings if there are at least this many hours remaining before the scheduled time. Set to 0 to allow editing up until the booking time. <strong>Note:</strong> Admin and staff can always edit bookings regardless of this window.
                   </div>
                 </v-alert>
+
+                <v-text-field
+                  v-model="bookingCutoffDate"
+                  label="Booking Cutoff Date"
+                  variant="outlined"
+                  prepend-inner-icon="mdi-calendar-end"
+                  type="date"
+                  :loading="loading"
+                  :disabled="saving"
+                  class="mt-4 mb-2"
+                  hint="Latest date regular users can place a booking. Leave blank to allow bookings on any future date."
+                  persistent-hint
+                  clearable
+                  @click:clear="bookingCutoffDate = ''"
+                ></v-text-field>
+
+                <v-alert v-if="bookingCutoffDate" type="warning" variant="tonal" density="compact" class="mt-2">
+                  <div class="text-caption">
+                    <strong>Regular users</strong> will only be able to book dates up to <strong>{{ new Date(bookingCutoffDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) }}</strong>. Admin and staff are not restricted by this date.
+                  </div>
+                </v-alert>
+                <v-alert v-else type="info" variant="tonal" density="compact" class="mt-2">
+                  <div class="text-caption">
+                    No booking cutoff date set. Regular users can book on any future available date.
+                  </div>
+                </v-alert>
               </div>
 
               <v-divider class="mb-6"></v-divider>
@@ -1017,6 +1043,7 @@ export default {
     const waitlistEnabled = ref(true)
     const posProductsEnabled = ref(true)
     const rescheduleWindowHours = ref(24)
+    const bookingCutoffDate = ref('')
     const blockedBookingDates = ref([])
     const newBlockedDate = ref({
       start_date: '',
@@ -1147,6 +1174,7 @@ export default {
         waitlistEnabled.value = settings.waitlist_enabled !== undefined ? settings.waitlist_enabled : true
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
         rescheduleWindowHours.value = settings.reschedule_window_hours !== undefined ? settings.reschedule_window_hours : 24
+        bookingCutoffDate.value = settings.booking_cutoff_date || ''
         blockedBookingDates.value = settings.blocked_booking_dates || []
 
         // Load terms and conditions
@@ -1225,6 +1253,7 @@ export default {
           waitlist_enabled: waitlistEnabled.value,
           pos_products_enabled: posProductsEnabled.value,
           reschedule_window_hours: rescheduleWindowHours.value,
+          booking_cutoff_date: bookingCutoffDate.value || null,
           blocked_booking_dates: JSON.stringify(blockedBookingDates.value)
         }
 
@@ -1556,6 +1585,7 @@ export default {
       waitlistEnabled,
       posProductsEnabled,
       rescheduleWindowHours,
+      bookingCutoffDate,
       blockedBookingDates,
       newBlockedDate,
       addBlockedDate,

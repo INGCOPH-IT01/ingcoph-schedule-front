@@ -1142,6 +1142,7 @@ export default {
     // Blocked dates
     const blockedBookingDates = ref([])
     const selectedDateBlockInfo = ref({ isBlocked: false, reason: '' })
+    const bookingCutoffDate = ref(null)
 
     // Holidays
     const holidays = ref([])
@@ -1179,8 +1180,11 @@ export default {
       return `${month}/${day}/${year}`
     })
 
-    // Computed property for max date - allow advanced bookings for all roles
-    const maxDate = computed(() => null)
+    // Computed property for max date - restrict regular users to the booking cutoff date
+    const maxDate = computed(() => {
+      if (isAdminOrStaff.value) return null
+      return bookingCutoffDate.value || null
+    })
 
     const isAdmin = computed(() => {
       return currentUser.value?.role === 'admin'
@@ -2890,6 +2894,7 @@ export default {
         posProductsEnabled.value = settings.pos_products_enabled !== undefined ? settings.pos_products_enabled : true
         termsEnabled.value = settings.terms_enabled !== undefined ? settings.terms_enabled : false
         termsContent.value = settings.terms_and_conditions || ''
+        bookingCutoffDate.value = settings.booking_cutoff_date || null
       } catch (error) {
         console.error('Failed to load booking config:', error)
         // Default to true if loading fails
@@ -2984,6 +2989,7 @@ export default {
       try {
         const settings = await companySettingService.getSettings(false)
         blockedBookingDates.value = settings.blocked_booking_dates || []
+        bookingCutoffDate.value = settings.booking_cutoff_date || null
       } catch (error) {
         // Silent fail
       }
@@ -3104,6 +3110,7 @@ export default {
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
           blockedBookingDates.value = settings.blocked_booking_dates || []
+          bookingCutoffDate.value = settings.booking_cutoff_date || null
         } catch (error) {
         }
 
@@ -3151,6 +3158,7 @@ export default {
           facebookPageUrl.value = settings.facebook_page_url || ''
           facebookPageName.value = settings.facebook_page_name || ''
           blockedBookingDates.value = settings.blocked_booking_dates || []
+          bookingCutoffDate.value = settings.booking_cutoff_date || null
         } catch (error) {
         }
 
@@ -3269,6 +3277,7 @@ export default {
       bookingDisabledMessage,
       blockedBookingDates,
       selectedDateBlockInfo,
+      bookingCutoffDate,
       // Terms and Conditions
       termsEnabled,
       termsContent,
