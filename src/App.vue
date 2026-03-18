@@ -185,6 +185,26 @@
             class="excel-nav-item"
           ></v-list-item>
 
+          <!-- Promotion Management - Only for admin users -->
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-bullhorn"
+            title="Promotion Management"
+            value="promotion-management"
+            :to="{ name: 'PromotionManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
+          <!-- Banner Management - Only for admin users -->
+          <v-list-item
+            v-if="isAuthenticated && isAdmin"
+            prepend-icon="mdi-image-multiple"
+            title="Banner Management"
+            value="banner-management"
+            :to="{ name: 'BannerManagement' }"
+            class="excel-nav-item"
+          ></v-list-item>
+
           <!-- POS System Section - For admin, staff, and cashier users -->
           <v-divider v-if="isAuthenticated && (isAdmin || isStaff || isCashier)" class="my-2"></v-divider>
 

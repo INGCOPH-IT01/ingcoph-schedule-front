@@ -2658,9 +2658,13 @@ export default {
           // Already in YYYY-MM-DD format, use it directly
           selectedDate = item.booking_date
         } else {
-          // For datetime strings, convert to YYYY-MM-DD
+          // For datetime strings, convert to YYYY-MM-DD without UTC conversion
           const bookingDate = new Date(item.booking_date)
-          selectedDate = bookingDate.toISOString().split('T')[0]
+          // Use local date methods instead of toISOString to avoid UTC conversion
+          const year = bookingDate.getFullYear()
+          const month = String(bookingDate.getMonth() + 1).padStart(2, '0')
+          const day = String(bookingDate.getDate()).padStart(2, '0')
+          selectedDate = `${year}-${month}-${day}`
         }
       }
       selectedBookingDate.value = selectedDate

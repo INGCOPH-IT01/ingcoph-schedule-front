@@ -687,7 +687,7 @@ import { bookingService } from '../services/bookingService'
 import { companySettingService } from '../services/companySettingService'
 import CourtImageGallery from './CourtImageGallery.vue'
 import Swal from 'sweetalert2'
-import { formatPrice, formatNumber } from '../utils/formatters'
+import { formatPrice, formatNumber, formatDateToLocal } from '../utils/formatters'
 
 export default {
   name: 'GlobalBookingDialog',
@@ -776,7 +776,7 @@ export default {
     ]
 
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = formatDateToLocal(new Date())
     const currentUser = ref(null)
 
     // Computed property for max date - allow advanced bookings for all roles
@@ -1103,21 +1103,41 @@ export default {
           startTimeValue = booking.start_time
         } else if (booking.start_time.includes('T')) {
           // For ISO format like "2025-09-26T17:00:00.000000Z", convert to SQL format
+          // Use local time methods to avoid UTC conversion
           const date = new Date(booking.start_time)
-          startTimeValue = date.toISOString().replace('T', ' ').substring(0, 19)
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          const seconds = String(date.getSeconds()).padStart(2, '0')
+          startTimeValue = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
         } else {
           // Already in HH:MM format, construct full datetime
           const date = new Date(booking.start_time)
-          startTimeValue = date.toISOString().replace('T', ' ').substring(0, 19)
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          const seconds = String(date.getSeconds()).padStart(2, '0')
+          startTimeValue = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
         }
       } else {
-        // For Date objects, convert to SQL format
-        startTimeValue = booking.start_time.toISOString().replace('T', ' ').substring(0, 19)
+        // For Date objects, convert to SQL format using local time
+        const date = booking.start_time
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        const seconds = String(date.getSeconds()).padStart(2, '0')
+        startTimeValue = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
       }
 
-      // Set date (use the original date from the booking)
+      // Set date (use the original date from the booking, local timezone)
       const startTimeDate = new Date(booking.start_time)
-      form.value.date = startTimeDate.toISOString().split('T')[0]
+      form.value.date = formatDateToLocal(startTimeDate)
 
       // Set start_time to the full datetime format
       form.value.start_time = startTimeValue

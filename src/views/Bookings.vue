@@ -3044,7 +3044,14 @@ export default {
         // Extract date without timezone conversion
         const startTime = new Date(editingBooking.value.start_time)
         editForm.date = formatDateToYYYYMMDD(startTime)
-        editForm.start_time = new Date(editingBooking.value.start_time).toISOString()
+        // Store the full datetime string in local timezone format
+        const year = startTime.getFullYear()
+        const month = String(startTime.getMonth() + 1).padStart(2, '0')
+        const day = String(startTime.getDate()).padStart(2, '0')
+        const hours = String(startTime.getHours()).padStart(2, '0')
+        const minutes = String(startTime.getMinutes()).padStart(2, '0')
+        const seconds = String(startTime.getSeconds()).padStart(2, '0')
+        editForm.start_time = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
         editForm.duration = 1
         editForm.notes = editingBooking.value.notes || ''
         editForm.status = editingBooking.value.status || 'pending'
@@ -3511,11 +3518,28 @@ export default {
         // If we're editing a booking and the current slot wasn't in the filtered list,
         // manually add it to ensure users can keep their existing time slot
         if (editingBooking.value) {
-          const currentStartTime = new Date(editingBooking.value.start_time).toISOString()
+          // Format datetime to local time string format
+          const startDate = new Date(editingBooking.value.start_time)
+          const year = startDate.getFullYear()
+          const month = String(startDate.getMonth() + 1).padStart(2, '0')
+          const day = String(startDate.getDate()).padStart(2, '0')
+          const hours = String(startDate.getHours()).padStart(2, '0')
+          const minutes = String(startDate.getMinutes()).padStart(2, '0')
+          const seconds = String(startDate.getSeconds()).padStart(2, '0')
+          const currentStartTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+          
           const existingSlot = filteredSlots.find(slot => slot.start_time === currentStartTime)
 
           if (!existingSlot) {
-            const currentEndTime = new Date(editingBooking.value.end_time).toISOString()
+            const endDate = new Date(editingBooking.value.end_time)
+            const endYear = endDate.getFullYear()
+            const endMonth = String(endDate.getMonth() + 1).padStart(2, '0')
+            const endDay = String(endDate.getDate()).padStart(2, '0')
+            const endHours = String(endDate.getHours()).padStart(2, '0')
+            const endMinutes = String(endDate.getMinutes()).padStart(2, '0')
+            const endSeconds = String(endDate.getSeconds()).padStart(2, '0')
+            const currentEndTime = `${endYear}-${endMonth}-${endDay}T${endHours}:${endMinutes}:${endSeconds}`
+            
             const currentSlot = {
               start_time: currentStartTime,
               end_time: currentEndTime,
@@ -3635,10 +3659,21 @@ export default {
         const startDateTime = new Date(editForm.start_time)
         const endDateTime = new Date(startDateTime.getTime() + (editForm.duration * 60 * 60 * 1000))
 
+        // Format to local datetime strings (avoid UTC conversion)
+        const formatLocalDateTime = (date) => {
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          const seconds = String(date.getSeconds()).padStart(2, '0')
+          return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+        }
+
         const updateData = {
           court_id: parseInt(editForm.court_id),
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
+          start_time: formatLocalDateTime(startDateTime),
+          end_time: formatLocalDateTime(endDateTime),
           total_price: parseFloat(totalPrice.value.toFixed(2)),
           status: editForm.status,
           notes: editForm.notes || '',

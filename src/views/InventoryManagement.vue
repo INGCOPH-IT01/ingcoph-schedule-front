@@ -302,7 +302,7 @@ import { productService } from '@/services/productService';
 import ReceivingReportDialog from '@/components/ReceivingReportDialog.vue';
 import ReceivingReportViewDialog from '@/components/ReceivingReportViewDialog.vue';
 import { debounce } from '@/utils/debounce';
-import { formatCurrency, formatDateTime } from '@/utils/formatters';
+import { formatCurrency, formatDateTime, formatDateToLocal } from '@/utils/formatters';
 
 export default {
   name: 'InventoryManagement',
@@ -609,7 +609,7 @@ export default {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `receiving-reports-${new Date().toISOString().split('T')[0]}.xlsx`;
+        link.download = `receiving-reports-${formatDateToLocal(new Date())}.xlsx`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

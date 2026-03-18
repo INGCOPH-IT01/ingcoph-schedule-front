@@ -863,10 +863,20 @@ export default {
         showSnackbar('Transaction approved successfully', 'success')
 
         // Optimized refresh: Only update the specific transaction instead of reloading all
+        // Use local datetime without UTC conversion
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const hours = String(now.getHours()).padStart(2, '0')
+        const minutes = String(now.getMinutes()).padStart(2, '0')
+        const seconds = String(now.getSeconds()).padStart(2, '0')
+        const approvedAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        
         const updatedTransaction = {
           ...transaction,
           approval_status: 'approved',
-          approved_at: new Date().toISOString()
+          approved_at: approvedAt
         }
         const index = pendingBookings.value.findIndex(b => b.id === bookingId)
         if (index !== -1) {
@@ -905,13 +915,23 @@ export default {
         rejectDialog.value = false
 
         // Optimized refresh: Only update the specific transaction instead of reloading all
+        // Use local datetime without UTC conversion
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const hours = String(now.getHours()).padStart(2, '0')
+        const minutes = String(now.getMinutes()).padStart(2, '0')
+        const seconds = String(now.getSeconds()).padStart(2, '0')
+        const approvedAt = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        
         const index = pendingBookings.value.findIndex(b => b.id === selectedBookingId.value)
         if (index !== -1) {
           const updatedTransaction = {
             ...pendingBookings.value[index],
             approval_status: 'rejected',
             rejection_reason: rejectReason.value,
-            approved_at: new Date().toISOString()
+            approved_at: approvedAt
           }
           pendingBookings.value[index] = updatedTransaction
         }
@@ -1143,7 +1163,13 @@ export default {
           })
         })
 
-        // Generate Excel file
+        // Generate Excel file with local date in filename (not UTC)
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        
         const buffer = await workbook.xlsx.writeBuffer()
         const blob = new Blob([buffer], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1151,7 +1177,7 @@ export default {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `bookings-export-${new Date().toISOString().split('T')[0]}.xlsx`
+        a.download = `bookings-export-${dateStr}.xlsx`
         a.click()
         window.URL.revokeObjectURL(url)
 
