@@ -779,8 +779,15 @@ export default {
     const today = formatDateToLocal(new Date())
     const currentUser = ref(null)
 
-    // Computed property for max date - allow advanced bookings for all roles
-    const maxDate = computed(() => null)
+    // Booking cutoff date
+    const bookingCutoffDate = ref(null)
+
+    // Computed property for max date - restrict regular users to the booking cutoff date
+    const maxDate = computed(() => {
+      const role = currentUser.value?.role
+      if (role === 'admin' || role === 'staff') return null
+      return bookingCutoffDate.value || null
+    })
 
     // Blocked booking dates
     const blockedBookingDates = ref([])
@@ -1862,10 +1869,11 @@ export default {
         currentUser.value = null
       }
 
-      // Load blocked booking dates (bypass cache for fresh data)
+      // Load blocked booking dates and cutoff date (bypass cache for fresh data)
       try {
         const settings = await companySettingService.getSettings(false)
         blockedBookingDates.value = settings.blocked_booking_dates || []
+        bookingCutoffDate.value = settings.booking_cutoff_date || null
       } catch (error) {
         // Silent fail
       }
@@ -1889,6 +1897,7 @@ export default {
       try {
         const settings = await companySettingService.getSettings(false)
         blockedBookingDates.value = settings.blocked_booking_dates || []
+        bookingCutoffDate.value = settings.booking_cutoff_date || null
       } catch (error) {
         // Silent fail
       }
@@ -1930,6 +1939,7 @@ export default {
       dayOptions,
       today,
       maxDate,
+      bookingCutoffDate,
       blockedBookingDates,
       selectedDateBlockInfo,
       getFrequencyLabel,

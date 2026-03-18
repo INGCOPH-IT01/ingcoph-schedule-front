@@ -162,6 +162,19 @@ export const companySettingService = {
   },
 
   /**
+   * Get booking cutoff date (latest date regular users can book)
+   * Returns a YYYY-MM-DD string or null if not set
+   */
+  async getBookingCutoffDate() {
+    try {
+      const settings = await this.getSettings()
+      return settings?.booking_cutoff_date || null
+    } catch (e) {
+      return null
+    }
+  },
+
+  /**
    * Get blocked booking dates
    * Always fetches fresh data to ensure accuracy for booking validation
    */
