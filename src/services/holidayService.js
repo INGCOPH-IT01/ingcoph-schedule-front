@@ -6,7 +6,7 @@ export const holidayService = {
    */
   async getHolidays() {
     try {
-      const response = await api.get('/admin/holidays')
+      const response = await api.get('/holidays')
       return response.data.data || []
     } catch (error) {
       console.error('Error fetching holidays:', error)
