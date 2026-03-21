@@ -2992,11 +2992,13 @@ export default {
     // Re-check if currently selected date is blocked (called when settings are updated).
     // Applies the same priority: blocked ranges first, then holiday no-business-operations.
     const recheckBlockedDates = async () => {
-      if (selectedDate.value && currentUser.value) {
-        const blockedResult = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
-        if (blockedResult.isBlocked) {
-          selectedDateBlockInfo.value = blockedResult
-          return
+      if (selectedDate.value) {
+        if (currentUser.value) {
+          const blockedResult = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
+          if (blockedResult.isBlocked) {
+            selectedDateBlockInfo.value = blockedResult
+            return
+          }
         }
         if (holidayService.hasNoBusinessOperations(selectedDate.value, holidays.value)) {
           selectedDateBlockInfo.value = {
@@ -3180,15 +3182,17 @@ export default {
     // Watch for selected date changes to check if it's blocked.
     // Priority: blocked booking date ranges first, then holiday no-business-operations.
     watch(selectedDate, async (newDate) => {
-      if (newDate && currentUser.value) {
-        // 1. Check blocked booking date ranges first
-        const blockedResult = await companySettingService.isDateBlocked(newDate, currentUser.value.role)
-        if (blockedResult.isBlocked) {
-          selectedDateBlockInfo.value = blockedResult
-          return
+      if (newDate) {
+        // 1. Check blocked booking date ranges first (only relevant for regular users)
+        if (currentUser.value) {
+          const blockedResult = await companySettingService.isDateBlocked(newDate, currentUser.value.role)
+          if (blockedResult.isBlocked) {
+            selectedDateBlockInfo.value = blockedResult
+            return
+          }
         }
 
-        // 2. Then check holiday no-business-operations
+        // 2. Then check holiday no-business-operations (applies to all users regardless of role)
         if (holidayService.hasNoBusinessOperations(newDate, holidays.value)) {
           selectedDateBlockInfo.value = {
             isBlocked: true,
