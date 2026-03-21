@@ -2907,41 +2907,35 @@ export default {
     const isDateAllowed = (dateString) => {
       if (!dateString) return true
 
-      // Check if date has no business operations (applies to all users including admin/staff)
-      if (holidayService.hasNoBusinessOperations(dateString, holidays.value)) {
-        return false
-      }
+      // Blocked booking date ranges take priority for regular users
+      if (!isAdminOrStaff.value && Array.isArray(blockedBookingDates.value) && blockedBookingDates.value.length > 0) {
+        const dateToCheck = new Date(dateString)
+        dateToCheck.setHours(0, 0, 0, 0)
 
-      // Admin and staff can select any other date (except no business operations dates)
-      if (isAdminOrStaff.value) {
-        return true
-      }
+        for (const range of blockedBookingDates.value) {
+          if (!range?.start_date) continue
 
-      if (!Array.isArray(blockedBookingDates.value) || blockedBookingDates.value.length === 0) {
-        return true
-      }
+          const startDate = new Date(range.start_date)
+          startDate.setHours(0, 0, 0, 0)
 
-      const dateToCheck = new Date(dateString)
-      dateToCheck.setHours(0, 0, 0, 0)
-
-      for (const range of blockedBookingDates.value) {
-        if (!range?.start_date) continue
-
-        const startDate = new Date(range.start_date)
-        startDate.setHours(0, 0, 0, 0)
-
-        const isIndefinite = !range.end_date
-        if (isIndefinite) {
-          if (dateToCheck >= startDate) {
-            return false
-          }
-        } else {
-          const endDate = new Date(range.end_date)
-          endDate.setHours(23, 59, 59, 999)
-          if (dateToCheck >= startDate && dateToCheck <= endDate) {
-            return false
+          const isIndefinite = !range.end_date
+          if (isIndefinite) {
+            if (dateToCheck >= startDate) {
+              return false
+            }
+          } else {
+            const endDate = new Date(range.end_date)
+            endDate.setHours(23, 59, 59, 999)
+            if (dateToCheck >= startDate && dateToCheck <= endDate) {
+              return false
+            }
           }
         }
+      }
+
+      // Then check holidays with no business operations (applies to all users including admin/staff)
+      if (holidayService.hasNoBusinessOperations(dateString, holidays.value)) {
+        return false
       }
 
       return true
@@ -2970,16 +2964,6 @@ export default {
         selectedDate.value = value
       }
 
-      // Check if selected date has no business operations
-      if (selectedDate.value && holidayService.hasNoBusinessOperations(selectedDate.value, holidays.value)) {
-        selectedDateBlockInfo.value = {
-          isBlocked: true,
-          reason: 'This date is a holiday with no business operations. The facility is closed on this date.'
-        }
-      } else {
-        selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
-      }
-
       dateMenu.value = false
       loadTimeSlotsForAllCourts()
     }
@@ -3005,11 +2989,23 @@ export default {
       }
     }
 
-    // Re-check if currently selected date is blocked (called when settings are updated)
+    // Re-check if currently selected date is blocked (called when settings are updated).
+    // Applies the same priority: blocked ranges first, then holiday no-business-operations.
     const recheckBlockedDates = async () => {
       if (selectedDate.value && currentUser.value) {
-        const result = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
-        selectedDateBlockInfo.value = result
+        const blockedResult = await companySettingService.isDateBlocked(selectedDate.value, currentUser.value.role)
+        if (blockedResult.isBlocked) {
+          selectedDateBlockInfo.value = blockedResult
+          return
+        }
+        if (holidayService.hasNoBusinessOperations(selectedDate.value, holidays.value)) {
+          selectedDateBlockInfo.value = {
+            isBlocked: true,
+            reason: 'This date is a holiday with no business operations. The facility is closed on this date.'
+          }
+          return
+        }
+        selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
       }
     }
 
@@ -3181,11 +3177,27 @@ export default {
       window.addEventListener('company-settings-updated', handleCompanySettingsUpdated)
     })
 
-    // Watch for selected date changes to check if it's blocked
+    // Watch for selected date changes to check if it's blocked.
+    // Priority: blocked booking date ranges first, then holiday no-business-operations.
     watch(selectedDate, async (newDate) => {
       if (newDate && currentUser.value) {
-        const result = await companySettingService.isDateBlocked(newDate, currentUser.value.role)
-        selectedDateBlockInfo.value = result
+        // 1. Check blocked booking date ranges first
+        const blockedResult = await companySettingService.isDateBlocked(newDate, currentUser.value.role)
+        if (blockedResult.isBlocked) {
+          selectedDateBlockInfo.value = blockedResult
+          return
+        }
+
+        // 2. Then check holiday no-business-operations
+        if (holidayService.hasNoBusinessOperations(newDate, holidays.value)) {
+          selectedDateBlockInfo.value = {
+            isBlocked: true,
+            reason: 'This date is a holiday with no business operations. The facility is closed on this date.'
+          }
+          return
+        }
+
+        selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
       } else {
         selectedDateBlockInfo.value = { isBlocked: false, reason: '' }
       }
