@@ -30,6 +30,9 @@ export const posService = {
         formData.append(`items[${index}][product_id]`, item.product_id)
         formData.append(`items[${index}][quantity]`, item.quantity)
         formData.append(`items[${index}][discount]`, item.discount)
+        if (item.override_price != null) {
+          formData.append(`items[${index}][override_price]`, item.override_price)
+        }
       })
 
       // Append other required fields
