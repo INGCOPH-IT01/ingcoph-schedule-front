@@ -141,11 +141,113 @@
                   class="mb-2"
                 ></v-switch>
 
-                <v-alert type="info" variant="tonal" density="compact" class="mt-2">
+                <v-alert type="info" variant="tonal" density="compact" class="mt-2 mb-4">
                   <div class="text-caption">
                     When disabled, users cannot add POS products during the booking process. Only court time slots can be booked.
                   </div>
                 </v-alert>
+
+                <!-- POS Price Override Password -->
+                <label class="text-subtitle-2 font-weight-bold mb-2 d-block">
+                  <v-icon class="mr-1" color="orange-darken-1" size="18">mdi-tag-edit</v-icon>
+                  POS Price Override Password
+                </label>
+
+                <v-alert
+                  v-if="posOverridePasswordSet && !showOverridePasswordForm"
+                  type="success"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                >
+                  <div class="d-flex align-center justify-space-between">
+                    <span class="text-caption">
+                      <v-icon size="x-small" class="mr-1">mdi-lock-check</v-icon>
+                      Override password is set. Staff can use it to authorize price changes in the POS.
+                    </span>
+                    <div class="d-flex gap-2 ml-2">
+                      <v-btn
+                        size="x-small"
+                        variant="tonal"
+                        color="primary"
+                        @click="showOverridePasswordForm = true"
+                      >Change</v-btn>
+                      <v-btn
+                        size="x-small"
+                        variant="tonal"
+                        color="error"
+                        :loading="overridePasswordClearing"
+                        @click="clearOverridePassword"
+                      >Remove</v-btn>
+                    </div>
+                  </div>
+                </v-alert>
+
+                <v-alert
+                  v-else-if="!posOverridePasswordSet && !showOverridePasswordForm"
+                  type="warning"
+                  variant="tonal"
+                  density="compact"
+                  class="mb-3"
+                >
+                  <div class="d-flex align-center justify-space-between">
+                    <span class="text-caption">
+                      <v-icon size="x-small" class="mr-1">mdi-lock-alert</v-icon>
+                      No override password set. Staff cannot override prices until one is configured.
+                    </span>
+                    <v-btn
+                      size="x-small"
+                      variant="tonal"
+                      color="warning"
+                      class="ml-2"
+                      @click="showOverridePasswordForm = true"
+                    >Set Password</v-btn>
+                  </div>
+                </v-alert>
+
+                <v-card
+                  v-if="showOverridePasswordForm"
+                  variant="outlined"
+                  class="pa-4 mb-3"
+                >
+                  <div class="text-caption text-medium-emphasis mb-3">
+                    Set a shared password that staff must enter to authorize a price override in the POS.
+                    Choose something short and memorable — this is not a personal password.
+                  </div>
+                  <v-text-field
+                    v-model="posOverridePasswordInput"
+                    :label="posOverridePasswordSet ? 'New Override Password' : 'Override Password'"
+                    :type="showOverridePasswordInput ? 'text' : 'password'"
+                    :append-inner-icon="showOverridePasswordInput ? 'mdi-eye-off' : 'mdi-eye'"
+                    @click:append-inner="showOverridePasswordInput = !showOverridePasswordInput"
+                    prepend-inner-icon="mdi-lock-outline"
+                    variant="outlined"
+                    density="comfortable"
+                    hide-details
+                    autocomplete="new-password"
+                    class="mb-3"
+                    hint="Minimum 4 characters"
+                  />
+                  <div class="d-flex gap-2">
+                    <v-btn
+                      color="orange-darken-1"
+                      variant="flat"
+                      size="small"
+                      :disabled="!posOverridePasswordInput || posOverridePasswordInput.length < 4 || overridePasswordSaving"
+                      :loading="overridePasswordSaving"
+                      @click="saveOverridePassword"
+                    >
+                      <v-icon start size="small">mdi-content-save</v-icon>
+                      Save Password
+                    </v-btn>
+                    <v-btn
+                      variant="outlined"
+                      size="small"
+                      color="grey"
+                      @click="showOverridePasswordForm = false; posOverridePasswordInput = ''"
+                    >Cancel</v-btn>
+                  </div>
+                </v-card>
 
                 <v-text-field
                   v-model.number="rescheduleWindowHours"
@@ -1043,6 +1145,14 @@ export default {
     const waitlistEnabled = ref(true)
     const posProductsEnabled = ref(true)
     const rescheduleWindowHours = ref(24)
+
+    // POS Override Password
+    const posOverridePasswordSet = ref(false)
+    const posOverridePasswordInput = ref('')
+    const showOverridePasswordInput = ref(false)
+    const showOverridePasswordForm = ref(false)
+    const overridePasswordSaving = ref(false)
+    const overridePasswordClearing = ref(false)
     const bookingCutoffDate = ref('')
     const blockedBookingDates = ref([])
     const newBlockedDate = ref({
@@ -1177,6 +1287,11 @@ export default {
         bookingCutoffDate.value = settings.booking_cutoff_date || ''
         blockedBookingDates.value = settings.blocked_booking_dates || []
 
+        // Load POS override password status
+        posOverridePasswordSet.value = settings.pos_override_password_set === true
+        showOverridePasswordForm.value = false
+        posOverridePasswordInput.value = ''
+
         // Load terms and conditions
         termsAndConditions.value = settings.terms_and_conditions || ''
         termsEnabled.value = settings.terms_enabled !== undefined ? settings.terms_enabled : false
@@ -1291,6 +1406,41 @@ export default {
         showSnackbar('Failed to save settings', 'error')
       } finally {
         saving.value = false
+      }
+    }
+
+    const saveOverridePassword = async () => {
+      if (!posOverridePasswordInput.value || posOverridePasswordInput.value.length < 4) return
+      try {
+        overridePasswordSaving.value = true
+        await companySettingService.updateSettings({
+          company_name: companyName.value,
+          pos_override_password: posOverridePasswordInput.value
+        })
+        posOverridePasswordSet.value = true
+        showOverridePasswordForm.value = false
+        posOverridePasswordInput.value = ''
+        showSnackbar('Override password saved successfully', 'success')
+      } catch (error) {
+        showSnackbar(error.message || 'Failed to save override password', 'error')
+      } finally {
+        overridePasswordSaving.value = false
+      }
+    }
+
+    const clearOverridePassword = async () => {
+      try {
+        overridePasswordClearing.value = true
+        await companySettingService.updateSettings({
+          company_name: companyName.value,
+          pos_override_password_clear: true
+        })
+        posOverridePasswordSet.value = false
+        showSnackbar('Override password removed', 'success')
+      } catch (error) {
+        showSnackbar(error.message || 'Failed to remove override password', 'error')
+      } finally {
+        overridePasswordClearing.value = false
       }
     }
 
@@ -1591,6 +1741,15 @@ export default {
       addBlockedDate,
       removeBlockedDate,
       formatDate,
+      // POS Override Password
+      posOverridePasswordSet,
+      posOverridePasswordInput,
+      showOverridePasswordInput,
+      showOverridePasswordForm,
+      overridePasswordSaving,
+      overridePasswordClearing,
+      saveOverridePassword,
+      clearOverridePassword,
       // Operating hours
       operatingHoursEnabled,
       operatingHoursOpening,

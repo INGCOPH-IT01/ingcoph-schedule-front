@@ -24,6 +24,7 @@
           v-for="(item, index) in items"
           :key="index"
           class="cart-item"
+          :class="{ 'cart-item--overridden': item.price_override != null }"
         >
           <template v-slot:prepend>
             <v-avatar color="grey-lighten-3" rounded>
@@ -39,22 +40,73 @@
             </v-avatar>
           </template>
 
-          <v-list-item-title>{{ item.product.name }}</v-list-item-title>
+          <v-list-item-title class="d-flex align-center">
+            {{ item.product.name }}
+            <v-chip
+              v-if="item.price_override != null"
+              color="orange-darken-1"
+              size="x-small"
+              variant="tonal"
+              class="ml-2"
+            >
+              <v-icon size="x-small" start>mdi-tag-edit</v-icon>
+              Override
+            </v-chip>
+          </v-list-item-title>
           <v-list-item-subtitle>
-            {{ formatPrice(item.product.price) }} × {{ item.quantity }}
+            <span
+              v-if="item.price_override != null"
+              class="text-decoration-line-through text-grey mr-1"
+            >{{ formatPrice(item.product.price) }}</span>
+            <span :class="item.price_override != null ? 'text-orange-darken-1 font-weight-medium' : ''">
+              {{ formatPrice(item.price_override != null ? item.price_override : item.product.price) }}
+            </span>
+            × {{ item.quantity }}
           </v-list-item-subtitle>
 
           <template v-slot:append>
             <div class="d-flex flex-column align-end">
-              <span class="font-weight-bold">
-                {{ formatPrice(item.product.price * item.quantity) }}
+              <span class="font-weight-bold" :class="item.price_override != null ? 'text-orange-darken-1' : ''">
+                {{ formatPrice(effectivePrice(item) * item.quantity) }}
               </span>
-              <v-btn
-                icon="mdi-close"
-                size="x-small"
-                variant="text"
-                @click="removeItem(index)"
-              ></v-btn>
+              <div class="d-flex align-center mt-1">
+                <!-- Price Override Button -->
+                <v-tooltip location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      :icon="item.price_override != null ? 'mdi-tag-edit' : 'mdi-tag-plus-outline'"
+                      size="x-small"
+                      :color="item.price_override != null ? 'orange-darken-1' : 'grey'"
+                      variant="text"
+                      @click.stop="$emit('price-override', index)"
+                    ></v-btn>
+                  </template>
+                  {{ item.price_override != null ? 'Change overridden price' : 'Override price (admin required)' }}
+                </v-tooltip>
+
+                <!-- Clear Override -->
+                <v-tooltip v-if="item.price_override != null" location="top">
+                  <template v-slot:activator="{ props }">
+                    <v-btn
+                      v-bind="props"
+                      icon="mdi-tag-remove-outline"
+                      size="x-small"
+                      color="grey"
+                      variant="text"
+                      @click.stop="$emit('clear-override', index)"
+                    ></v-btn>
+                  </template>
+                  Remove override
+                </v-tooltip>
+
+                <v-btn
+                  icon="mdi-close"
+                  size="x-small"
+                  variant="text"
+                  @click="removeItem(index)"
+                ></v-btn>
+              </div>
             </div>
           </template>
         </v-list-item>
@@ -153,11 +205,15 @@ export default {
       default: false
     }
   },
-  emits: ['update:items', 'update:discount', 'update:tax', 'clear'],
+  emits: ['update:items', 'update:discount', 'update:tax', 'clear', 'price-override', 'clear-override'],
   setup(props, { emit }) {
+    const effectivePrice = (item) => {
+      return item.price_override != null ? item.price_override : item.product.price
+    }
+
     const subtotal = computed(() => {
       return props.items.reduce((sum, item) => {
-        return sum + (item.product.price * item.quantity)
+        return sum + (effectivePrice(item) * item.quantity)
       }, 0)
     })
 
@@ -178,6 +234,7 @@ export default {
     return {
       subtotal,
       total,
+      effectivePrice,
       removeItem,
       getProductImageUrl,
       formatPrice
@@ -201,6 +258,11 @@ export default {
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   margin-bottom: 8px;
+}
+
+.cart-item--overridden {
+  border-color: rgba(230, 81, 0, 0.35);
+  background-color: rgba(255, 152, 0, 0.04);
 }
 
 .totals {

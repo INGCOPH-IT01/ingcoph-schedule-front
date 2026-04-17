@@ -155,6 +155,8 @@
             @update:discount="discount = $event"
             @update:tax="tax = $event"
             @clear="clearCart"
+            @price-override="openPriceOverride"
+            @clear-override="clearPriceOverride"
           />
 
           <!-- Checkout Section -->
@@ -488,6 +490,13 @@
       :sale="completedSale"
       :show-admin-actions="false"
     />
+
+    <!-- Price Override Dialog -->
+    <PriceOverrideDialog
+      v-model="priceOverrideDialog"
+      :item="priceOverrideItem"
+      @override-applied="applyPriceOverride"
+    />
   </div>
 </template>
 
@@ -510,13 +519,15 @@ import {
 import PosCart from '../components/PosCart.vue'
 import PosSaleDialog from '../components/PosSaleDialog.vue'
 import ProofOfPaymentUpload from '../components/ProofOfPaymentUpload.vue'
+import PriceOverrideDialog from '../components/PriceOverrideDialog.vue'
 
 export default {
   name: 'PosSystem',
   components: {
     PosCart,
     PosSaleDialog,
-    ProofOfPaymentUpload
+    ProofOfPaymentUpload,
+    PriceOverrideDialog
   },
   setup() {
     const products = ref([])
@@ -554,6 +565,10 @@ export default {
       color: 'success'
     })
 
+    // Price override dialog state
+    const priceOverrideDialog = ref(false)
+    const priceOverrideItem = ref(null)
+
     const paymentMethods = [
       { title: 'Cash', value: 'cash' },
       { title: 'GCash', value: 'gcash' },
@@ -584,9 +599,13 @@ export default {
       return filtered
     })
 
+    const effectiveItemPrice = (item) => {
+      return item.price_override != null ? item.price_override : item.product.price
+    }
+
     const total = computed(() => {
       const subtotal = cartItems.value.reduce((sum, item) => {
-        return sum + (item.product.price * item.quantity)
+        return sum + (effectiveItemPrice(item) * item.quantity)
       }, 0)
       return subtotal - discount.value + tax.value
     })
@@ -748,6 +767,24 @@ export default {
       }
     }
 
+    const openPriceOverride = (index) => {
+      priceOverrideItem.value = { ...cartItems.value[index], _cartIndex: index }
+      priceOverrideDialog.value = true
+    }
+
+    const applyPriceOverride = ({ itemIndex, newPrice }) => {
+      if (itemIndex == null || itemIndex < 0 || itemIndex >= cartItems.value.length) return
+      cartItems.value[itemIndex].price_override = newPrice
+      showSnackbar(`Price overridden to ${formatPrice(newPrice)}`, 'warning')
+    }
+
+    const clearPriceOverride = (index) => {
+      if (index == null || index < 0 || index >= cartItems.value.length) return
+      cartItems.value[index].price_override = null
+      cartItems.value[index].override_by = null
+      showSnackbar('Price override removed', 'info')
+    }
+
     const processSale = async () => {
       if (cartItems.value.length === 0) {
         showSnackbar('Cart is empty', 'error')
@@ -774,7 +811,8 @@ export default {
           items: cartItems.value.map(item => ({
             product_id: item.product.id,
             quantity: item.quantity,
-            discount: item.discount || 0
+            discount: item.discount || 0,
+            ...(item.price_override != null ? { override_price: item.price_override } : {})
           })),
           discount: discount.value,
           tax: tax.value,
@@ -929,9 +967,14 @@ export default {
       searchingBookings,
       hasSearched,
       selectedBookingDetails,
+      priceOverrideDialog,
+      priceOverrideItem,
       getStockColor,
       addToCart,
       clearCart,
+      openPriceOverride,
+      applyPriceOverride,
+      clearPriceOverride,
       processSale,
       searchBookings,
       selectBooking,
