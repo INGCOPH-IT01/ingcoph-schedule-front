@@ -7,10 +7,13 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
-  }
+  },
+  // 30-second timeout — gives mobile connections room to breathe while
+  // still surfacing real failures (network drop, server error, etc.)
+  timeout: 30000
 })
 
-// Request interceptor to add auth token
+// Request interceptor: attach auth token and handle FormData
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
@@ -18,32 +21,54 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
 
-    // If data is FormData, remove Content-Type header to let browser set it with boundary
+    // Let the browser set the correct Content-Type (with boundary) for multipart
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
     }
 
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor to handle errors
+// Response interceptor: handle 401 and add retry logic for transient errors
 api.interceptors.response.use(
-  (response) => {
-    return response
-  },
-  (error) => {
+  (response) => response,
+  async (error) => {
+    const config = error.config
+
+    // 401 — clear session and redirect to login
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
-      // Only redirect if not already on login page to prevent refresh loops
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
+      return Promise.reject(error)
     }
+
+    // Retry on network errors or 5xx responses — common on mobile (connection drops,
+    // brief offline moments, server blips). Do NOT retry POST /cart/checkout to avoid
+    // duplicate bookings; do not retry if already retried.
+    const isCheckout = config?.url?.includes('/cart/checkout')
+    const isRetriable =
+      !isCheckout &&
+      !config?._retried &&
+      (
+        !error.response ||                            // network error / timeout
+        error.response.status === 502 ||
+        error.response.status === 503 ||
+        error.response.status === 504 ||
+        error.code === 'ECONNABORTED'                 // axios timeout
+      )
+
+    if (isRetriable) {
+      config._retried = true
+      // Wait 2 seconds before retrying (gives the connection a moment to stabilise)
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      return api(config)
+    }
+
     return Promise.reject(error)
   }
 )
