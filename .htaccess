@@ -1,26 +1,40 @@
 # Force browsers to check for new versions
 <IfModule mod_headers.c>
-  # Don't cache the HTML file
+  # Don't cache the HTML shell — critical for SPA auto-updates on mobile Chrome.
+  # Chrome on Android aggressively caches resources; these headers ensure a stale
+  # app shell never blocks clients from getting the latest JS/CSS references.
   <FilesMatch "\.(html|htm)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "0"
+    # Prevent Chrome's back/forward cache from serving a stale shell
+    Header set Vary "Accept-Encoding"
   </FilesMatch>
 
-  # Always fetch a fresh version.json
+  # Always fetch a fresh version.json so the version-check utility works correctly
   <Files "version.json">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "0"
   </Files>
 
-  # Cache static assets with fingerprinting for 1 year
-  <FilesMatch "\.(js|css|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot)$">
+  # Hashed static assets are safe to cache for 1 year (immutable)
+  <FilesMatch "\.(js|css|woff|woff2|ttf|eot)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
+
+  # Images/icons are hashed too but use a shorter TTL so custom logos etc. update faster
+  <FilesMatch "\.(jpg|jpeg|png|gif|ico|svg|webp)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+
+  # Security headers (good practice and helps Chrome flag fewer warnings)
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
 
-# Redirect everything to index.html for Vue Router
+# Redirect everything to index.html for Vue Router (SPA)
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
@@ -28,4 +42,12 @@
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]
+</IfModule>
+
+# Increase upload size limits for proof-of-payment file uploads on mobile
+<IfModule mod_php.c>
+  php_value upload_max_filesize 20M
+  php_value post_max_size 25M
+  php_value max_execution_time 60
+  php_value max_input_time 60
 </IfModule>

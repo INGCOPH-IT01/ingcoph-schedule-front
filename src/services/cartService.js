@@ -61,11 +61,43 @@ export const cartService = {
   },
 
   /**
-   * Checkout cart items
+   * Checkout cart items.
+   * Sends as multipart/form-data when a proof_of_payment File is provided,
+   * which is far more reliable on mobile connections than a base64 JSON body.
+   * Falls back to JSON for backwards compatibility (e.g. admin skip-payment flows).
    * @param {Object} paymentData - Payment information
+   * @param {File|null} paymentData.proof_of_payment_file - Raw File object (preferred on mobile)
+   * @param {string|null} paymentData.proof_of_payment   - Base64 string (legacy fallback)
    */
   async checkout(paymentData) {
-    const response = await api.post('/cart/checkout', paymentData)
+    const { proof_of_payment_file, ...rest } = paymentData
+
+    if (proof_of_payment_file) {
+      const formData = new FormData()
+      const files = Array.isArray(proof_of_payment_file) ? proof_of_payment_file : [proof_of_payment_file]
+      files.forEach(file => formData.append('proof_of_payment_files[]', file))
+
+      if (rest.payment_method) formData.append('payment_method', rest.payment_method)
+      if (rest.payment_reference_number) formData.append('payment_reference_number', rest.payment_reference_number)
+      if (rest.selected_items) {
+        rest.selected_items.forEach(id => formData.append('selected_items[]', id))
+      }
+      if (rest.skip_payment !== undefined) formData.append('skip_payment', rest.skip_payment ? '1' : '0')
+      if (rest.pos_amount !== undefined) formData.append('pos_amount', rest.pos_amount)
+      if (rest.booking_amount !== undefined) formData.append('booking_amount', rest.booking_amount)
+      if (rest.pos_items) formData.append('pos_items', JSON.stringify(rest.pos_items))
+
+      const response = await api.post('/cart/checkout', formData, {
+        // Let browser set Content-Type with the correct boundary
+        headers: { 'Content-Type': 'multipart/form-data' },
+        // Longer timeout for file uploads on slow mobile connections
+        timeout: 60000
+      })
+      return response.data
+    }
+
+    // No file — use JSON (admin skip-payment, etc.)
+    const response = await api.post('/cart/checkout', rest)
     return response.data
   },
 

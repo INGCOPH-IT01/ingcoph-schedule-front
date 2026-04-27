@@ -502,6 +502,7 @@ import { authService } from '../services/authService'
 import { formatDateLong } from '../utils/formatters'
 import Swal from 'sweetalert2'
 import QRCode from 'qrcode'
+import { setCriticalActionInProgress } from '../utils/versionCheck'
 
 export default {
   name: 'BookingCart',
@@ -1053,27 +1054,23 @@ export default {
       }
 
       checkingOut.value = true
+      // Block the version-check reload prompt while checkout is running
+      setCriticalActionInProgress(true)
       try {
         // Get only selected cart items
         const selectedItems = groupedCartItems.value
           .filter(group => selectedGroups.value.includes(group.id))
           .flatMap(group => group.originalItems)
 
-        // Convert proof of payment to base64
-        const file = Array.isArray(proofOfPayment.value) ? proofOfPayment.value[0] : proofOfPayment.value
-        const reader = new FileReader()
-
-        const proofBase64 = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result)
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
+        // Pass the raw File directly so cartService can use multipart/form-data
+        // (much more reliable on mobile than encoding to base64 and sending as JSON)
+        const proofFile = Array.isArray(proofOfPayment.value) ? proofOfPayment.value[0] : proofOfPayment.value
 
         // Checkout via cart API with selected items only
         const response = await cartService.checkout({
           payment_method: 'gcash',
           payment_reference_number: paymentReferenceNumber.value,
-          proof_of_payment: proofBase64,
+          proof_of_payment_file: proofFile,
           selected_items: selectedItems.map(item => item.id)
         })
 
@@ -1132,6 +1129,8 @@ export default {
         })
       } finally {
         checkingOut.value = false
+        // Release the version-check hold now that checkout is done
+        setCriticalActionInProgress(false)
       }
     }
 
