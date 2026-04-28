@@ -97,7 +97,12 @@ export const cartService = {
     }
 
     // No file — use JSON (admin skip-payment, etc.)
-    const response = await api.post('/cart/checkout', rest)
+    // pos_items must be a JSON string so the backend treats it consistently
+    const payload = { ...rest }
+    if (Array.isArray(payload.pos_items)) {
+      payload.pos_items = JSON.stringify(payload.pos_items)
+    }
+    const response = await api.post('/cart/checkout', payload)
     return response.data
   },
 
