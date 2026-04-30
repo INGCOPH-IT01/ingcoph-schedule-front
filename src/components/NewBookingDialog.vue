@@ -433,14 +433,20 @@
                       <v-card variant="outlined" class="pa-3">
                         <div class="d-flex align-center justify-space-between mb-2">
                           <div>
-                            <h6 class="text-subtitle-2 font-weight-bold">
+                            <h6 class="text-subtitle-2 font-weight-bold d-flex align-center gap-1">
                               {{ rateGroup.rateName }}
+                              <v-chip
+                                v-if="rateGroup.isHolidayOverride"
+                                color="orange"
+                                size="x-small"
+                                class="ml-1"
+                              >Holiday</v-chip>
                             </h6>
                             <div v-if="rateGroup.rateDescription" class="text-caption text-grey">
                               {{ rateGroup.rateDescription }}
                             </div>
                           </div>
-                          <v-chip color="info" size="small">
+                          <v-chip :color="rateGroup.isHolidayOverride ? 'orange' : 'info'" size="small">
                             ₱{{ rateGroup.pricePerHour.toFixed(2) }}/hr
                           </v-chip>
                         </div>
@@ -1745,17 +1751,15 @@ export default {
         const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
         if (court) {
           courtData.slots.forEach(slot => {
-            // Create proper datetime objects with the selected date
+            // Use the server-computed price from availableSlots (includes holiday overrides)
+            const slotPrice = slot.price
             const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
 
-            // Get the pricing rule that applies to this slot
-            const pricePerHour = getPriceForDateTime(startDateTime)
-            const slotPrice = calculatePriceForRange(startDateTime, endDateTime)
-
-            // Find the pricing rule name
-            let rateName = 'Standard Rate'
+            // Determine the rate name — check if the slot price matches a time-based rule
+            // or if it's a holiday override
+            let rateName = 'Holiday Rate'
             let rateDescription = null
+            let isHolidayOverride = false
 
             if (selectedSport.value?.time_based_pricing) {
               const pricingRules = selectedSport.value.time_based_pricing
@@ -1765,30 +1769,48 @@ export default {
               const dayOfWeek = startDateTime.getDay()
               const time = startDateTime.toTimeString().substring(0, 8)
 
+              let matchedRule = null
               for (const rule of pricingRules) {
-                // Check if the rule has become effective yet
                 if (rule.effective_date) {
                   const effectiveDate = new Date(rule.effective_date)
-                  if (startDateTime < effectiveDate) {
-                    continue // Skip rules that haven't reached their effective date
-                  }
+                  if (startDateTime < effectiveDate) continue
                 }
-
                 const daysOfWeek = rule.days_of_week
-                if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(dayOfWeek)) {
-                  continue
-                }
-
+                if (daysOfWeek && daysOfWeek.length > 0 && !daysOfWeek.includes(dayOfWeek)) continue
                 const ruleStart = rule.start_time.length === 5 ? `${rule.start_time}:00` : rule.start_time
                 const ruleEnd = rule.end_time.length === 5 ? `${rule.end_time}:00` : rule.end_time
-
                 if (time >= ruleStart && time < ruleEnd) {
-                  rateName = rule.name
-                  rateDescription = `${formatTime(rule.start_time)} - ${formatTime(rule.end_time)}`
+                  matchedRule = rule
                   break
                 }
               }
+
+              if (matchedRule && parseFloat(slotPrice) === parseFloat(matchedRule.price_per_hour)) {
+                // Price matches the time-based rule — no holiday override active
+                rateName = matchedRule.name
+                rateDescription = `${formatTime(matchedRule.start_time)} - ${formatTime(matchedRule.end_time)}`
+              } else if (matchedRule) {
+                // Price differs from the matched time-based rule — holiday override is in effect
+                isHolidayOverride = true
+                rateName = 'Holiday Rate'
+                rateDescription = null
+              } else {
+                // No time-based rule matched — check if it's a holiday override or just default
+                const defaultPrice = parseFloat(selectedSport.value.price_per_hour || 0)
+                if (parseFloat(slotPrice) !== defaultPrice) {
+                  isHolidayOverride = true
+                  rateName = 'Holiday Rate'
+                } else {
+                  rateName = 'Standard Rate'
+                }
+              }
+            } else {
+              const defaultPrice = parseFloat(selectedSport.value?.price_per_hour || 0)
+              rateName = parseFloat(slotPrice) !== defaultPrice ? 'Holiday Rate' : 'Standard Rate'
             }
+
+            // pricePerHour for display — for a 1-hour slot this equals slotPrice
+            const pricePerHour = slotPrice
 
             // Create a unique key for this rate
             const rateKey = `${pricePerHour}-${rateName}`
@@ -1798,6 +1820,7 @@ export default {
                 rateName,
                 rateDescription,
                 pricePerHour,
+                isHolidayOverride,
                 slots: [],
                 totalPrice: 0
               })
@@ -1843,13 +1866,8 @@ export default {
         const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
         if (court) {
           courtData.slots.forEach(slot => {
-            // Create proper datetime objects with the selected date
-            const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-            const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-
-            // Use time-based pricing calculation
-            const slotPrice = calculatePriceForRange(startDateTime, endDateTime)
-            total += slotPrice
+            // Use server-computed price (includes holiday overrides)
+            total += slot.price
           })
         }
       })
@@ -1940,12 +1958,8 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court && courtData.slots && courtData.slots.length > 0) {
             courtData.slots.forEach(slot => {
-              // Create proper datetime objects with the selected date for accurate pricing
-              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-
-              // Use time-based pricing calculation
-              const price = calculatePriceForRange(startDateTime, endDateTime)
+              // Use the server-computed price from availableSlots (includes holiday pricing overrides)
+              const price = slot.price
 
               const numPlayers = parseInt(numberOfPlayers.value) || 1
 
@@ -2269,12 +2283,8 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court) {
             courtData.slots.forEach(slot => {
-              // Create proper datetime objects with the selected date for accurate pricing
-              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-
-              // Use time-based pricing calculation
-              const price = calculatePriceForRange(startDateTime, endDateTime)
+              // Use the server-computed price from availableSlots (includes holiday pricing overrides)
+              const price = slot.price
 
               const numPlayers = parseInt(numberOfPlayers.value) || 1
 
@@ -2433,9 +2443,8 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court) {
             courtData.slots.forEach(slot => {
-              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-              const price = calculatePriceForRange(startDateTime, endDateTime)
+              // Use the server-computed price from availableSlots (includes holiday pricing overrides)
+              const price = slot.price
               const numPlayers = parseInt(numberOfPlayers.value) || 1
 
               const cartItem = {
@@ -2568,12 +2577,8 @@ export default {
           const court = filteredCourts.value.find(c => c.id === parseInt(courtId))
           if (court) {
             courtData.slots.forEach(slot => {
-              // Create proper datetime objects with the selected date for accurate pricing
-              const startDateTime = new Date(`${selectedDate.value}T${slot.start}:00`)
-              const endDateTime = new Date(`${selectedDate.value}T${slot.end}:00`)
-
-              // Use time-based pricing calculation
-              const price = calculatePriceForRange(startDateTime, endDateTime)
+              // Use the server-computed price from availableSlots (includes holiday pricing overrides)
+              const price = slot.price
 
               const numPlayers = parseInt(numberOfPlayers.value) || 1
 
