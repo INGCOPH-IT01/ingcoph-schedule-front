@@ -1573,9 +1573,10 @@ export default {
 
       loadingSlots.value = true
       try {
-        // Load time slots for all selected courts
+        // Load time slots for all selected courts, using the selected sport for pricing
+        const sportId = selectedSport.value?.id ?? null
         const slotsPromises = selectedCourts.value.map(court =>
-          courtService.getAvailableSlots(court.id, selectedDate.value)
+          courtService.getAvailableSlots(court.id, selectedDate.value, 1, sportId)
             .then(slots => ({ courtId: court.id, slots }))
         )
 
@@ -1615,9 +1616,10 @@ export default {
 
       loadingSlots.value = true
       try {
-        // Load time slots for all filtered courts
+        // Load time slots for all filtered courts, using the selected sport for pricing
+        const sportId = selectedSport.value?.id ?? null
         const slotsPromises = filteredCourts.value.map(court =>
-          courtService.getAvailableSlots(court.id, selectedDate.value)
+          courtService.getAvailableSlots(court.id, selectedDate.value, 1, sportId)
             .then(slots => ({ courtId: court.id, slots }))
         )
 

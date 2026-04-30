@@ -118,11 +118,11 @@ export const courtService = {
     }
   },
 
-  async getAvailableSlots(courtId, date, duration = 1) {
+  async getAvailableSlots(courtId, date, duration = 1, sportId = null) {
     try {
-      const response = await api.get(`/courts/${courtId}/available-slots`, {
-        params: { date, duration }
-      })
+      const params = { date, duration }
+      if (sportId) params.sport_id = sportId
+      const response = await api.get(`/courts/${courtId}/available-slots`, { params })
       return response.data.data
     } catch (error) {
       throw new Error('Failed to fetch available slots')
