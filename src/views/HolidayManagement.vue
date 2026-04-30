@@ -99,6 +99,15 @@
                     >
                       No Operations
                     </v-chip>
+                    <v-chip
+                      v-else-if="holiday.sport_pricing && holiday.sport_pricing.length > 0"
+                      size="x-small"
+                      color="success"
+                      variant="flat"
+                      class="ml-2"
+                    >
+                      {{ holiday.sport_pricing.length }} sport price{{ holiday.sport_pricing.length > 1 ? 's' : '' }} set
+                    </v-chip>
                   </v-list-item-subtitle>
 
                   <v-list-item-subtitle v-if="holiday.description" class="mt-1">
@@ -106,6 +115,15 @@
                   </v-list-item-subtitle>
 
                   <template v-slot:append>
+                    <v-btn
+                      v-if="!holiday.no_business_operations"
+                      icon="mdi-currency-usd"
+                      size="small"
+                      variant="text"
+                      color="success"
+                      title="Set Holiday Pricing"
+                      @click="openPricingDialog(holiday)"
+                    ></v-btn>
                     <v-btn
                       icon="mdi-pencil"
                       size="small"
@@ -205,6 +223,80 @@
       </v-card>
     </v-dialog>
 
+    <!-- Holiday Sport Pricing Dialog -->
+    <v-dialog v-model="pricingDialogOpen" max-width="640px">
+      <v-card>
+        <v-card-title class="bg-success text-white">
+          <v-icon class="mr-2">mdi-currency-usd</v-icon>
+          Holiday Pricing — {{ pricingHoliday?.name }}
+        </v-card-title>
+
+        <v-card-text class="pt-4">
+          <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+            Set special pricing per sport for <strong>{{ pricingHoliday ? formatDate(pricingHoliday.date) : '' }}</strong>.
+            Leave a field blank to use the sport's regular pricing on this day.
+          </v-alert>
+
+          <div v-if="pricingLoading" class="text-center py-6">
+            <v-progress-circular indeterminate color="success"></v-progress-circular>
+          </div>
+
+          <v-table v-else density="comfortable">
+            <thead>
+              <tr>
+                <th>Sport</th>
+                <th>Holiday Price / hr</th>
+                <th class="text-caption text-grey">Regular Price / hr</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in pricingRows" :key="row.sport_id">
+                <td>
+                  <div class="d-flex align-center">
+                    <v-icon size="18" class="mr-2" color="primary">mdi-stadium</v-icon>
+                    {{ row.sport_name }}
+                  </div>
+                </td>
+                <td style="width: 180px">
+                  <v-text-field
+                    v-model="row.price_per_hour"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Use default"
+                    prefix="₱"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                    class="my-1"
+                  ></v-text-field>
+                </td>
+                <td class="text-grey text-caption">
+                  ₱{{ Number(row.default_price).toFixed(2) }}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+
+          <v-alert v-if="pricingError" type="error" variant="tonal" class="mt-4">
+            {{ pricingError }}
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn text @click="pricingDialogOpen = false">Cancel</v-btn>
+          <v-btn
+            color="success"
+            :loading="pricingSaving"
+            @click="savePricing"
+          >
+            Save Pricing
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- Delete Confirmation Dialog -->
     <v-dialog v-model="deleteDialogOpen" max-width="500px">
       <v-card>
@@ -233,6 +325,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { courtService } from '../services/courtService'
 
 const holidays = ref([])
 const loading = ref(false)
@@ -255,6 +348,14 @@ const formData = ref({
   is_recurring: false,
   no_business_operations: false
 })
+
+// Pricing dialog state
+const pricingDialogOpen = ref(false)
+const pricingHoliday = ref(null)
+const pricingRows = ref([])
+const pricingLoading = ref(false)
+const pricingSaving = ref(false)
+const pricingError = ref('')
 
 // Load holidays
 const loadHolidays = async () => {
@@ -404,17 +505,93 @@ const deleteHoliday = async () => {
   }
 }
 
+// Open pricing dialog — load all sports, pre-fill any existing overrides
+const openPricingDialog = async (holiday) => {
+  pricingHoliday.value = holiday
+  pricingDialogOpen.value = true
+  pricingLoading.value = true
+  pricingError.value = ''
+  pricingRows.value = []
+
+  try {
+    const [sports, existingRes] = await Promise.all([
+      courtService.getSports(),
+      fetch(`${import.meta.env.VITE_API_URL}/api/admin/holidays/${holiday.id}/sport-pricing`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Accept': 'application/json'
+        }
+      })
+    ])
+
+    const existingData = await existingRes.json()
+    const existing = existingData.success ? existingData.data : []
+
+    pricingRows.value = sports.map(sport => {
+      const override = existing.find(e => e.sport_id === sport.id)
+      return {
+        sport_id: sport.id,
+        sport_name: sport.name,
+        default_price: sport.price_per_hour,
+        price_per_hour: override ? String(override.price_per_hour) : ''
+      }
+    })
+  } catch (err) {
+    pricingError.value = 'Failed to load pricing data'
+  } finally {
+    pricingLoading.value = false
+  }
+}
+
+// Save holiday sport pricing
+const savePricing = async () => {
+  pricingSaving.value = true
+  pricingError.value = ''
+
+  try {
+    const payload = pricingRows.value.map(row => ({
+      sport_id: row.sport_id,
+      price_per_hour: row.price_per_hour === '' ? null : parseFloat(row.price_per_hour)
+    }))
+
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/admin/holidays/${pricingHoliday.value.id}/sport-pricing`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ pricing: payload })
+      }
+    )
+
+    const data = await response.json()
+
+    if (response.ok) {
+      successMessage.value = 'Holiday pricing saved successfully'
+      successSnackbar.value = true
+      pricingDialogOpen.value = false
+      loadHolidays()
+    } else {
+      pricingError.value = data.message || 'Failed to save pricing'
+    }
+  } catch (err) {
+    pricingError.value = 'Error saving pricing'
+  } finally {
+    pricingSaving.value = false
+  }
+}
+
 // Format date
 const formatDate = (date) => {
   if (!date) return ''
 
-  // If the string is in YYYY-MM-DD format (date-only, no time component),
-  // parse it as local date to avoid timezone shift issues
   const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/
   let d
   if (dateOnlyPattern.test(date)) {
     const [year, month, day] = date.split('-').map(Number)
-    // Create date in local timezone (month is 0-indexed)
     d = new Date(year, month - 1, day)
   } else {
     d = new Date(date)
@@ -428,7 +605,6 @@ const formatDate = (date) => {
   })
 }
 
-// Load holidays on mount
 onMounted(() => {
   loadHolidays()
 })
